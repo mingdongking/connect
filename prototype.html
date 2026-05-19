@@ -569,7 +569,7 @@ function CmdSelectField({ label, value, onChange, children }) {
     </div>
   );
 }
-function ManualTab() {
+function ManualTab({ sel }) {
   const [commission, setCommission] = useState("commission");
   const [dispatchTasks, setDispatchTasks] = useState(true);
   const [directTasks, setDirectTasks] = useState(true);
@@ -605,6 +605,11 @@ function ManualTab() {
       </div>
     </div>
   );
+
+  // 맵에서 로봇 선택 시 자동 동기화
+  useEffect(()=>{
+    if(sel){ setLocalFleet(sel.fleet); setLocalRobot(sel.id); }
+  },[sel?.id]);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -1737,6 +1742,42 @@ function MonitoringHome({ onNavigate }) {
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {/* ── 선택된 대상 표시 ── */}
+                {(sel||selectedNodeId||selectedEdgeId) ? (
+                  <div className="rounded-lg border bg-white p-2.5 flex items-center gap-2.5"
+                    style={{borderColor: sel ? (fleets.find(f=>f.id===sel.fleet)?.color+"60"||"#e2e8f0") : selectedNodeId ? "#bfdbfe" : "#e9d5ff"}}>
+                    {sel ? (<>
+                      <div className="w-8 h-8 rounded-lg grid place-items-center text-white shrink-0" style={{background:fleets.find(f=>f.id===sel.fleet)?.color||"#64748b"}}>
+                        <Icon name={sel.id.startsWith("Part")?"Cog":"Bot"} size={14}/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] font-bold text-slate-900">{sel.id}</span>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{background:statusMap[sel.st]?.bg,color:statusMap[sel.st]?.fg}}>{statusMap[sel.st]?.label}</span>
+                        </div>
+                        <div className="text-[10.5px] text-slate-500 tnum">{fleets.find(f=>f.id===sel.fleet)?.name} {"·"} 배터리 {sel.battery}%</div>
+                      </div>
+                    </>) : selectedNodeId ? (<>
+                      <div className="w-8 h-8 rounded-lg bg-blue-600 grid place-items-center text-white shrink-0"><Icon name="MapPin" size={14}/></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-bold text-slate-900">{mapNodes.find(n=>n.id===selectedNodeId)?.label}</div>
+                        <div className="text-[10.5px] text-slate-500 tnum">Node {selectedNodeId}</div>
+                      </div>
+                    </>) : (<>
+                      <div className="w-8 h-8 rounded-lg bg-purple-600 grid place-items-center text-white shrink-0"><Icon name="ArrowRight" size={14}/></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-bold text-slate-900">{selectedEdgeId}</div>
+                        <div className="text-[10.5px] text-slate-500">엣지 선택됨</div>
+                      </div>
+                    </>)}
+                    <button onClick={()=>{setFocusRobot(null);setSelectedNodeId(null);setSelectedEdgeId(null);}} className="w-6 h-6 grid place-items-center rounded hover:bg-slate-100 text-slate-400 shrink-0"><Icon name="X" size={11}/></button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-200 p-2.5 flex items-center gap-2 text-[11.5px] text-slate-400">
+                    <Icon name="MousePointerClick" size={13}/>
+                    맵에서 로봇 / 노드 / 엣지를 클릭하세요
+                  </div>
+                )}
                 {/* ── 노드 Properties ── */}
                 {selectedNodeId && (() => {
                   const node = mapNodes.find(n=>n.id===selectedNodeId);
@@ -1955,7 +1996,7 @@ function MonitoringHome({ onNavigate }) {
               </div>
             )}
             {/* ── Manual 탭 ── */}
-            {cmdTab==="manual"&&<ManualTab/>}
+            {cmdTab==="manual"&&<ManualTab sel={sel}/>}
           </div>
       </div>
       </div>
