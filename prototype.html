@@ -218,15 +218,19 @@ const floors = [
   { id:"p5-3f", label:"P5 라인 3층", robots:5 },
 ];
 const actionTypes = [
-  { id:"MOVE",   label:"이동",   icon:"Navigation",      color:"#2563eb", defaultDuration:8,  fleets:["amr","agv"] },
-  { id:"LIFT",   label:"리프트", icon:"ArrowUpFromLine", color:"#0891b2", defaultDuration:4,  fleets:["amr","arm"] },
-  { id:"LOAD",   label:"상차",   icon:"PackagePlus",     color:"#059669", defaultDuration:6,  fleets:["amr","agv","arm"] },
-  { id:"UNLOAD", label:"하차",   icon:"PackageMinus",    color:"#d97706", defaultDuration:6,  fleets:["amr","agv","arm"] },
-  { id:"SCAN",   label:"스캔",   icon:"ScanLine",        color:"#7c3aed", defaultDuration:3,  fleets:["amr","arm"] },
-  { id:"WAIT",   label:"대기",   icon:"Pause",           color:"#64748b", defaultDuration:5,  fleets:["amr","agv","arm"] },
-  { id:"CHARGE", label:"충전",   icon:"BatteryCharging", color:"#16a34a", defaultDuration:20, fleets:["amr","agv"] },
-  { id:"GRIP",   label:"그립",   icon:"Hand",            color:"#9333ea", defaultDuration:2,  fleets:["arm"] },
-  { id:"DOCK",   label:"도킹",   icon:"Anchor",          color:"#0d9488", defaultDuration:4,  fleets:["amr","agv"] },
+  { id:"MOVE",    label:"이동",     icon:"Navigation",      color:"#2563eb", defaultDuration:8,  fleets:["amr","agv","semi"] },
+  { id:"LIFT",    label:"리프트",   icon:"ArrowUpFromLine", color:"#0891b2", defaultDuration:4,  fleets:["amr","arm"] },
+  { id:"LOAD",    label:"상차",     icon:"PackagePlus",     color:"#059669", defaultDuration:6,  fleets:["amr","agv","arm"] },
+  { id:"UNLOAD",  label:"하차",     icon:"PackageMinus",    color:"#d97706", defaultDuration:6,  fleets:["amr","agv","arm"] },
+  { id:"SCAN",    label:"스캔",     icon:"ScanLine",        color:"#7c3aed", defaultDuration:3,  fleets:["amr","arm"] },
+  { id:"WAIT",    label:"대기",     icon:"Pause",           color:"#64748b", defaultDuration:5,  fleets:["amr","agv","arm","semi"] },
+  { id:"CHARGE",  label:"충전",     icon:"BatteryCharging", color:"#16a34a", defaultDuration:20, fleets:["amr","agv","semi"] },
+  { id:"GRIP",    label:"그립",     icon:"Hand",            color:"#9333ea", defaultDuration:2,  fleets:["arm"] },
+  { id:"DOCK",    label:"도킹",     icon:"Anchor",          color:"#0d9488", defaultDuration:4,  fleets:["amr","agv"] },
+  { id:"HANDLE",  label:"핸들링",   icon:"Workflow",        color:"#16a34a", defaultDuration:10, fleets:["semi"] },
+  { id:"ALIGN",   label:"얼라인",   icon:"SlidersHorizontal",color:"#0ea5e9",defaultDuration:5, fleets:["semi"] },
+  { id:"TRANSFER",label:"이송",     icon:"ArrowLeftRight",  color:"#8b5cf6", defaultDuration:8,  fleets:["semi"] },
+  { id:"INSPECT", label:"검사",     icon:"Search",          color:"#f59e0b", defaultDuration:6,  fleets:["semi"] },
 ];
 const mapEdges = [
   {id:"E-01", from:"MN-1", to:"MN-2",  dir:"bi"},
@@ -241,6 +245,11 @@ const mapEdges = [
   {id:"E-10", from:"MN-9", to:"MN-10", dir:"bi"},
   {id:"E-11", from:"MN-4", to:"MN-11", dir:"bi"},
   {id:"E-12", from:"MN-11",to:"MN-12", dir:"bi"},
+  {id:"E-13", from:"MN-13",to:"MN-14", dir:"bi"},
+  {id:"E-14", from:"MN-14",to:"MN-15", dir:"bi"},
+  {id:"E-15", from:"MN-15",to:"MN-16", dir:"bi"},
+  {id:"E-16", from:"MN-16",to:"MN-17", dir:"bi"},
+  {id:"E-17", from:"MN-15",to:"MN-18", dir:"bi"},
 ];
 const mapNodes = [
   { id:"MN-1",  label:"A동 입고대",   x:110, y:110, fleets:["amr","agv"] },
@@ -255,6 +264,12 @@ const mapNodes = [
   { id:"MN-10", label:"충전소 2",    x:200, y:360, fleets:["amr","agv"] },
   { id:"MN-11", label:"ARM 워크셀 A",x:360, y:360, fleets:["arm"] },
   { id:"MN-12", label:"ARM 워크셀 B",x:430, y:360, fleets:["arm"] },
+  { id:"MN-13", label:"SEMI 로드포트 A", x:560, y:90,  fleets:["semi"] },
+  { id:"MN-14", label:"SEMI 로드포트 B", x:660, y:90,  fleets:["semi"] },
+  { id:"MN-15", label:"카세트 스테이션", x:720, y:190, fleets:["semi"] },
+  { id:"MN-16", label:"클린룸 반입구",   x:720, y:280, fleets:["semi"] },
+  { id:"MN-17", label:"검사 스테이션",   x:620, y:360, fleets:["semi"] },
+  { id:"MN-18", label:"SEMI 충전소",     x:560, y:430, fleets:["semi"] },
 ];
 let recipes = [
   { id:"rcp-tool",  name:"Delivery-Tool 기본 템플릿",  fleet:"amr",  status:"published", locked:true,
