@@ -640,7 +640,7 @@ function ManualTab() {
           <div className="space-y-1.5">
             <div className="text-[11px] font-medium text-slate-500">Fleet</div>
             <div className="relative">
-              <select value={manualFleet} onChange={e=>onFleetChange(e.target.value)}
+              <select value="" onChange={()=>{}}
                 className="h-8 w-full pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] font-medium text-slate-800 outline-none focus:border-blue-400 appearance-none cursor-pointer">
                 {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
@@ -846,7 +846,7 @@ function MonitoringHome({ onNavigate }) {
           className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group relative"
           title="더블클릭 → 통계/분석">
           <div className="text-[11.5px] text-slate-500 mb-2">Fleet 운영 현황</div>
-          {fleets.map(f=>{const fr=robots.filter(r=>r.fleet===f.id),run=fr.filter(r=>r.status==="run").length,pct=Math.round(run/fr.length*100);return(
+          {fleets.map(f=>{const fr=robots.filter(r=>r.fleet===f.id),run=fr.filter(r=>r.st==="run").length,pct=Math.round(run/fr.length*100);return(
             <div key={f.id} className="mb-2">
               <div className="flex items-center gap-2 text-[11.5px] mb-1"><span className="text-slate-700">{f.name}</span><span className="ml-auto tnum font-medium text-slate-900">{run}/{fr.length}</span></div>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:pct+"%",background:f.color}}/></div>
@@ -1721,7 +1721,7 @@ function MonitoringHome({ onNavigate }) {
                 <CmdSection icon="Square" tone="rose" title="작업 중단하기" subtitle="진행 중인 작업을 중단합니다">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet"><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇">{robots.filter(r=>r.fleet===cmdFleet&&r.status==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
+                    <CmdSelectField label="로봇">{robots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
                   </div>
                   <div className="flex items-center gap-1.5">{["정상 종료","강제 정지"].map((m,i)=><button key={m} className={"flex-1 h-6 rounded text-[10.5px] font-medium border "+(i===0?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{m}</button>)}</div>
                   <button className="w-full h-8 mt-2 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Square" size={12}/> 작업 중단하기</button>
@@ -2782,7 +2782,7 @@ function AnalyticsView() {
   const taskTotal   = sumTask(selFleets);
   const errTotal    = sumErr(selFleets);
   const totalRobots = robots.filter(r=>selFleets.includes(r.fleet)).length;
-  const runRobots   = robots.filter(r=>selFleets.includes(r.fleet)&&r.status==="run").length;
+  const runRobots   = robots.filter(r=>selFleets.includes(r.fleet)&&r.st==="run").length;
   const uptimePct   = totalRobots ? Math.round(runRobots/totalRobots*100) : 0;
   const totalTasks  = taskTotal.success+taskTotal.failed+taskTotal.running+taskTotal.queued;
   const successPct  = totalTasks ? Math.round(taskTotal.success/totalTasks*100) : 0;
