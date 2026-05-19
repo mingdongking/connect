@@ -4447,6 +4447,9 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
   const [filterTemplate,setFilterTemplate]=useState(null);
   const [reqFleetF,setReqFleetF]=useState(new Set());
   const [reqTplF,setReqTplF]=useState(new Set());
+  const [libFleetDropOpen,setLibFleetDropOpen]=useState(false);
+  const [reqFleetDropOpen,setReqFleetDropOpen]=useState(false);
+  const [reqTplDropOpen,setReqTplDropOpen]=useState(false);
   const [now,setNow]=useState(()=>{const d=new Date();return d.getHours()*60+d.getMinutes();});
   const [hlRcp,setHlRcp]=useState(initialFocusRecipeId||null);
   const [addOpen,setAddOpen]=useState(false);
@@ -4747,22 +4750,21 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                 {libQ&&<button onClick={()=>setLibQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><Icon name="X" size={11}/></button>}
               </div>
               {(()=>{
-                const [open,setOpen]=React.useState(false);
                 const toggle=id=>{const n=new Set(libFleetF);n.has(id)?n.delete(id):n.add(id);setLibFleetF(n);};
                 const label=libFleetF.size===0?"전체 Fleet":libFleetF.size===1?fleets.find(f=>f.id===[...libFleetF][0])?.name:`${libFleetF.size}개 Fleet`;
                 return(
                   <div className="relative">
-                    <button onClick={()=>setOpen(o=>!o)}
-                      className={"w-full h-7 pl-2 pr-6 rounded-md border text-[11.5px] text-left flex items-center gap-1.5 transition "+(open?"border-blue-400 ring-1 ring-blue-200":"border-slate-200 hover:border-slate-300")+(libFleetF.size>0?" text-blue-700 font-semibold bg-blue-50":" text-slate-700 bg-white")}>
+                    <button onClick={()=>setLibFleetDropOpen(o=>!o)}
+                      className={"w-full h-7 pl-2 pr-6 rounded-md border text-[11.5px] text-left flex items-center gap-1.5 transition "+(libFleetDropOpen?"border-blue-400 ring-1 ring-blue-200":"border-slate-200 hover:border-slate-300")+(libFleetF.size>0?" text-blue-700 font-semibold bg-blue-50":" text-slate-700 bg-white")}>
                       <Icon name="Layers" size={11} className="text-slate-400 shrink-0"/>
                       <span className="truncate flex-1 text-[11px]">{label}</span>
                       {libFleetF.size>0&&<span className="shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center">{libFleetF.size}</span>}
-                      <Icon name="ChevronDown" size={10} className={"absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(open?"rotate-180":"")}/>
+                      <Icon name="ChevronDown" size={10} className={"absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(libFleetDropOpen?"rotate-180":"")}/>
                     </button>
-                    {open&&<>
-                      <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
+                    {libFleetDropOpen&&<>
+                      <div className="fixed inset-0 z-10" onClick={()=>setLibFleetDropOpen(false)}/>
                       <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-1 overflow-hidden">
-                        <button onClick={()=>{setLibFleetF(new Set());setOpen(false);}}
+                        <button onClick={()=>{setLibFleetF(new Set());setLibFleetDropOpen(false);}}
                           className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(libFleetF.size===0?"bg-blue-50":"")}>
                           <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 "+(libFleetF.size===0?"border-blue-500 bg-blue-500":"border-slate-300")}>
                             {libFleetF.size===0&&<Icon name="Check" size={9} className="text-white"/>}
@@ -4863,63 +4865,81 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
               const lockedTemplates = recipes.filter(r=>r.locked);
               const isDirty = reqFleetF.size>0 || reqTplF.size>0;
 
-              // 체크박스 콤보박스 컴포넌트
-              const CheckCombo = ({icon, placeholder, opts, val, onChange})=>{
-                const [open,setOpen] = React.useState(false);
-                const label = val.size===0 ? placeholder
-                  : val.size===1 ? (opts.find(o=>o.id===[...val][0])?.label||[...val][0])
-                  : `${val.size}개 선택`;
-                const toggle = id=>{ const n=new Set(val); n.has(id)?n.delete(id):n.add(id); onChange(n); };
-                return (
-                  <div className="relative">
-                    <button onClick={()=>setOpen(o=>!o)}
-                      className={"w-full h-7 pl-6 pr-6 rounded-md border text-[11.5px] text-left flex items-center transition "+(open?"border-blue-400 ring-1 ring-blue-200 bg-white":"border-slate-200 bg-white hover:border-slate-300")+(val.size>0?" text-blue-700 font-semibold":" text-slate-600")}>
-                      <Icon name={icon} size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                      <span className="truncate flex-1">{label}</span>
-                      {val.size>0 && <span className="shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center mr-1">{val.size}</span>}
-                      <Icon name="ChevronDown" size={10} className={"absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(open?"rotate-180":"")}/>
-                    </button>
-                    {open&&<>
-                      <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
-                      <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-1 overflow-hidden">
-                        <button onClick={()=>onChange(new Set())}
-                          className={"w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-slate-50 "+(val.size===0?"bg-blue-50":"")}>
-                          <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 "+(val.size===0?"border-blue-500 bg-blue-500":"border-slate-300")}>
-                            {val.size===0&&<Icon name="Check" size={9} className="text-white"/>}
-                          </div>
-                          <span className={"text-[11.5px] "+(val.size===0?"text-blue-700 font-semibold":"text-slate-700")}>전체</span>
-                        </button>
-                        <div className="h-px bg-slate-100 my-0.5"/>
-                        {opts.map(o=>{
-                          const on=val.has(o.id);
-                          return(
-                            <button key={o.id} onClick={()=>toggle(o.id)}
-                              className={"w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-slate-50 "+(on?"bg-blue-50/60":"")}>
-                              <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 transition "+(on?"border-blue-500 bg-blue-500":"border-slate-300")}>
-                                {on&&<Icon name="Check" size={9} className="text-white"/>}
-                              </div>
-                              <span className={"text-[11.5px] flex-1 truncate "+(on?"text-blue-700 font-medium":"text-slate-700")}>{o.label}</span>
-                              {o.color&&<span className="w-2 h-2 rounded-full shrink-0" style={{background:o.color}}/>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>}
-                  </div>
-                );
-              };
-
               return (<>
                 {/* 필터 */}
                 <div className="px-3 py-2 border-b border-slate-200 space-y-1.5">
-                  <CheckCombo
-                    icon="Layers" placeholder="전체 Fleet"
-                    opts={fleets.map(f=>({id:f.id,label:f.name,color:f.color}))}
-                    val={reqFleetF} onChange={setReqFleetF}/>
-                  <CheckCombo
-                    icon="FileText" placeholder="전체 템플릿"
-                    opts={lockedTemplates.map(r=>({id:r.fleet,label:r.name,color:fleetMeta(r.fleet).color}))}
-                    val={reqTplF} onChange={setReqTplF}/>
+                  {/* Fleet 멀티 필터 */}
+                  {(()=>{
+                    const opts=fleets.map(f=>({id:f.id,label:f.name,color:f.color}));
+                    const val=reqFleetF; const setVal=setReqFleetF;
+                    const open=reqFleetDropOpen; const setOpen=setReqFleetDropOpen;
+                    const toggle=id=>{const n=new Set(val);n.has(id)?n.delete(id):n.add(id);setVal(n);};
+                    const label=val.size===0?"전체 Fleet":val.size===1?(opts.find(o=>o.id===[...val][0])?.label||[...val][0]):`${val.size}개 선택`;
+                    return(
+                      <div className="relative">
+                        <button onClick={()=>setOpen(o=>!o)}
+                          className={"w-full h-7 pl-6 pr-6 rounded-md border text-[11.5px] text-left flex items-center transition "+(open?"border-blue-400 ring-1 ring-blue-200 bg-white":"border-slate-200 bg-white hover:border-slate-300")+(val.size>0?" text-blue-700 font-semibold":" text-slate-600")}>
+                          <Icon name="Layers" size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                          <span className="truncate flex-1">{label}</span>
+                          {val.size>0&&<span className="shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center mr-1">{val.size}</span>}
+                          <Icon name="ChevronDown" size={10} className={"absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(open?"rotate-180":"")}/>
+                        </button>
+                        {open&&<>
+                          <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
+                          <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-1 overflow-hidden">
+                            <button onClick={()=>{setVal(new Set());setOpen(false);}} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(val.size===0?"bg-blue-50":"")}>
+                              <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 "+(val.size===0?"border-blue-500 bg-blue-500":"border-slate-300")}>{val.size===0&&<Icon name="Check" size={9} className="text-white"/>}</div>
+                              <span className={"text-[11.5px] "+(val.size===0?"text-blue-700 font-semibold":"text-slate-700")}>전체</span>
+                            </button>
+                            <div className="h-px bg-slate-100 my-0.5"/>
+                            {opts.map(o=>{const on=val.has(o.id);return(
+                              <button key={o.id} onClick={()=>toggle(o.id)} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(on?"bg-blue-50/60":"")}>
+                                <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 transition "+(on?"border-blue-500 bg-blue-500":"border-slate-300")}>{on&&<Icon name="Check" size={9} className="text-white"/>}</div>
+                                {o.color&&<span className="w-2 h-2 rounded-full shrink-0" style={{background:o.color}}/>}
+                                <span className={"text-[11.5px] flex-1 truncate "+(on?"text-blue-700 font-medium":"text-slate-700")}>{o.label}</span>
+                              </button>
+                            );})}
+                          </div>
+                        </>}
+                      </div>
+                    );
+                  })()}
+                  {/* 템플릿 멀티 필터 */}
+                  {(()=>{
+                    const opts=lockedTemplates.map(r=>({id:r.fleet,label:r.name,color:fleetMeta(r.fleet).color}));
+                    const val=reqTplF; const setVal=setReqTplF;
+                    const open=reqTplDropOpen; const setOpen=setReqTplDropOpen;
+                    const toggle=id=>{const n=new Set(val);n.has(id)?n.delete(id):n.add(id);setVal(n);};
+                    const label=val.size===0?"전체 템플릿":val.size===1?(opts.find(o=>o.id===[...val][0])?.label||[...val][0]):`${val.size}개 선택`;
+                    return(
+                      <div className="relative">
+                        <button onClick={()=>setOpen(o=>!o)}
+                          className={"w-full h-7 pl-6 pr-6 rounded-md border text-[11.5px] text-left flex items-center transition "+(open?"border-blue-400 ring-1 ring-blue-200 bg-white":"border-slate-200 bg-white hover:border-slate-300")+(val.size>0?" text-blue-700 font-semibold":" text-slate-600")}>
+                          <Icon name="FileText" size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                          <span className="truncate flex-1">{label}</span>
+                          {val.size>0&&<span className="shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center mr-1">{val.size}</span>}
+                          <Icon name="ChevronDown" size={10} className={"absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(open?"rotate-180":"")}/>
+                        </button>
+                        {open&&<>
+                          <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
+                          <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-1 overflow-hidden">
+                            <button onClick={()=>{setVal(new Set());setOpen(false);}} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(val.size===0?"bg-blue-50":"")}>
+                              <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 "+(val.size===0?"border-blue-500 bg-blue-500":"border-slate-300")}>{val.size===0&&<Icon name="Check" size={9} className="text-white"/>}</div>
+                              <span className={"text-[11.5px] "+(val.size===0?"text-blue-700 font-semibold":"text-slate-700")}>전체</span>
+                            </button>
+                            <div className="h-px bg-slate-100 my-0.5"/>
+                            {opts.map(o=>{const on=val.has(o.id);return(
+                              <button key={o.id} onClick={()=>toggle(o.id)} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(on?"bg-blue-50/60":"")}>
+                                <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 transition "+(on?"border-blue-500 bg-blue-500":"border-slate-300")}>{on&&<Icon name="Check" size={9} className="text-white"/>}</div>
+                                {o.color&&<span className="w-2 h-2 rounded-full shrink-0" style={{background:o.color}}/>}
+                                <span className={"text-[11.5px] flex-1 truncate "+(on?"text-blue-700 font-medium":"text-slate-700")}>{o.label}</span>
+                              </button>
+                            );})}
+                          </div>
+                        </>}
+                      </div>
+                    );
+                  })()}
                   <div className="flex items-center justify-between">
                     <span className="text-[10.5px] text-slate-500">{pendingOrders.length}건</span>
                     {isDirty&&(
