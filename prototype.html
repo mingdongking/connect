@@ -1597,7 +1597,7 @@ function MonitoringHome({ onNavigate }) {
                 <CmdSection icon="Send" tone="blue" title="작업 요청하기" subtitle="선택된 Fleet 로봇에 작업을 요청합니다">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                     <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
                       <option value="P2">일반</option>
@@ -1690,7 +1690,7 @@ function MonitoringHome({ onNavigate }) {
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {robots.filter(r=>r.fleet===cmdFleet&&(r.status==="run"||r.st==="run")&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                   </div>
                   <div className="flex items-center gap-1.5">{["정상 종료","강제 정지"].map((m,i)=><button key={m} className={"flex-1 h-7 rounded text-[11px] font-medium border "+(i===0?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{m}</button>)}</div>
@@ -1701,7 +1701,7 @@ function MonitoringHome({ onNavigate }) {
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                   </div>
                   <div className="relative">
@@ -1720,7 +1720,7 @@ function MonitoringHome({ onNavigate }) {
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                   </div>
                   <CmdSelectField label="충전소" value="auto" onChange={()=>{}}>
