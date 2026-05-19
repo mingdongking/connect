@@ -259,13 +259,13 @@ const mapNodes = [
 let recipes = [
   { id:"rcp-tool",  name:"Delivery-Tool 기본 템플릿",  fleet:"amr",  status:"published", locked:true,
     steps:[{nodeId:"PICK",actionType:"MOVE",duration:5},{nodeId:"PICK",actionType:"LOAD",duration:3},{nodeId:"DROP",actionType:"MOVE",duration:5},{nodeId:"DROP",actionType:"UNLOAD",duration:3}],
-    nodes:[], lockedDesc:"Pick/Drop 노드는 오더 발행 시 지정됩니다." },
+    nodes:[], lockedDesc:"Pick/Drop 노드는 작업 발행 시 지정됩니다." },
   { id:"rcp-ride",  name:"Ride 기본 템플릿",            fleet:"agv",  status:"published", locked:true,
     steps:[{nodeId:"PICKUP",actionType:"MOVE",duration:5},{nodeId:"PICKUP",actionType:"LOAD",duration:2},{nodeId:"DROPOFF",actionType:"MOVE",duration:5},{nodeId:"DROPOFF",actionType:"UNLOAD",duration:2}],
-    nodes:[], lockedDesc:"승차/하차 위치는 오더 발행 시 지정됩니다." },
+    nodes:[], lockedDesc:"승차/하차 위치는 작업 발행 시 지정됩니다." },
   { id:"rcp-parts", name:"Delivery-Parts 기본 템플릿", fleet:"arm",  status:"published", locked:true,
     steps:[{nodeId:"PICK",actionType:"MOVE",duration:5},{nodeId:"PICK",actionType:"LOAD",duration:4},{nodeId:"DROP",actionType:"MOVE",duration:5},{nodeId:"DROP",actionType:"UNLOAD",duration:4}],
-    nodes:[], lockedDesc:"Pick/Drop 노드는 오더 발행 시 지정됩니다." },
+    nodes:[], lockedDesc:"Pick/Drop 노드는 작업 발행 시 지정됩니다." },
   { id:"rcp-s01",   name:"웨이퍼 핸들링 시퀀스",       fleet:"semi", status:"published",
     steps:[{nodeId:"N1",actionType:"MOVE",duration:4},{nodeId:"N2",actionType:"LOAD",duration:6},{nodeId:"N3",actionType:"MOVE",duration:5},{nodeId:"N4",actionType:"SCAN",duration:4},{nodeId:"N5",actionType:"UNLOAD",duration:6}], nodes:[]},
   { id:"rcp-s02",   name:"클린룸 반입 루틴",            fleet:"semi", status:"published",
@@ -569,8 +569,12 @@ function CmdSelectField({ label, value, onChange, children }) {
   );
 }
 function ManualTab() {
-  const [manualFleet, setManualFleet] = useState(fleets[0].id);
-  const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet===fleets[0].id)[0]?.id||"");
+  const [manualFleet, setManualFleet] = useState("semi");
+  const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
+  const [manualRecipe, setManualRecipe] = useState("");
+  const [manualPriority, setManualPriority] = useState("P2");
+  const [cmdDeliveryWarn, setCmdDeliveryWarn] = useState(false);
+  const [cmdPreemptWarn, setCmdPreemptWarn] = useState(null); // {runningRecipe, newRecipe}
   const [commission, setCommission] = useState("commission"); // commission | decommission
   const [dispatchTasks, setDispatchTasks] = useState(true);
   const [directTasks, setDirectTasks] = useState(true);
@@ -579,7 +583,13 @@ function ManualTab() {
   const [pendingDirect, setPendingDirect] = useState("Complete");
   const [saved, setSaved] = useState(false);
 
-  function onFleetChange(fId){ setManualFleet(fId); const rb=robots.filter(r=>r.fleet===fId); setManualRobot(rb[0]?.id||""); }
+  function onFleetChange(fId){
+    if(["amr","agv","arm"].includes(fId)){ setCmdDeliveryWarn(true); return; }
+    setManualFleet(fId);
+    const rb=robots.filter(r=>r.fleet===fId);
+    setManualRobot(rb[0]?.id||"");
+    setManualRecipe("");
+  }
   function apply(){ setSaved(true); setTimeout(()=>setSaved(false), 2000); }
 
   const Toggle=({label,value,onChange})=>(
@@ -1512,24 +1522,89 @@ function MonitoringHome({ onNavigate }) {
                   className="w-full h-8 rounded-md border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-[12px] font-medium flex items-center justify-center gap-1.5 transition">
                   <Icon name="RotateCcw" size={12}/> 선택 초기화
                 </button>
-                <CmdSection icon="Send" tone="blue" title="즉시 오더 발행" subtitle="대상 로봇에 템플릿을 디스패치">
+                <CmdSection icon="Send" tone="blue" title="작업 발행" subtitle="대상 로봇에 템플릿을 디스패치">
+                  {/* Delivery fleet 경고 팝업 */}
+                  {cmdDeliveryWarn&&(
+                    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdDeliveryWarn(false)}>
+                      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5 mx-4" onClick={e=>e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-9 h-9 rounded-xl bg-amber-100 grid place-items-center shrink-0"><Icon name="AlertTriangle" size={18} className="text-amber-600"/></div>
+                          <div className="text-[14px] font-bold text-slate-900">작업 요청 화면 이동 필요</div>
+                        </div>
+                        <p className="text-[12.5px] text-slate-600 leading-relaxed mb-4">선택한 Fleet은 작업 요청 화면에서<br/>Pick/Drop 위치를 지정해야 합니다.<br/>작업 요청 화면으로 이동하시겠습니까?</p>
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={()=>setCmdDeliveryWarn(false)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
+                          <button onClick={()=>{setCmdDeliveryWarn(false);if(onNavigate)onNavigate("order-template");}} className="h-8 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">네</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* P1 긴급 선점 경고 팝업 */}
+                  {cmdPreemptWarn&&(
+                    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdPreemptWarn(null)}>
+                      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5 mx-4" onClick={e=>e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-9 h-9 rounded-xl bg-rose-100 grid place-items-center shrink-0"><Icon name="AlertOctagon" size={18} className="text-rose-600"/></div>
+                          <div className="text-[14px] font-bold text-slate-900">진행 중 작업 중단</div>
+                        </div>
+                        <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                            <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
+                            <span className="font-semibold">{cmdPreemptWarn.runningRecipe}</span>
+                          </div>
+                          <div className="text-center text-slate-400">↓ 중지 후</div>
+                          <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+                            <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
+                            <span className="font-semibold text-blue-800">{cmdPreemptWarn.newRecipe}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
+                          <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700">네, 중단하고 발행</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet">{fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</CmdSelectField>
-                    <CmdSelectField label="로봇">{robots.filter(r=>r.fleet===(sel?.fleet||"amr")).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
+                    <CmdSelectField label="Fleet" value={manualFleet} onChange={e=>onFleetChange(e.target.value)}>
+                      {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+                    </CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {robots.filter(r=>r.fleet===manualFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
                   </div>
-                  <CmdSelectField label="레시피"><option value="">레시피 선택</option>{recipes.filter(r=>r.status==="published").map(r=><option key={r.id} value={r.id}>{r.name}·{recipeDuration(r)}분</option>)}</CmdSelectField>
-                  <div className="flex items-center gap-1.5 mt-2">{["P1·긴급","P2·표준","P3·낮음"].map((p,i)=><button key={p} className={"flex-1 h-6 rounded text-[10.5px] font-medium border "+(i===1?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{p}</button>)}</div>
-                  <button className="w-full h-8 mt-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Send" size={12}/> {sel?sel.id+"에 발행":"발행"}</button>
+                  <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
+                    <option value="">템플릿 선택</option>
+                    {recipes.filter(r=>r.fleet===manualFleet&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}·{recipeDuration(r)}분</option>)}
+                  </CmdSelectField>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    {[["P1","긴급"],["P2","표준"],["P3","낮음"]].map(([p,label])=>(
+                      <button key={p} onClick={()=>setManualPriority(p)}
+                        className={"flex-1 h-6 rounded text-[10.5px] font-medium border transition "+(manualPriority===p?(p==="P1"?"border-rose-500 bg-rose-50 text-rose-700":"border-blue-500 bg-blue-50 text-blue-700"):"border-slate-200 bg-white text-slate-600")}>
+                        {p}·{label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={()=>{
+                    if(!manualRecipe) return;
+                    const robot = robots.find(r=>r.id===manualRobot);
+                    const recipe = recipes.find(r=>r.id===manualRecipe);
+                    if(manualPriority==="P1" && robot?.st==="run" && robot?.recipe){
+                      setCmdPreemptWarn({runningRecipe:robot.recipe, newRecipe:recipe?.name||manualRecipe});
+                    }
+                  }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(manualRecipe?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
+                    <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 에 작업 발행":"작업 발행"}
+                  </button>
                 </CmdSection>
-                <CmdSection icon="Square" tone="rose" title="즉시 오더 중지" subtitle="진행 중인 작업을 안전하게 종료">
+                <CmdSection icon="Square" tone="rose" title="작업 중단 요청" subtitle="진행 중인 작업을 안전하게 종료">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet">{fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</CmdSelectField>
                     <CmdSelectField label="로봇">{robots.filter(r=>r.status==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
                   </div>
-                  <div className="flex items-center gap-1.5">{["정상 종료","즉시 정지"].map((m,i)=><button key={m} className={"flex-1 h-6 rounded text-[10.5px] font-medium border "+(i===0?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{m}</button>)}</div>
-                  <button className="w-full h-8 mt-2 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Square" size={12}/> 정상 종료</button>
+                  <div className="flex items-center gap-1.5">{["정상 종료","강제 정지"].map((m,i)=><button key={m} className={"flex-1 h-6 rounded text-[10.5px] font-medium border "+(i===0?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{m}</button>)}</div>
+                  <button className="w-full h-8 mt-2 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Square" size={12}/> 정상 종료 요청</button>
                 </CmdSection>
-                <CmdSection icon="Navigation" tone="indigo" title="이동 명령" subtitle="대상 스테이션으로 즉시 이동">
+                <CmdSection icon="Navigation" tone="indigo" title="이동 요청" subtitle="대상 스테이션으로 이동">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet">{fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</CmdSelectField>
                     <CmdSelectField label="로봇">{robots.map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
@@ -1645,7 +1720,7 @@ function MonitoringHome({ onNavigate }) {
                       </div>
                       <button onClick={()=>setCmdTab("command")}
                         className="w-full h-8 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5">
-                        <Icon name="Navigation" size={12}/> 이 노드로 이동 명령
+                        <Icon name="Navigation" size={12}/> 이 노드로 이동 요청
                       </button>
                       {/* 취소 / 저장 — 편집 모드에서만 */}
                       {editMode&&(()=>{
@@ -5023,7 +5098,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                 {/* Pending 오더 상세 */}
                 {isPending && (
                   <div className="px-5 py-4 border-b border-slate-200 space-y-2.5">
-                    <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">오더 정보</div>
+                    <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">작업 정보</div>
                     {[
                       ["Pick 위치", selOrder.pickNode],
                       ["Drop 위치", selOrder.dropNode],
