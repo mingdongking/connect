@@ -701,7 +701,7 @@ function MonitoringHome({ onNavigate }) {
   const [cmdFleet, setCmdFleet] = useState("semi"); // 필터 fleet
   const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
   const [manualRecipe, setManualRecipe] = useState("");
-  const [manualPriority, setManualPriority] = useState("P2");
+  const [manualPriority, setManualPriority] = useState("normal");
   // Delivery fleet 파라미터
   const [cmdPickNode, setCmdPickNode] = useState("");
   const [cmdDropNode, setCmdDropNode] = useState("");
@@ -877,7 +877,7 @@ function MonitoringHome({ onNavigate }) {
                   <td style="padding:8px 12px;font-family:monospace;font-size:11px;background:#f1f5f9;border-radius:4px">${o.robotId}</td>
                   <td style="padding:8px 12px;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${recipe?.name||o.recipeId}</td>
                   <td style="padding:8px 12px"><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;${sc}">${sl}</span></td>
-                  <td style="padding:8px 12px"><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;color:#1d4ed8;background:#eff6ff">P2</span></td>
+                  <td style="padding:8px 12px"><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;color:#1d4ed8;background:#eff6ff">일반</span></td>
                   <td style="padding:8px 12px;font-family:monospace;color:#475569">${fmtTime(o.start)}</td>
                   <td style="padding:8px 12px;font-family:monospace;color:#475569">${o.status==="done"?fmtTime(o.start+(recipe?recipeDuration(recipe):30)):"-"}</td>
                   <td style="padding:8px 12px">${o.status==="error"?'<span style="font-family:monospace;font-size:11px;color:#dc2626;background:#fef2f2;padding:2px 6px;border-radius:4px">ERR</span>':'<span style="color:#cbd5e1">—</span>'}</td>
@@ -1605,8 +1605,8 @@ function MonitoringHome({ onNavigate }) {
                       {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                     <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
-                      <option value="P2">일반</option>
-                      <option value="P1">긴급</option>
+                      <option value="normal">일반</option>
+                      <option value="urgent">긴급</option>
                     </CmdSelectField>
                   </div>
 
@@ -5508,19 +5508,19 @@ function LogsView({ initCat3, onMounted }) {
 
   // ── Order 로그 데이터 (Robot) ──
   const ORDER_DATA = [
-    {fleet:"Delivery-Tool",robotId:"Tool001",taskType:"이송",  statusCode:"DONE_200",priority:"P2",startAt:"13:30:00",endAt:"13:42:08",cancelAt:"-", departure:"MN-1",destination:"MN-4",distance:"124m",batteryUsed:"3%",errorCode:"-"},
-    {fleet:"Delivery-Tool",robotId:"Tool001",taskType:"이송",  statusCode:"RUN_100", priority:"P2",startAt:"13:00:00",endAt:"-",      cancelAt:"-", departure:"MN-2",destination:"MN-6",distance:"-",  batteryUsed:"-", errorCode:"-"},
-    {fleet:"Delivery-Tool",robotId:"Tool002",taskType:"순회",  statusCode:"WARN_301",priority:"P2",startAt:"13:20:00",endAt:"13:35:01",cancelAt:"-", departure:"MN-3",destination:"MN-5",distance:"98m", batteryUsed:"2%",errorCode:"OBS_401"},
-    {fleet:"Delivery-Tool",robotId:"Tool003",taskType:"대기",  statusCode:"SCHED_050",priority:"P3",startAt:"-",     endAt:"-",       cancelAt:"-", departure:"-",   destination:"-",   distance:"-",   batteryUsed:"-", errorCode:"-"},
-    {fleet:"Delivery-Tool",robotId:"Tool004",taskType:"충전",  statusCode:"CHG_010",  priority:"P1",startAt:"13:20:44",endAt:"-",     cancelAt:"-", departure:"MN-9",destination:"MN-10",distance:"40m",batteryUsed:"-",errorCode:"-"},
-    {fleet:"Ride",          robotId:"Ride001",taskType:"보충",  statusCode:"RUN_100", priority:"P2",startAt:"13:20:00",endAt:"-",      cancelAt:"-", departure:"MN-4",destination:"MN-6",distance:"-",  batteryUsed:"-", errorCode:"-"},
-    {fleet:"Ride",          robotId:"Ride001",taskType:"보충",  statusCode:"DONE_200",priority:"P2",startAt:"13:12:00",endAt:"13:35:20",cancelAt:"-",departure:"MN-5",destination:"MN-8",distance:"88m",batteryUsed:"3%",errorCode:"-"},
-    {fleet:"Ride",          robotId:"Ride002",taskType:"보충",  statusCode:"FAIL_500",priority:"P2",startAt:"13:00:00",endAt:"-",      cancelAt:"13:20:00",departure:"MN-3",destination:"MN-6",distance:"22m",batteryUsed:"1%",errorCode:"OBS_402"},
-    {fleet:"Delivery-Parts",robotId:"Part001",taskType:"적재", statusCode:"RUN_100", priority:"P2",startAt:"13:27:00",endAt:"-",       cancelAt:"-",departure:"MN-11",destination:"MN-12",distance:"-",batteryUsed:"-",errorCode:"-"},
-    {fleet:"Delivery-Parts",robotId:"Part001",taskType:"적재", statusCode:"DONE_200",priority:"P2",startAt:"13:13:00",endAt:"13:25:10",cancelAt:"-",departure:"MN-12",destination:"MN-11",distance:"60m",batteryUsed:"2%",errorCode:"-"},
-    {fleet:"Delivery-Parts",robotId:"Part002",taskType:"적재", statusCode:"DONE_200",priority:"P2",startAt:"12:56:00",endAt:"13:10:00",cancelAt:"-",departure:"MN-11",destination:"MN-12",distance:"60m",batteryUsed:"2%",errorCode:"-"},
-    {fleet:"SEMI-x",        robotId:"x001",  taskType:"핸들링",statusCode:"RUN_100", priority:"P1",startAt:"12:50:00",endAt:"-",       cancelAt:"-",departure:"MN-7",destination:"MN-8",distance:"-",batteryUsed:"-",errorCode:"-"},
-    {fleet:"SEMI-x",        robotId:"x002",  taskType:"대기",  statusCode:"IDLE_000",priority:"P3",startAt:"-",     endAt:"-",        cancelAt:"-",departure:"-",destination:"-",distance:"-",batteryUsed:"-",errorCode:"-"},
+    {fleet:"Delivery-Tool",robotId:"Tool001",taskType:"이송",  statusCode:"DONE_200",priority:"normal",startAt:"13:30:00",endAt:"13:42:08",cancelAt:"-", departure:"MN-1",destination:"MN-4",distance:"124m",batteryUsed:"3%",errorCode:"-"},
+    {fleet:"Delivery-Tool",robotId:"Tool001",taskType:"이송",  statusCode:"RUN_100", priority:"normal",startAt:"13:00:00",endAt:"-",      cancelAt:"-", departure:"MN-2",destination:"MN-6",distance:"-",  batteryUsed:"-", errorCode:"-"},
+    {fleet:"Delivery-Tool",robotId:"Tool002",taskType:"순회",  statusCode:"WARN_301",priority:"normal",startAt:"13:20:00",endAt:"13:35:01",cancelAt:"-", departure:"MN-3",destination:"MN-5",distance:"98m", batteryUsed:"2%",errorCode:"OBS_401"},
+    {fleet:"Delivery-Tool",robotId:"Tool003",taskType:"대기",  statusCode:"SCHED_050",priority:"normal",startAt:"-",     endAt:"-",       cancelAt:"-", departure:"-",   destination:"-",   distance:"-",   batteryUsed:"-", errorCode:"-"},
+    {fleet:"Delivery-Tool",robotId:"Tool004",taskType:"충전",  statusCode:"CHG_010",  priority:"urgent",startAt:"13:20:44",endAt:"-",     cancelAt:"-", departure:"MN-9",destination:"MN-10",distance:"40m",batteryUsed:"-",errorCode:"-"},
+    {fleet:"Ride",          robotId:"Ride001",taskType:"보충",  statusCode:"RUN_100", priority:"normal",startAt:"13:20:00",endAt:"-",      cancelAt:"-", departure:"MN-4",destination:"MN-6",distance:"-",  batteryUsed:"-", errorCode:"-"},
+    {fleet:"Ride",          robotId:"Ride001",taskType:"보충",  statusCode:"DONE_200",priority:"normal",startAt:"13:12:00",endAt:"13:35:20",cancelAt:"-",departure:"MN-5",destination:"MN-8",distance:"88m",batteryUsed:"3%",errorCode:"-"},
+    {fleet:"Ride",          robotId:"Ride002",taskType:"보충",  statusCode:"FAIL_500",priority:"normal",startAt:"13:00:00",endAt:"-",      cancelAt:"13:20:00",departure:"MN-3",destination:"MN-6",distance:"22m",batteryUsed:"1%",errorCode:"OBS_402"},
+    {fleet:"Delivery-Parts",robotId:"Part001",taskType:"적재", statusCode:"RUN_100", priority:"normal",startAt:"13:27:00",endAt:"-",       cancelAt:"-",departure:"MN-11",destination:"MN-12",distance:"-",batteryUsed:"-",errorCode:"-"},
+    {fleet:"Delivery-Parts",robotId:"Part001",taskType:"적재", statusCode:"DONE_200",priority:"normal",startAt:"13:13:00",endAt:"13:25:10",cancelAt:"-",departure:"MN-12",destination:"MN-11",distance:"60m",batteryUsed:"2%",errorCode:"-"},
+    {fleet:"Delivery-Parts",robotId:"Part002",taskType:"적재", statusCode:"DONE_200",priority:"normal",startAt:"12:56:00",endAt:"13:10:00",cancelAt:"-",departure:"MN-11",destination:"MN-12",distance:"60m",batteryUsed:"2%",errorCode:"-"},
+    {fleet:"SEMI-x",        robotId:"x001",  taskType:"핸들링",statusCode:"RUN_100", priority:"urgent",startAt:"12:50:00",endAt:"-",       cancelAt:"-",departure:"MN-7",destination:"MN-8",distance:"-",batteryUsed:"-",errorCode:"-"},
+    {fleet:"SEMI-x",        robotId:"x002",  taskType:"대기",  statusCode:"IDLE_000",priority:"normal",startAt:"-",     endAt:"-",        cancelAt:"-",departure:"-",destination:"-",distance:"-",batteryUsed:"-",errorCode:"-"},
   ];
 
   // ── Error 로그 데이터 (Robot) ──
@@ -5738,7 +5738,7 @@ function LogsView({ initCat3, onMounted }) {
                         <td className={tdCls}>{d.taskType}</td>
                         <td className={tdCls}>{statusBadge(d.statusCode)}</td>
                         <td className={tdCls}>
-                          <span className={"text-[10.5px] font-semibold px-1.5 py-0.5 rounded "+(d.priority==="P1"?"bg-rose-50 text-rose-700":d.priority==="P2"?"bg-blue-50 text-blue-700":"bg-slate-100 text-slate-600")}>{d.priority}</span>
+                          <span className={"text-[10.5px] font-semibold px-1.5 py-0.5 rounded "+(d.priority==="urgent"?"bg-rose-50 text-rose-700":d.priority==="normal"?"bg-blue-50 text-blue-700":"bg-slate-100 text-slate-600")}>{d.priority}</span>
                         </td>
                         <td className={tdCls+" tnum"}>{d.startAt}</td>
                         <td className={tdCls+" tnum"}>{d.endAt}</td>
