@@ -691,10 +691,11 @@ function MonitoringHome({ onNavigate }) {
   const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
   const [manualRecipe, setManualRecipe] = useState("");
   const [manualPriority, setManualPriority] = useState("P2");
-  const [cmdDeliveryWarn, setCmdDeliveryWarn] = useState(false);
-  const [cmdPreemptWarn, setCmdPreemptWarn] = useState(null);
   function onFleetChange(fId){
-    if(["amr","agv","arm"].includes(fId)){ setCmdDeliveryWarn(true); return; }
+    if(["amr","agv","arm"].includes(fId)){
+      onNavigate("popup", {popup:{type:"cmd-delivery"}});
+      return;
+    }
     setManualFleet(fId);
     setManualRobot(robots.filter(r=>r.fleet===fId)[0]?.id||"");
     setManualRecipe("");
@@ -806,47 +807,6 @@ function MonitoringHome({ onNavigate }) {
   const sel = focusRobot ? mapRobots.find(r=>r.id===focusRobot) : null;
   return (
     <div className="h-full relative bg-slate-50 overflow-hidden">
-      {/* ── 전체화면 팝업 (portal 대신 body 직접 렌더) ── */}
-      {cmdDeliveryWarn&&ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdDeliveryWarn(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-100 grid place-items-center shrink-0"><Icon name="AlertTriangle" size={18} className="text-amber-600"/></div>
-              <div className="text-[14px] font-bold text-slate-900">작업 요청 화면 이동 필요</div>
-            </div>
-            <p className="text-[12.5px] text-slate-600 leading-relaxed mb-4">선택한 Fleet은 작업 요청 화면에서<br/>Pick/Drop 위치를 지정해야 합니다.<br/>작업 요청 화면으로 이동하시겠습니까?</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={()=>setCmdDeliveryWarn(false)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
-              <button onClick={()=>{setCmdDeliveryWarn(false);if(onNavigate)onNavigate("order-template");}} className="h-8 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">네</button>
-            </div>
-          </div>
-        </div>, document.body
-      )}
-      {cmdPreemptWarn&&ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdPreemptWarn(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 grid place-items-center shrink-0"><Icon name="AlertOctagon" size={18} className="text-rose-600"/></div>
-              <div className="text-[14px] font-bold text-slate-900">진행 중 작업 중단</div>
-            </div>
-            <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
-                <span className="font-semibold">{cmdPreemptWarn.runningRecipe}</span>
-              </div>
-              <div className="text-center text-slate-400 text-[12px]">↓ 중지 후</div>
-              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
-                <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
-                <span className="font-semibold text-blue-800">{cmdPreemptWarn.newRecipe}</span>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
-              <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700">네, 중단하고 발행</button>
-            </div>
-          </div>
-        </div>, document.body
-      )}
       {/* Scrollable content */}
       <div className="h-full overflow-auto p-5" style={{paddingRight: panelOpen ? 336 : 20, transition:"padding-right 0.25s cubic-bezier(0.4,0,0.2,1)"}}>
       {/* KPI */}
@@ -1588,7 +1548,7 @@ function MonitoringHome({ onNavigate }) {
                     const robot = robots.find(r=>r.id===manualRobot);
                     const recipe = recipes.find(r=>r.id===manualRecipe);
                     if(manualPriority==="P1" && robot?.st==="run" && robot?.recipe){
-                      setCmdPreemptWarn({runningRecipe:robot.recipe, newRecipe:recipe?.name||manualRecipe});
+                      onNavigate("popup",{popup:{type:"cmd-preempt",data:{runningRecipe:robot.recipe,newRecipe:recipe?.name||manualRecipe}}});
                     }
                   }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(manualRecipe?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
                     <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 에 작업 발행":"작업 발행"}
@@ -6073,9 +6033,12 @@ function App() {
   const [logsInitCat3,setLogsInitCat3]=useState(null);
   const [isDark,setIsDark]=useState(false);
   const [pendingOrder,setPendingOrder]=useState(null);
+  // 글로벌 팝업 (transform 스택 컨텍스트 회피)
+  const [globalPopup,setGlobalPopup]=useState(null); // {type, data}
   useEffect(()=>{ document.documentElement.classList.toggle("dm", isDark); },[isDark]);
 
   function navigate(id, opts={}){
+    if(id==="popup"){ setGlobalPopup(opts.popup||null); return; }
     setActive(id);
     if(opts.logsCat3) setLogsInitCat3(opts.logsCat3);
     if(opts.pendingOrder){ setPendingOrder(opts.pendingOrder); }
@@ -6100,6 +6063,47 @@ function App() {
   const activeMeta = NAV_FLAT.find(n=>n.id===active);
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-slate-50">
+      {/* ── 글로벌 팝업 레이어 (transform 영향 없음) ── */}
+      {globalPopup?.type==="cmd-delivery"&&(
+        <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setGlobalPopup(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 grid place-items-center shrink-0"><Icon name="AlertTriangle" size={18} className="text-amber-600"/></div>
+              <div className="text-[14px] font-bold text-slate-900">작업 요청 화면 이동 필요</div>
+            </div>
+            <p className="text-[12.5px] text-slate-600 leading-relaxed mb-4">선택한 Fleet은 작업 요청 화면에서<br/>Pick/Drop 위치를 지정해야 합니다.<br/>작업 요청 화면으로 이동하시겠습니까?</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setGlobalPopup(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
+              <button onClick={()=>{setGlobalPopup(null);navigate("order-template");}} className="h-8 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">네</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {globalPopup?.type==="cmd-preempt"&&(
+        <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setGlobalPopup(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 grid place-items-center shrink-0"><Icon name="AlertOctagon" size={18} className="text-rose-600"/></div>
+              <div className="text-[14px] font-bold text-slate-900">진행 중 작업 중단</div>
+            </div>
+            <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
+                <span className="font-semibold">{globalPopup.data?.runningRecipe}</span>
+              </div>
+              <div className="text-center text-slate-400 text-[12px]">↓ 중지 후</div>
+              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+                <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
+                <span className="font-semibold text-blue-800">{globalPopup.data?.newRecipe}</span>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setGlobalPopup(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
+              <button onClick={()=>setGlobalPopup(null)} className="h-8 px-4 rounded-lg bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700">네, 중단하고 발행</button>
+            </div>
+          </div>
+        </div>
+      )}
       <Sidebar active={active} onChange={setActive}/>
       <div className="flex-1 min-w-0 flex flex-col">
         <Header activeLabel={activeMeta?.label||""} onOpenCmd={()=>setCmdOpen(true)}/>
