@@ -806,6 +806,47 @@ function MonitoringHome({ onNavigate }) {
   const sel = focusRobot ? mapRobots.find(r=>r.id===focusRobot) : null;
   return (
     <div className="h-full relative bg-slate-50 overflow-hidden">
+      {/* ── 전체화면 팝업 (portal 대신 body 직접 렌더) ── */}
+      {cmdDeliveryWarn&&ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdDeliveryWarn(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 grid place-items-center shrink-0"><Icon name="AlertTriangle" size={18} className="text-amber-600"/></div>
+              <div className="text-[14px] font-bold text-slate-900">작업 요청 화면 이동 필요</div>
+            </div>
+            <p className="text-[12.5px] text-slate-600 leading-relaxed mb-4">선택한 Fleet은 작업 요청 화면에서<br/>Pick/Drop 위치를 지정해야 합니다.<br/>작업 요청 화면으로 이동하시겠습니까?</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setCmdDeliveryWarn(false)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
+              <button onClick={()=>{setCmdDeliveryWarn(false);if(onNavigate)onNavigate("order-template");}} className="h-8 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">네</button>
+            </div>
+          </div>
+        </div>, document.body
+      )}
+      {cmdPreemptWarn&&ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdPreemptWarn(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 grid place-items-center shrink-0"><Icon name="AlertOctagon" size={18} className="text-rose-600"/></div>
+              <div className="text-[14px] font-bold text-slate-900">진행 중 작업 중단</div>
+            </div>
+            <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
+                <span className="font-semibold">{cmdPreemptWarn.runningRecipe}</span>
+              </div>
+              <div className="text-center text-slate-400 text-[12px]">↓ 중지 후</div>
+              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+                <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
+                <span className="font-semibold text-blue-800">{cmdPreemptWarn.newRecipe}</span>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
+              <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700">네, 중단하고 발행</button>
+            </div>
+          </div>
+        </div>, document.body
+      )}
       {/* Scrollable content */}
       <div className="h-full overflow-auto p-5" style={{paddingRight: panelOpen ? 336 : 20, transition:"padding-right 0.25s cubic-bezier(0.4,0,0.2,1)"}}>
       {/* KPI */}
@@ -1522,48 +1563,6 @@ function MonitoringHome({ onNavigate }) {
                   <Icon name="RotateCcw" size={12}/> 선택 초기화
                 </button>
                 <CmdSection icon="Send" tone="blue" title="작업 발행" subtitle="대상 로봇에 템플릿을 디스패치">
-                  {/* Delivery fleet 경고 팝업 */}
-                  {cmdDeliveryWarn&&(
-                    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdDeliveryWarn(false)}>
-                      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5 mx-4" onClick={e=>e.stopPropagation()}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-9 h-9 rounded-xl bg-amber-100 grid place-items-center shrink-0"><Icon name="AlertTriangle" size={18} className="text-amber-600"/></div>
-                          <div className="text-[14px] font-bold text-slate-900">작업 요청 화면 이동 필요</div>
-                        </div>
-                        <p className="text-[12.5px] text-slate-600 leading-relaxed mb-4">선택한 Fleet은 작업 요청 화면에서<br/>Pick/Drop 위치를 지정해야 합니다.<br/>작업 요청 화면으로 이동하시겠습니까?</p>
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={()=>setCmdDeliveryWarn(false)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
-                          <button onClick={()=>{setCmdDeliveryWarn(false);if(onNavigate)onNavigate("order-template");}} className="h-8 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">네</button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {/* P1 긴급 선점 경고 팝업 */}
-                  {cmdPreemptWarn&&(
-                    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCmdPreemptWarn(null)}>
-                      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5 mx-4" onClick={e=>e.stopPropagation()}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-9 h-9 rounded-xl bg-rose-100 grid place-items-center shrink-0"><Icon name="AlertOctagon" size={18} className="text-rose-600"/></div>
-                          <div className="text-[14px] font-bold text-slate-900">진행 중 작업 중단</div>
-                        </div>
-                        <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
-                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                            <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
-                            <span className="font-semibold">{cmdPreemptWarn.runningRecipe}</span>
-                          </div>
-                          <div className="text-center text-slate-400">↓ 중지 후</div>
-                          <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
-                            <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
-                            <span className="font-semibold text-blue-800">{cmdPreemptWarn.newRecipe}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
-                          <button onClick={()=>setCmdPreemptWarn(null)} className="h-8 px-4 rounded-lg bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700">네, 중단하고 발행</button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet" value={manualFleet} onChange={e=>onFleetChange(e.target.value)}>
                       {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
