@@ -370,7 +370,7 @@ function Sidebar({ active, onChange }) {
         </div>
         <div className="leading-tight">
           <div className="text-[13px] font-semibold text-slate-900">Connect</div>
-          <div className="text-[10.5px] text-slate-500">Orchestrator · v2.4</div>
+          <div className="text-[10.5px] text-slate-500">Orchestrator {"·"} v2.4</div>
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto p-2">
@@ -430,7 +430,7 @@ function Sidebar({ active, onChange }) {
             <Icon name="Activity" size={12} className="text-emerald-500"/>
             <span>모든 시스템 정상</span>
           </div>
-          <div className="mt-1 text-[10.5px] text-slate-400">마지막 동기화 · 13:42:08</div>
+          <div className="mt-1 text-[10.5px] text-slate-400">마지막 동기화 {"·"} 13:42:08</div>
         </div>
       </div>
     </aside>
@@ -540,7 +540,7 @@ function AlertRow({ level, robot, msg, time }) {
   return (
     <div className="px-4 py-2.5 flex items-start gap-2.5">
       <div className={"w-7 h-7 rounded-md grid place-items-center shrink-0 "+c.bg}><Icon name={c.icon} size={13} className={c.cl}/></div>
-      <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5"><span className="text-[11.5px] font-semibold text-slate-900 tnum">{robot}</span><span className="text-[10.5px] text-slate-400 tnum">· {time} 전</span></div><div className="text-[11.5px] text-slate-700 mt-0.5">{msg}</div></div>
+      <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5"><span className="text-[11.5px] font-semibold text-slate-900 tnum">{robot}</span><span className="text-[10.5px] text-slate-400 tnum">{"·"} {time} 전</span></div><div className="text-[11.5px] text-slate-700 mt-0.5">{msg}</div></div>
       <button className="text-[10.5px] font-medium text-blue-600">처리</button>
     </div>
   );
@@ -1112,7 +1112,7 @@ function MonitoringHome({ onNavigate }) {
                             {zEdges.map(e=>(
                               <div key={e.id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white border border-slate-200 text-[11px]">
                                 <Icon name={e.dir==="bi"?"ArrowLeftRight":"ArrowRight"} size={10} className="text-purple-500 shrink-0"/>
-                                <span className="font-medium text-slate-800 truncate">{e.from}→{e.to}</span>
+                                <span className="font-medium text-slate-800 truncate">{e.from}{"→"}{e.to}</span>
                                 <span className="text-slate-400 tnum ml-auto">{e.id}</span>
                               </div>
                             ))}
@@ -1183,8 +1183,8 @@ function MonitoringHome({ onNavigate }) {
                         <Icon name={edge.dir==="bi"?"ArrowLeftRight":"ArrowRight"} size={11} className={isSel?"text-white":"text-slate-400"}/>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className={"text-[12px] font-semibold tnum "+(isSel?"text-purple-700":"text-slate-800")}>{edge.from} → {edge.to}</div>
-                        <div className="text-[10px] text-slate-400 tnum">{edge.id} · {dist}px</div>
+                        <div className={"text-[12px] font-semibold tnum "+(isSel?"text-purple-700":"text-slate-800")}>{edge.from} {"→"} {edge.to}</div>
+                        <div className="text-[10px] text-slate-400 tnum">{edge.id} {"·"} {dist}px</div>
                       </div>
                       {ep.inactive&&<span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded text-slate-400 bg-slate-100">비활성</span>}
                     </button>
@@ -1381,7 +1381,7 @@ function MonitoringHome({ onNavigate }) {
                       stroke={edgeColor} strokeWidth={edgeW}
                       strokeDasharray={inactive?"3 3":"5 3"} opacity={inactive?0.4:isEditHl?1:0.8}
                       markerEnd={`url(#${arrId})`} markerStart={`url(#${arrId})`}/>}
-                    {isSel&&<text x={mx} y={my-6} textAnchor="middle" fill="#2563eb" fontSize={9} fontWeight="600">{e.id} · {dist}px</text>}
+                    {isSel&&<text x={mx} y={my-6} textAnchor="middle" fill="#2563eb" fontSize={9} fontWeight="600">{e.id} {"·"} {dist}px</text>}
                     {isEditHl&&!isSel&&<text x={mx} y={my-6} textAnchor="middle" fill="#b45309" fontSize={9} fontWeight="700">{e.id}</text>}
                     {/* 레인컷 여부 ON → 중앙 X 표시 */}
                     {ep.laneCut&&(
@@ -1567,7 +1567,7 @@ function MonitoringHome({ onNavigate }) {
                     <span className="text-[10px] font-semibold px-1.5 py-px rounded bg-blue-50 text-blue-600">{selectedNodeId}</span>
                   </div>
                   <div className="text-[10.5px] text-slate-500 tnum">
-                    X{mapNodes.find(n=>n.id===selectedNodeId)?.x} · Y{mapNodes.find(n=>n.id===selectedNodeId)?.y}
+                    X{mapNodes.find(n=>n.id===selectedNodeId)?.x} {"·"} Y{mapNodes.find(n=>n.id===selectedNodeId)?.y}
                   </div>
                 </div>
                 <button onClick={()=>{setSelectedNodeId(null);setMoveTarget("");}} className="w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500 shrink-0"><Icon name="X" size={13}/></button>
@@ -1580,7 +1580,7 @@ function MonitoringHome({ onNavigate }) {
                     <span className="text-[12.5px] font-semibold text-slate-900 tnum">{sel.id}</span>
                     <span className="text-[10px] font-semibold px-1.5 py-px rounded flex items-center gap-1" style={{background:statusMap[sel.st].bg,color:statusMap[sel.st].fg}}>{statusMap[sel.st].label}</span>
                   </div>
-                  <div className="text-[10.5px] text-slate-500 tnum">배터리 {sel.battery}% · X{sel.x} Y{sel.y}</div>
+                  <div className="text-[10.5px] text-slate-500 tnum">배터리 {sel.battery}% {"·"} X{sel.x} Y{sel.y}</div>
                 </div>
                 <button onClick={()=>setFocusRobot(null)} className="w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500 shrink-0"><Icon name="X" size={13}/></button>
               </div>
@@ -1630,7 +1630,7 @@ function MonitoringHome({ onNavigate }) {
                   {cmdFleet==="semi"&&(
                     <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
                       <option value="">템플릿 선택</option>
-                      {recipes.filter(r=>r.fleet==="semi"&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}·{recipeDuration(r)}분</option>)}
+                      {recipes.filter(r=>r.fleet==="semi"&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}{"·"}{recipeDuration(r)}분</option>)}
                     </CmdSelectField>
                   )}
 
@@ -1939,7 +1939,7 @@ function MonitoringHome({ onNavigate }) {
                   <div className="py-8 text-center">
                     <div className="w-10 h-10 mx-auto rounded-full bg-slate-50 grid place-items-center mb-2"><Icon name="Info" size={16} className="text-slate-400"/></div>
                     <div className="text-[12.5px] font-medium text-slate-700">선택 없음</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">맵에서 노드·엣지·로봇을<br/>클릭하면 속성이 표시됩니다.</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">맵에서 노드{"·"}엣지{"·"}로봇을<br/>클릭하면 속성이 표시됩니다.</div>
                   </div>
                 ) : (<>
                   <div className="rounded-md border border-slate-200 p-2.5">
@@ -2058,10 +2058,10 @@ function InfraStatusView() {
       <div className="flex items-end justify-between mb-5">
         <div>
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">인프라 Status 현황</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">충전소 · 자동문 · Things 인프라 상태를 모니터링합니다.</p>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">충전소 {"·"} 자동문 {"·"} Things 인프라 상태를 모니터링합니다.</p>
         </div>
         <div className="text-[11.5px] text-slate-400 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>실시간 · 마지막 갱신 13:42:08
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>실시간 {"·"} 마지막 갱신 13:42:08
         </div>
       </div>
 
@@ -2338,7 +2338,7 @@ function RobotStatusView() {
           <p className="text-[12.5px] text-slate-500 mt-0.5">전체 Fleet 로봇의 실시간 운영 상태를 조회합니다.</p>
         </div>
         <div className="text-[11.5px] text-slate-400 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>실시간 · 마지막 갱신 13:42:08
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>실시간 {"·"} 마지막 갱신 13:42:08
         </div>
       </div>
 
@@ -2822,7 +2822,7 @@ function AnalyticsView() {
       <div className="flex items-center gap-4 mb-4">
         <div>
           <h1 className="text-[18px] font-semibold text-slate-900 leading-tight">운영 대시보드</h1>
-          <p className="text-[11.5px] text-slate-500 mt-0.5">Fleet 운영·작업·에러 현황 종합 분석</p>
+          <p className="text-[11.5px] text-slate-500 mt-0.5">Fleet 운영{"·"}작업{"·"}에러 현황 종합 분석</p>
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           {/* 날짜 범위 */}
@@ -3947,8 +3947,8 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
             </div>
 
             <div ref={mapRef} onClick={handleMapClick} className={"absolute inset-0 grid-bg "+(mapMode==="create"?"cursor-crosshair":"cursor-default")}>
-              <div className="absolute top-10 left-10 w-72 h-40 rounded border border-blue-200 bg-blue-50/30 pointer-events-none"><div className="absolute top-1 left-2 text-[10px] font-medium text-blue-700/70 uppercase">Zone A · Loading</div></div>
-              <div className="absolute top-52 left-96 w-80 h-44 rounded border border-emerald-200 bg-emerald-50/30 pointer-events-none"><div className="absolute top-1 left-2 text-[10px] font-medium text-emerald-700/70 uppercase">Zone B · Drop-off</div></div>
+              <div className="absolute top-10 left-10 w-72 h-40 rounded border border-blue-200 bg-blue-50/30 pointer-events-none"><div className="absolute top-1 left-2 text-[10px] font-medium text-blue-700/70 uppercase">Zone A {"·"} Loading</div></div>
+              <div className="absolute top-52 left-96 w-80 h-44 rounded border border-emerald-200 bg-emerald-50/30 pointer-events-none"><div className="absolute top-1 left-2 text-[10px] font-medium text-emerald-700/70 uppercase">Zone B {"·"} Drop-off</div></div>
               {mapNodes.filter(mn=>mn.fleets.includes(fleet)&&!nodes.find(n=>n.id===mn.id)).map(mn=>(
                 <button key={mn.id} onClick={e=>{e.stopPropagation();addStepForNode({...mn});}} className="absolute -translate-x-1/2 -translate-y-1/2 group" style={{left:mn.x,top:mn.y}} title={mn.label}>
                   <div className="w-7 h-7 rounded-full border-2 border-dashed border-slate-300 bg-white/70 grid place-items-center group-hover:border-blue-500 group-hover:bg-blue-50 group-hover:scale-110 transition"><Icon name="Plus" size={11} className="text-slate-400 group-hover:text-blue-600"/></div>
@@ -3994,7 +3994,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
           <div className="h-40 border-t border-slate-200 bg-white px-5 py-3 overflow-hidden shrink-0">
             <div className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700 mb-2.5">
               <Icon name="GitBranch" size={13}/> Flow 시퀀스
-              <span className="text-slate-400 font-normal">· {steps.length}단계 · 총 {totalDur}초</span>
+              <span className="text-slate-400 font-normal">{"·"} {steps.length}단계 {"·"} 총 {totalDur}초</span>
             </div>
             <div className="overflow-x-auto pb-2">
               <div className="flex items-center gap-1.5 min-w-min">
@@ -4061,7 +4061,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
                           <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px] text-slate-500">
                             
                             <span>{fleets.find(f=>f.id===t.fleet)?.name}</span>
-                            <span className="text-slate-300">·</span>
+                            <span className="text-slate-300">{"·"}</span>
                             <Icon name="Clock" size={9}/>
                             <span className="tnum">{t.savedAt}</span>
                           </div>
@@ -4375,7 +4375,7 @@ function OrderTemplateView({ onNavigate }) {
         <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg border border-slate-200 px-3 py-2 flex gap-4 text-[11px]">
           <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-blue-600"/><span className="text-slate-600">Pick (1번째)</span></div>
           <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-500"/><span className="text-slate-600">Drop (2번째)</span></div>
-          <div className="text-slate-400">· 재클릭 시 취소</div>
+          <div className="text-slate-400">{"·"} 재클릭 시 취소</div>
         </div>
       </div>
     );
@@ -4606,7 +4606,7 @@ function OrderTemplateView({ onNavigate }) {
           <div className="flex items-center justify-between mb-3">
             <div className="text-[12px] font-semibold text-slate-600 flex items-center gap-1.5">
               <Icon name="Map" size={14} className="text-slate-500"/>
-              위치 선택 · 맵에서 직접 노드를 클릭하거나 좌측 드롭다운을 사용하세요
+              위치 선택 {"·"} 맵에서 직접 노드를 클릭하거나 좌측 드롭다운을 사용하세요
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
               <div className="w-2.5 h-2.5 rounded-sm bg-blue-600"/>Pick
@@ -4897,10 +4897,10 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   if(hoverPrev.fleetMismatch){return(
                     <div className="absolute pointer-events-none rounded-md border-2 border-dashed border-rose-400 bg-rose-50/90 z-20 px-2 py-1 flex flex-col justify-center" style={{left,width,top,height:GANTT.rowH-12}}>
                       <div className="flex items-center gap-1 text-[11px] font-semibold text-rose-700"><Icon name="Ban" size={11}/> Fleet 불일치</div>
-                      <div className="text-[10px] text-rose-500">{fm.name} 템플릿 → 다른 Fleet</div>
+                      <div className="text-[10px] text-rose-500">{fm.name} 템플릿 {"→"} 다른 Fleet</div>
                     </div>
                   );}
-                  return <><div className="absolute pointer-events-none border-2 border-dashed border-amber-300 bg-amber-50/50 rounded-md" style={{left:left-GANTT.BUFFER*GANTT.pxPerMin,width:(hoverPrev.duration+2*GANTT.BUFFER)*GANTT.pxPerMin,top,height:GANTT.rowH-12}}/><div className={"absolute pointer-events-none rounded-md border-2 z-20 px-2 py-1.5 "+(hoverPrev.conflict?"border-amber-500 bg-amber-100/80":"border-blue-500 bg-blue-100/80")} style={{left,width,top,height:GANTT.rowH-12}}><div className="text-[11px] font-semibold text-slate-900 truncate">{r?.name}</div><div className="text-[10px] tnum text-slate-700">{fmtTime(hoverPrev.start)}·{hoverPrev.duration}초</div></div></>;
+                  return <><div className="absolute pointer-events-none border-2 border-dashed border-amber-300 bg-amber-50/50 rounded-md" style={{left:left-GANTT.BUFFER*GANTT.pxPerMin,width:(hoverPrev.duration+2*GANTT.BUFFER)*GANTT.pxPerMin,top,height:GANTT.rowH-12}}/><div className={"absolute pointer-events-none rounded-md border-2 z-20 px-2 py-1.5 "+(hoverPrev.conflict?"border-amber-500 bg-amber-100/80":"border-blue-500 bg-blue-100/80")} style={{left,width,top,height:GANTT.rowH-12}}><div className="text-[11px] font-semibold text-slate-900 truncate">{r?.name}</div><div className="text-[10px] tnum text-slate-700">{fmtTime(hoverPrev.start)}{"·"}{hoverPrev.duration}초</div></div></>;
                 })()}
               </div>
             </div>
@@ -5368,12 +5368,12 @@ function AddOrderDialog({ orders, onClose, onCreate, onNavigateRequest }) {
           </div>
           {/* Recipe + Robot */}
           <div className="grid grid-cols-2 gap-3">
-            <div><div className="text-[11px] font-medium text-slate-500 mb-1">레시피</div><div className="relative"><select value={recipeId} onChange={e=>setRecipeId(e.target.value)} className="h-9 pl-3 pr-8 w-full rounded-md border border-slate-200 bg-white text-[12.5px] text-slate-800 outline-none focus:border-blue-400 appearance-none">{fr.map(r=><option key={r.id} value={r.id}>{r.name}·{recipeDuration(r)}분</option>)}</select><Icon name="ChevronDown" size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/></div></div>
+            <div><div className="text-[11px] font-medium text-slate-500 mb-1">레시피</div><div className="relative"><select value={recipeId} onChange={e=>setRecipeId(e.target.value)} className="h-9 pl-3 pr-8 w-full rounded-md border border-slate-200 bg-white text-[12.5px] text-slate-800 outline-none focus:border-blue-400 appearance-none">{fr.map(r=><option key={r.id} value={r.id}>{r.name}{"·"}{recipeDuration(r)}분</option>)}</select><Icon name="ChevronDown" size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/></div></div>
             <div><div className="text-[11px] font-medium text-slate-500 mb-1">할당 로봇</div><div className="relative"><select value={robotId} onChange={e=>setRobotId(e.target.value)} className="h-9 pl-3 pr-8 w-full rounded-md border border-slate-200 bg-white text-[12.5px] text-slate-800 outline-none focus:border-blue-400 appearance-none">{rb.map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</select><Icon name="ChevronDown" size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/></div></div>
           </div>
           {/* Date + Time */}
           <div>
-            <div className="text-[11px] font-medium text-slate-500 mb-1">날짜 · 시작 시간</div>
+            <div className="text-[11px] font-medium text-slate-500 mb-1">날짜 {"·"} 시작 시간</div>
             <div className="grid grid-cols-3 gap-2">
               <div className="relative">
                 <Icon name="Calendar" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"/>
@@ -5439,12 +5439,12 @@ function AddOrderDialog({ orders, onClose, onCreate, onNavigateRequest }) {
               <div className="flex items-center gap-2 text-[11.5px]">
                 <Icon name={shifted?"AlertTriangle":"Sparkles"} size={12} className={shifted?"text-amber-600":"text-blue-600"}/>
                 <span className={"font-semibold "+(shifted?"text-amber-900":"text-blue-900")}>{shifted?"충돌 회피 적용됨":"스케줄 가능"}</span>
-                <span className="ml-auto text-slate-500 tnum">{robotId}·{fmtTime(placement.start)}{"—"}{fmtTime(placement.start+dur)}</span>
+                <span className="ml-auto text-slate-500 tnum">{robotId}{"·"}{fmtTime(placement.start)}{"—"}{fmtTime(placement.start+dur)}</span>
               </div>
               {repeat&&repeatDays.size>0&&(
                 <div className="mt-1.5 text-[10.5px] text-blue-600 flex items-center gap-1.5">
                   <Icon name="Repeat" size={10}/>
-                  <span>{dayLabel}{presetLabel} · 매주 반복 예약</span>
+                  <span>{dayLabel}{presetLabel} {"·"} 매주 반복 예약</span>
                 </div>
               )}
             </div>
@@ -5578,7 +5578,7 @@ function LogsView({ initCat3, onMounted }) {
         <div className="flex items-end justify-between mb-4">
           <div>
             <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">로그 조회</h1>
-            <p className="text-[12.5px] text-slate-500 mt-0.5">대분류 · 중분류 · 소분류 선택 후 로그를 조회하세요.</p>
+            <p className="text-[12.5px] text-slate-500 mt-0.5">대분류 {"·"} 중분류 {"·"} 소분류 선택 후 로그를 조회하세요.</p>
           </div>
           <button className="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700 flex items-center gap-1.5 shadow-sm">
             <Icon name="Download" size={13}/> CSV 내보내기
@@ -6090,7 +6090,7 @@ function PermissionsView() {
               {/* 사용자 정보 */}
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 grid place-items-center text-white font-semibold">{editUser.name[0]}</div>
-                <div><div className="font-mono text-[13px] font-semibold text-slate-900">{editUser.id}</div><div className="text-[11px] text-slate-500">{editUser.name} · {editUser.dept}</div></div>
+                <div><div className="font-mono text-[13px] font-semibold text-slate-900">{editUser.id}</div><div className="text-[11px] text-slate-500">{editUser.name} {"·"} {editUser.dept}</div></div>
               </div>
               {/* 부서 */}
               <div>
