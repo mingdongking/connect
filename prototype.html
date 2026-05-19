@@ -4259,14 +4259,16 @@ function OrderTemplateView({ onNavigate }) {
       id:ordId, fleet:fleetDef.id, fleetName:fleetDef.name, fleetColor:fleetDef.color,
       robotId:form.robotId||(fleetDef.robotIds[0]),
       pickNode:form.pickNode, dropNode:form.dropNode,
-      startMin, duration:30, status:"pending",
+      startMin, duration:30,
+      status: schedMode==="immediate" ? "running" : "queued",
+      fromRequest: true,
       label:`${fleetDef.name} · ${form.pickNode}→${form.dropNode}`,
       detail: fleetDef.id==="amr"
         ? {cartId:form.cartId, cartCat:cartInfo?.cat}
         : fleetDef.id==="agv"
         ? {passengerId:form.passengerId}
         : {userId:form.userId},
-      priority:form.priority||"normal", memo:form.memo||"",
+      priority:form.priority||"normal", memo:form.memo||"", schedMode,
     };
     onNavigate("schedule", {pendingOrder:order});
   };
@@ -4475,7 +4477,8 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
       recipeId: null,
       start:    pendingOrder.startMin,
       duration: pendingOrder.duration,
-      status:   "pending",
+      status:   pendingOrder.schedMode==="immediate" ? "running" : "queued",
+      fromRequest: true,
       label:    `${pendingOrder.fleetName} · ${pendingOrder.pickNode}→${pendingOrder.dropNode}`,
       fleetColor: pendingOrder.fleetColor,
       fleet:    pendingOrder.fleet,
@@ -4732,9 +4735,9 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
               <button onClick={()=>{setLibTab("requests");setFilterTemplate(null);}}
                 className={"h-8 px-3 rounded-md text-[12.5px] font-semibold flex items-center gap-1.5 transition "+(libTab==="requests"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}>
                 <Icon name="ClipboardList" size={13}/> 작업 요청 현황
-                {orders.filter(o=>o.status==="pending").length>0&&(
+                {orders.filter(o=>o.fromRequest).length>0&&(
                   <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold grid place-items-center">
-                    {orders.filter(o=>o.status==="pending").length}
+                    {orders.filter(o=>o.fromRequest).length}
                   </span>
                 )}
               </button>
@@ -4800,8 +4803,8 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   const fm=fleetMeta(r.fleet), dur=recipeDuration(r), isHL=r.id===hlRcp;
                   // 이 템플릿(fleet)을 사용 중인 pending 오더 수
                   const pendingCount = r.locked
-                    ? orders.filter(o=>o.status==="pending"&&o.fleet===r.fleet).length
-                    : orders.filter(o=>o.status==="pending"&&o.recipeId===r.id).length;
+                    ? orders.filter(o=>o.fromRequest&&o.fleet===r.fleet).length
+                    : orders.filter(o=>o.fromRequest&&o.recipeId===r.id).length;
                   return (
                     <div key={r.id} draggable={!r.locked}
                       onDragStart={e=>!r.locked&&onLibDragStart(e,r.id)}
@@ -4857,12 +4860,13 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
             {/* ── 작업 요청 현황 탭 ── */}
             {libTab==="requests"&&(()=>{
               const pendingOrders = orders.filter(o=>{
-                if(o.status!=="pending") return false;
+                if(!o.fromRequest) return false;
                 if(reqFleetF.size>0 && !reqFleetF.has(o.fleet)) return false;
-                if(reqTplF.size>0   && !reqTplF.has(o.fleet)) return false;
+                if(reqTplF.size>0   && !reqTplF.has(o.fleet) && !reqTplF.has(o.recipeId)) return false;
                 return true;
               });
               const lockedTemplates = recipes.filter(r=>r.locked);
+              const allTemplatesForFilter = recipes; // 잠금 + semi-x 전부
               const isDirty = reqFleetF.size>0 || reqTplF.size>0;
 
               return (<>
@@ -4906,7 +4910,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   })()}
                   {/* 템플릿 멀티 필터 */}
                   {(()=>{
-                    const opts=lockedTemplates.map(r=>({id:r.fleet,label:r.name,color:fleetMeta(r.fleet).color}));
+                    const opts=allTemplatesForFilter.map(r=>({id:r.fleet||r.id, label:r.name, color:fleetMeta(r.fleet).color, useId:!r.locked}));
                     const val=reqTplF; const setVal=setReqTplF;
                     const open=reqTplDropOpen; const setOpen=setReqTplDropOpen;
                     const toggle=id=>{const n=new Set(val);n.has(id)?n.delete(id):n.add(id);setVal(n);};
