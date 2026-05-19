@@ -5500,14 +5500,14 @@ function LogsView({ initCat3, onMounted }) {
 
   // ── Error 로그 데이터 (Robot) ──
   const ERROR_DATA = [
-    {fleet:"Delivery-Tool",robotId:"Tool002",errorCode:"OBS_401",severity:"Error",occurredAt:"13:10:03",resolvedAt:"13:15:30",location:"MN-3 (X:320 Y:160)",message:"경로 재계산 실패 {"—"} 장애물 감지",actionStatus:"해결됨",assignee:"park.lee",  relatedOrderId:"ord-006"},
-    {fleet:"Delivery-Tool",robotId:"Tool001",errorCode:"NET_201",severity:"Warn", occurredAt:"12:58:11",resolvedAt:"13:02:00",location:"MN-2 (X:220 Y:110)",message:"네트워크 지연 {"—"} 응답 시간 180ms 초과",actionStatus:"자동복구",assignee:"-",       relatedOrderId:"ord-003"},
-    {fleet:"Delivery-Tool",robotId:"Tool004",errorCode:"BAT_101",severity:"Warn", occurredAt:"13:41:55",resolvedAt:"-",       location:"MN-10 (X:200 Y:360)",message:"배터리 31% {"—"} 자동 충전 라우팅",actionStatus:"처리중",assignee:"-",          relatedOrderId:"ord-009"},
-    {fleet:"Ride",          robotId:"Ride002",errorCode:"OBS_402",severity:"Error",occurredAt:"13:40:12",resolvedAt:"-",       location:"MN-5 (X:540 Y:280)",message:"장애물 감지 {"—"} 경로 재계산 실패",actionStatus:"EMS호출",assignee:"samsung.kim",relatedOrderId:"ord-012"},
-    {fleet:"Ride",          robotId:"Ride002",errorCode:"EMS_001",severity:"Error",occurredAt:"13:26:11",resolvedAt:"13:32:00",location:"MN-6 (X:650 Y:280)",message:"EMS 호출 {"—"} 운영자 개입",actionStatus:"해결됨",assignee:"samsung.kim",relatedOrderId:"ord-011"},
-    {fleet:"Ride",          robotId:"Ride001",errorCode:"SPD_301",severity:"Warn", occurredAt:"13:15:33",resolvedAt:"13:15:45",location:"MN-4 (X:420 Y:220)",message:"속도 제한 구역 진입 {"—"} 0.3m/s 감속",actionStatus:"자동복구",assignee:"-",    relatedOrderId:"ord-010"},
-    {fleet:"Delivery-Parts",robotId:"Part002",errorCode:"COM_501",severity:"Error",occurredAt:"13:05:22",resolvedAt:"13:28:38",location:"MN-11 (X:360 Y:360)",message:"통신 오류 {"—"} 네트워크 타임아웃(30s)",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"-"},
-    {fleet:"SEMI-x",        robotId:"x001",  errorCode:"ENV_601",severity:"Warn", occurredAt:"12:50:11",resolvedAt:"12:55:00",location:"MN-7 (X:540 Y:360)",message:"클린룸 압력 경고 {"—"} 기준치 0.2Pa 초과",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"WAFER-2201"},
+    {fleet:"Delivery-Tool",robotId:"Tool002",errorCode:"OBS_401",severity:"Error",occurredAt:"13:10:03",resolvedAt:"13:15:30",location:"MN-3 (X:320 Y:160)",message:"경로 재계산 실패 — 장애물 감지",actionStatus:"해결됨",assignee:"park.lee",  relatedOrderId:"ord-006"},
+    {fleet:"Delivery-Tool",robotId:"Tool001",errorCode:"NET_201",severity:"Warn", occurredAt:"12:58:11",resolvedAt:"13:02:00",location:"MN-2 (X:220 Y:110)",message:"네트워크 지연 — 응답 시간 180ms 초과",actionStatus:"자동복구",assignee:"-",       relatedOrderId:"ord-003"},
+    {fleet:"Delivery-Tool",robotId:"Tool004",errorCode:"BAT_101",severity:"Warn", occurredAt:"13:41:55",resolvedAt:"-",       location:"MN-10 (X:200 Y:360)",message:"배터리 31% — 자동 충전 라우팅",actionStatus:"처리중",assignee:"-",          relatedOrderId:"ord-009"},
+    {fleet:"Ride",          robotId:"Ride002",errorCode:"OBS_402",severity:"Error",occurredAt:"13:40:12",resolvedAt:"-",       location:"MN-5 (X:540 Y:280)",message:"장애물 감지 — 경로 재계산 실패",actionStatus:"EMS호출",assignee:"samsung.kim",relatedOrderId:"ord-012"},
+    {fleet:"Ride",          robotId:"Ride002",errorCode:"EMS_001",severity:"Error",occurredAt:"13:26:11",resolvedAt:"13:32:00",location:"MN-6 (X:650 Y:280)",message:"EMS 호출 — 운영자 개입",actionStatus:"해결됨",assignee:"samsung.kim",relatedOrderId:"ord-011"},
+    {fleet:"Ride",          robotId:"Ride001",errorCode:"SPD_301",severity:"Warn", occurredAt:"13:15:33",resolvedAt:"13:15:45",location:"MN-4 (X:420 Y:220)",message:"속도 제한 구역 진입 — 0.3m/s 감속",actionStatus:"자동복구",assignee:"-",    relatedOrderId:"ord-010"},
+    {fleet:"Delivery-Parts",robotId:"Part002",errorCode:"COM_501",severity:"Error",occurredAt:"13:05:22",resolvedAt:"13:28:38",location:"MN-11 (X:360 Y:360)",message:"통신 오류 — 네트워크 타임아웃(30s)",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"-"},
+    {fleet:"SEMI-x",        robotId:"x001",  errorCode:"ENV_601",severity:"Warn", occurredAt:"12:50:11",resolvedAt:"12:55:00",location:"MN-7 (X:540 Y:360)",message:"클린룸 압력 경고 — 기준치 0.2Pa 초과",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"WAFER-2201"},
   ];
 
   const [cat1, setCat1]=useState(new Set(["Robot"]));
@@ -5619,7 +5619,7 @@ function LogsView({ initCat3, onMounted }) {
               </div>
             </div>
 
-            {/* 소분류 {"—"} 단일 선택 */}
+            {/* 소분류 — 단일 선택 */}
             <div className="flex items-start gap-4 px-4 py-3">
               <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0 mt-1.5">소분류</span>
               <div className="flex flex-wrap gap-2">
