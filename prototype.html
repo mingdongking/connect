@@ -560,7 +560,15 @@ function CmdSection({ icon, tone, title, subtitle, children }) {
 function CmdSelectField({ label, value, onChange, children }) {
   return (
     <div className="relative flex-1 min-w-0">
-      {label && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9.5px] font-medium text-slate-400 uppercase tracking-wide pointer-events-none">{label}</span>}
+      {label && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9.5px] font-medium text-slate-400 uppercase tracking-wide pointer-events-none z-10">{label}</span>}
+      <select value={value!==undefined?value:""} onChange={onChange||((e)=>{})}
+        className={"w-full h-7 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none appearance-none focus:border-blue-400 pr-6 transition "+(label?"pl-10":"pl-2.5")}>
+        {children}
+      </select>
+      <Icon name="ChevronDown" size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+    </div>
+  );
+}ext-slate-400 uppercase tracking-wide pointer-events-none">{label}</span>}
       <select defaultValue={value||""} onChange={onChange} className={"w-full h-7 rounded-md border border-slate-200 bg-white text-[11.5px] outline-none appearance-none cursor-pointer "+(label?"pl-10":"pl-2.5")+" pr-6 text-slate-800 focus:border-blue-400"}>
         {children}
       </select>
@@ -1615,82 +1623,98 @@ function MonitoringHome({ onNavigate }) {
 
                 {/* 작업 요청하기 */}
                 <CmdSection icon="Send" tone="blue" title="작업 요청하기" subtitle="선택된 Fleet 로봇에 작업을 요청합니다">
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
+                    <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
+                      <option value="P2">일반</option>
+                      <option value="P1">긴급</option>
+                    </CmdSelectField>
+                  </div>
+
+                  {/* Semi-x 전용: 템플릿 선택 */}
+                  {cmdFleet==="semi"&&(
+                    <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
+                      <option value="">템플릿 선택</option>
+                      {recipes.filter(r=>r.fleet==="semi"&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}·{recipeDuration(r)}분</option>)}
+                    </CmdSelectField>
+                  )}
+
+                  {/* Delivery-Tool */}
+                  {cmdFleet==="amr"&&(<>
+                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                      <CmdSelectField label="Pick" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                      <CmdSelectField label="Drop" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                    </div>
+                    <div className="mt-1.5">
+                      <CmdSelectField label="Cart" value={cmdCartId} onChange={e=>setCmdCartId(e.target.value)}>
+                        <option value="">Tool Cart 선택</option>
+                        {["TC-001·CPT","TC-002·CTR","TC-003·CBT","TC-004·CLV","TC-005·CPS"].map(c=><option key={c} value={c}>{c}</option>)}
+                      </CmdSelectField>
+                    </div>
+                  </>)}
+
+                  {/* Ride */}
+                  {cmdFleet==="agv"&&(<>
+                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                      <CmdSelectField label="승차" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                      <CmdSelectField label="하차" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                    </div>
+                    <input value={cmdPassId} onChange={e=>setCmdPassId(e.target.value)} placeholder="승객 ID (사번)"
+                      className="w-full h-7 px-2.5 mt-1.5 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
+                  </>)}
+
+                  {/* Delivery-Parts */}
+                  {cmdFleet==="arm"&&(<>
+                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                      <CmdSelectField label="Pick" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                      <CmdSelectField label="Drop" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                    </div>
+                    <input value={cmdUserId} onChange={e=>setCmdUserId(e.target.value)} placeholder="사용자 ID"
+                      className="w-full h-7 px-2.5 mt-1.5 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
+                  </>)}
+
                   {(()=>{
                     const isDelivery = ["amr","agv","arm"].includes(cmdFleet);
-                    const NODES = mapNodes.map(n=>({id:n.id,label:n.label}));
-                    const TOOL_CARTS = ["TC-001·CPT","TC-002·CTR","TC-003·CBT","TC-004·CLV","TC-005·CPS"];
-                    const NodeSel = ({label,val,onChange})=>(
-                      <CmdSelectField label={label} value={val} onChange={e=>onChange(e.target.value)}>
-                        <option value="">노드 선택</option>
-                        {NODES.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                    );
-                    return(<>
-                      <div className="grid grid-cols-2 gap-1.5 mb-2">
-                        <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                          {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
-                        </CmdSelectField>
-                        <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
-                          <option value="P2">일반</option>
-                          <option value="P1">긴급</option>
-                        </CmdSelectField>
-                      </div>
-                      {/* Semi-x: 템플릿 선택 */}
-                      {!isDelivery&&(
-                        <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
-                          <option value="">템플릿 선택</option>
-                          {recipes.filter(r=>r.fleet===cmdFleet&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}·{recipeDuration(r)}분</option>)}
-                        </CmdSelectField>
-                      )}
-                      {/* Delivery-Tool */}
-                      {cmdFleet==="amr"&&<>
-                        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                          <NodeSel label="Pick 위치" val={cmdPickNode} onChange={setCmdPickNode}/>
-                          <NodeSel label="Drop 위치" val={cmdDropNode} onChange={setCmdDropNode}/>
-                        </div>
-                        <CmdSelectField label="Tool Cart" value={cmdCartId} onChange={e=>setCmdCartId(e.target.value)}>
-                          <option value="">Cart 선택</option>
-                          {TOOL_CARTS.map(c=><option key={c} value={c}>{c}</option>)}
-                        </CmdSelectField>
-                      </>}
-                      {/* Ride */}
-                      {cmdFleet==="agv"&&<>
-                        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                          <NodeSel label="승차 위치" val={cmdPickNode} onChange={setCmdPickNode}/>
-                          <NodeSel label="하차 위치" val={cmdDropNode} onChange={setCmdDropNode}/>
-                        </div>
-                        <CmdSelectField label="승객 ID">
-                          <option value="">승객 ID 입력</option>
-                        </CmdSelectField>
-                        <input value={cmdPassId} onChange={e=>setCmdPassId(e.target.value)} placeholder="사번 또는 ID"
-                          className="w-full h-7 px-2 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400 mt-1"/>
-                      </>}
-                      {/* Delivery-Parts */}
-                      {cmdFleet==="arm"&&<>
-                        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                          <NodeSel label="Pick 위치" val={cmdPickNode} onChange={setCmdPickNode}/>
-                          <NodeSel label="Drop 위치" val={cmdDropNode} onChange={setCmdDropNode}/>
-                        </div>
-                        <input value={cmdUserId} onChange={e=>setCmdUserId(e.target.value)} placeholder="사용자 ID"
-                          className="w-full h-7 px-2 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400 mt-1"/>
-                      </>}
+                    const canDispatch = isDelivery ? (cmdPickNode&&cmdDropNode) : manualRecipe;
+                    return (
                       <button onClick={()=>{
-                        const canDispatch = isDelivery ? (cmdPickNode&&cmdDropNode) : manualRecipe;
                         if(!canDispatch) return;
                         const robot = robots.find(r=>r.id===manualRobot);
                         const recipe = recipes.find(r=>r.id===manualRecipe);
-                        const recipeName = isDelivery ? (cmdFleet==="amr"?"Delivery-Tool 기본 템플릿":cmdFleet==="agv"?"Ride 기본 템플릿":"Delivery-Parts 기본 템플릿") : recipe?.name||manualRecipe;
-                        if(robot?.st==="run" && robot?.recipe){
+                        const recipeName = isDelivery
+                          ? (cmdFleet==="amr"?"Delivery-Tool 기본 템플릿":cmdFleet==="agv"?"Ride 기본 템플릿":"Delivery-Parts 기본 템플릿")
+                          : recipe?.name||manualRecipe;
+                        if(robot?.st==="run"&&robot?.recipe){
                           if(manualPriority==="P1"){
                             onNavigate("popup",{popup:{type:"cmd-preempt",data:{runningRecipe:robot.recipe,newRecipe:recipeName}}});
                           } else {
                             onNavigate("popup",{popup:{type:"cmd-queue",data:{newRecipe:recipeName}}});
                           }
                         }
-                      }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+((isDelivery?(cmdPickNode&&cmdDropNode):manualRecipe)?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
+                      }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(canDispatch?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
                         <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 작업 요청하기":"작업 요청하기"}
                       </button>
-                    </>);
+                    );
                   })()}
                 </CmdSection>
 
