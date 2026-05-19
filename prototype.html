@@ -695,7 +695,7 @@ function MonitoringHome({ onNavigate }) {
   const [cmdTab, setCmdTab] = useState("command");
   const [panelOpen, setPanelOpen] = useState(false);
   const [orderModal, setOrderModal] = useState(false);
-  // Command 패널 — 통합 state
+  // Command 패널 state
   const [cmdFleet, setCmdFleet] = useState("semi"); // 필터 fleet
   const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
   const [manualRecipe, setManualRecipe] = useState("");
@@ -723,14 +723,14 @@ function MonitoringHome({ onNavigate }) {
   // 편집 중인 다른 사용자 (프로토타입: 시뮬레이션)
   const [editingUser] = useState("samsung.kim");
   const editToastRef = useRef(null);
-  // 노드 속성 (nodeId → props) — live edit 용
+  // 노드 속성 live edit
   const initNodeProps = Object.fromEntries(mapNodes.map(n=>([n.id,{type:"none",avoidance:false,mutualExcl:false,theta:0}])));
   const [nodeProps,          setNodeProps]          = useState(initNodeProps);
   const [committedNodeProps, setCommittedNodeProps] = useState(initNodeProps);
   function setNodeProp(id, key, val){ setNodeProps(p=>({...p,[id]:{...p[id],[key]:val}})); }
   function saveNodeProps(id){   setCommittedNodeProps(p=>({...p,[id]:{...nodeProps[id]}})); }
   function cancelNodeProps(id){ setNodeProps(p=>({...p,[id]:{...committedNodeProps[id]}})); }
-  // 엣지 속성 (edgeId → props) — live edit 용
+  // 엣지 속성 live edit
   const initEdgeProps = Object.fromEntries(mapEdges.map(e=>([e.id,{speed:1.0,rotation:false,inactive:false,mutualExcl:false,laneCut:false}])));
   const [edgeProps,          setEdgeProps]          = useState(initEdgeProps);
   const [committedEdgeProps, setCommittedEdgeProps] = useState(initEdgeProps);
@@ -907,7 +907,7 @@ function MonitoringHome({ onNavigate }) {
                           <td className="py-2.5 px-3 font-mono text-[11px]">{d.destination}</td>
                           <td className="py-2.5 px-3 tnum text-slate-600">{d.distance}</td>
                           <td className="py-2.5 px-3 tnum text-slate-600">{d.batteryUsed}</td>
-                          <td className="py-2.5 px-3">{d.errorCode!=="-"?<span className="font-mono text-[11px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">{d.errorCode}</span>:<span className="text-slate-300">—</span>}</td>
+                          <td className="py-2.5 px-3">{d.errorCode!=="-"?<span className="font-mono text-[11px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">{d.errorCode}</span>:<span className="text-slate-300">{"—"}</span>}</td>
                         </tr>
                       );
                     })}
@@ -997,7 +997,7 @@ function MonitoringHome({ onNavigate }) {
             </div>
             {editTab==="zone"&&(
               <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {/* Zone 추가 — 토글 */}
+                {/* Zone 추가 {"—"} 토글 */}
                 {(()=>{
                   const PALETTE = [
                     "#2563eb","#10b981","#7c3aed","#f59e0b","#e11d48",
@@ -1514,7 +1514,7 @@ function MonitoringHome({ onNavigate }) {
         </div>
       </div>
 
-      {/* Slide Panel — full height, top-level */}
+      {/* Slide Panel {"—"} full height, top-level */}
       <div style={mapFullscreen ? {
         position:"fixed",
         top:16, right:16, bottom:16,
@@ -1794,7 +1794,7 @@ function MonitoringHome({ onNavigate }) {
                         </div>
                       </div>
 
-                      {/* 노드 유형 + 특성 — 편집 모드 외 호버 시 tooltip */}
+                      {/* 노드 유형 + 특성 {"—"} 편집 모드 외 호버 시 tooltip */}
                       <div title={!editMode?"맵 편집에서 수정할 수 있어요":undefined}>
                       {/* 노드 유형 */}
                       <div className="rounded-lg border border-slate-200 bg-white p-2.5 mb-2.5">
@@ -1836,7 +1836,7 @@ function MonitoringHome({ onNavigate }) {
                         className="w-full h-8 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5">
                         <Icon name="Navigation" size={12}/> 이 노드로 노드 이동하기
                       </button>
-                      {/* 취소 / 저장 — 편집 모드에서만 */}
+                      {/* 취소 / 저장 {"—"} 편집 모드에서만 */}
                       {editMode&&(()=>{
                         const isDirty = JSON.stringify(nodeProps[node.id]) !== JSON.stringify(committedNodeProps[node.id]);
                         return (
@@ -1898,7 +1898,7 @@ function MonitoringHome({ onNavigate }) {
                         </div>
                       </div>
 
-                      {/* 속도 + 특성 — 편집 모드 외 호버 시 tooltip */}
+                      {/* 속도 + 특성 {"—"} 편집 모드 외 호버 시 tooltip */}
                       <div title={!editMode?"맵 편집에서 수정할 수 있어요":undefined}>
                       {/* 속도 */}
                       <div className="rounded-lg border border-slate-200 bg-white p-2.5 mb-2.5">
@@ -1921,7 +1921,7 @@ function MonitoringHome({ onNavigate }) {
                         <EdgeToggle label="레인컷 여부"      val={ep.laneCut}    onToggle={()=>setEdgeProp(edge.id,"laneCut",    !ep.laneCut)}/>
                       </div>
                       </div>{/* /tooltip wrapper */}
-                      {/* 취소 / 저장 — 편집 모드에서만 */}
+                      {/* 취소 / 저장 {"—"} 편집 모드에서만 */}
                       {editMode&&(()=>{
                         const isDirty = JSON.stringify(edgeProps[edge.id]) !== JSON.stringify(committedEdgeProps[edge.id]);
                         return (
@@ -1967,7 +1967,7 @@ function MonitoringHome({ onNavigate }) {
                       {initOrders.filter(o=>o.robotId===sel.id).slice(0,4).map(o=>{
                         const r=recipes.find(rr=>rr.id===o.recipeId),dur=r?recipeDuration(r):0;
                         const sc={done:{label:"완료",color:"#94a3b8",bg:"#f1f5f9"},running:{label:"진행중",color:"#2563eb",bg:"#dbeafe"},queued:{label:"예약",color:"#d97706",bg:"#fef3c7"},error:{label:"실패",color:"#e11d48",bg:"#ffe4e6"}}[o.status];
-                        return <div key={o.id} className="px-2.5 py-2 hover:bg-slate-50/50"><div className="flex items-center gap-1.5 mb-0.5"><span className="w-1 h-3 rounded-sm" style={{background:sc.color}}/><span className="text-[11.5px] font-medium text-slate-900 truncate flex-1">{r?.name||o.recipeId}</span><span className="text-[9.5px] font-semibold px-1.5 py-px rounded tnum" style={{background:sc.bg,color:sc.color}}>{sc.label}</span></div><div className="flex items-center gap-1.5 text-[10px] text-slate-500 tnum pl-2.5"><Icon name="Clock" size={9}/>{fmtTime(o.start)}—{fmtTime(o.start+dur)}</div></div>;
+                        return <div key={o.id} className="px-2.5 py-2 hover:bg-slate-50/50"><div className="flex items-center gap-1.5 mb-0.5"><span className="w-1 h-3 rounded-sm" style={{background:sc.color}}/><span className="text-[11.5px] font-medium text-slate-900 truncate flex-1">{r?.name||o.recipeId}</span><span className="text-[9.5px] font-semibold px-1.5 py-px rounded tnum" style={{background:sc.bg,color:sc.color}}>{sc.label}</span></div><div className="flex items-center gap-1.5 text-[10px] text-slate-500 tnum pl-2.5"><Icon name="Clock" size={9}/>{fmtTime(o.start)}{"—"}{fmtTime(o.start+dur)}</div></div>;
                       })}
                       {initOrders.filter(o=>o.robotId===sel.id).length===0&&<div className="px-3 py-4 text-center text-[11.5px] text-slate-400 italic">할당된 오더가 없습니다.</div>}
                     </div>
@@ -2148,7 +2148,7 @@ function InfraStatusView() {
                     <td className="py-3">
                       {c.robotId!=="-"
                         ? <span className="font-mono text-[11.5px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{c.robotId}</span>
-                        : <span className="text-slate-300">—</span>}
+                        : <span className="text-slate-300">{"—"}</span>}
                     </td>
                     <td className="py-3 pr-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold" style={{background:st.bg,color:st.fg}}>
@@ -2260,7 +2260,7 @@ function InfraStatusView() {
                   {d.fail>0&&(
                     <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-rose-600 bg-rose-50 rounded-lg px-3 py-2">
                       <Icon name="AlertTriangle" size={12}/>
-                      <span className="font-medium">{d.fail}개 장치 오류 — 점검 필요</span>
+                      <span className="font-medium">{d.fail}개 장치 오류 {"—"} 점검 필요</span>
                     </div>
                   )}
                   {d.fail===0&&(
@@ -2836,7 +2836,7 @@ function AnalyticsView() {
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-3 h-9">
             <Icon name="CalendarRange" size={13} className="text-slate-400"/>
             <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} className="text-[12px] text-slate-800 outline-none bg-transparent"/>
-            <span className="text-slate-300 text-[11px]">—</span>
+            <span className="text-slate-300 text-[11px]">{"—"}</span>
             <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} className="text-[12px] text-slate-800 outline-none bg-transparent"/>
           </div>
           {/* Fleet 멀티 드롭다운 */}
@@ -3803,7 +3803,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
               className="h-9 px-2.5 w-full rounded-md border border-slate-200 bg-white text-[13px] font-medium text-slate-900 outline-none focus:border-blue-400 placeholder:text-slate-300 placeholder:font-normal"/>
           </div>
 
-          {/* 2. 대상 Fleet — 드롭다운 */}
+          {/* 2. 대상 Fleet {"—"} 드롭다운 */}
           <div className="p-4 border-b border-slate-200">
             <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">대상 Fleet</div>
             <div className="relative">
@@ -3897,7 +3897,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
                 );
               })}
             </div>
-            {/* Duration — 초 단위 text input */}
+            {/* Duration {"—"} 초 단위 text input */}
             {selStep&&(
               <div className="mt-4">
                 <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">소요 시간 (초)</div>
@@ -3920,7 +3920,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
         {/* Right: Map + Flow */}
         <div className="min-w-0 flex flex-col">
           <div className="relative flex-1 min-h-0 overflow-hidden bg-slate-50">
-            {/* Map dropdown — top left */}
+            {/* Map dropdown {"—"} top left */}
             <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5">
               <div className="relative">
                 <button onClick={()=>setMapDropOpen(o=>!o)}
@@ -4613,7 +4613,7 @@ function OrderTemplateView({ onNavigate }) {
           <div className="flex items-center justify-between mb-3">
             <div className="text-[12px] font-semibold text-slate-600 flex items-center gap-1.5">
               <Icon name="Map" size={14} className="text-slate-500"/>
-              위치 선택 — 맵에서 직접 노드를 클릭하거나 좌측 드롭다운을 사용하세요
+              위치 선택 · 맵에서 직접 노드를 클릭하거나 좌측 드롭다운을 사용하세요
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
               <div className="w-2.5 h-2.5 rounded-sm bg-blue-600"/>Pick
@@ -4884,7 +4884,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                         {!editable&&o.status==="queued"&&<Icon name="Lock" size={9} className="opacity-60 shrink-0"/>}
                       </div>
                       <div className="text-[10px] tnum opacity-80 flex items-center gap-1">
-                        {fmtTime(o.start)}—{fmtTime(o.start+dur)}
+                        {fmtTime(o.start)}{"—"}{fmtTime(o.start+dur)}
                         {o.status==="running"&&visualEnd>o.start+dur&&(
                           <span className="text-[9.5px] font-semibold text-blue-800 bg-blue-200 px-1 rounded ml-0.5">+{fmtTime(visualEnd-o.start-dur)} 초과</span>
                         )}
@@ -4895,7 +4895,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                     </button>
                   );
                 })}
-                {moving&&(()=>{const o=orders.find(x=>x.id===moving.orderId);if(!o)return null;const r=recipes.find(rr=>rr.id===o.recipeId);if(!r)return null;const dur=recipeDuration(r),rowIdx=visR.findIndex(rb=>rb.id===moving.robotId);if(rowIdx<0)return null;const left=(moving.ghostStart-GANTT.startHour*60)*GANTT.pxPerMin,width=dur*GANTT.pxPerMin,top=rowIdx*GANTT.rowH+6;return <div className={"absolute rounded-md border-2 px-2 py-1.5 z-30 pointer-events-none shadow-xl "+(moving.conflict?"border-amber-500 bg-amber-100":"border-blue-500 bg-blue-100")} style={{left,top,width,height:GANTT.rowH-12}}><div className="text-[11px] font-semibold text-slate-900 truncate">{r.name}</div><div className="text-[10px] tnum text-slate-700">{fmtTime(moving.ghostStart)}—{fmtTime(moving.ghostStart+dur)}</div></div>;})()}
+                {moving&&(()=>{const o=orders.find(x=>x.id===moving.orderId);if(!o)return null;const r=recipes.find(rr=>rr.id===o.recipeId);if(!r)return null;const dur=recipeDuration(r),rowIdx=visR.findIndex(rb=>rb.id===moving.robotId);if(rowIdx<0)return null;const left=(moving.ghostStart-GANTT.startHour*60)*GANTT.pxPerMin,width=dur*GANTT.pxPerMin,top=rowIdx*GANTT.rowH+6;return <div className={"absolute rounded-md border-2 px-2 py-1.5 z-30 pointer-events-none shadow-xl "+(moving.conflict?"border-amber-500 bg-amber-100":"border-blue-500 bg-blue-100")} style={{left,top,width,height:GANTT.rowH-12}}><div className="text-[11px] font-semibold text-slate-900 truncate">{r.name}</div><div className="text-[10px] tnum text-slate-700">{fmtTime(moving.ghostStart)}{"—"}{fmtTime(moving.ghostStart+dur)}</div></div>;})()}
                 {hoverPrev&&(()=>{
                   const rowIdx=visR.findIndex(rb=>rb.id===hoverPrev.robotId);if(rowIdx<0)return null;
                   const left=(hoverPrev.start-GANTT.startHour*60)*GANTT.pxPerMin,width=hoverPrev.duration*GANTT.pxPerMin,top=rowIdx*GANTT.rowH+6;
@@ -5010,7 +5010,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                             <div className="text-[12px] font-medium text-slate-900 truncate flex-1">
                               {libQ?(<span dangerouslySetInnerHTML={{__html:r.name.replace(new RegExp(`(${libQ})`,'gi'),'<mark style="background:#dbeafe;color:#1d4ed8;border-radius:2px">$1</mark>')}}/>):r.name}
                             </div>
-                            {/* 작업 요청 수 배지 — 더블클릭으로 이동 */}
+                            {/* 작업 요청 수 배지 {"—"} 더블클릭으로 이동 */}
                             {pendingCount>0&&(
                               <span className="shrink-0 min-w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold px-1.5 grid place-items-center">
                                 {pendingCount}
@@ -5206,7 +5206,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   </h3>
                   <div className="text-[11.5px] text-slate-500 mt-0.5 flex items-center gap-3">
                     <span className="flex items-center gap-1"><Icon name="Bot" size={11}/> {selOrder.robotId}</span>
-                    <span className="flex items-center gap-1"><Icon name="Clock" size={11}/> {fmtTime(selOrder.start)}—{fmtTime(selOrder.start+getOrderDur(selOrder))}</span>
+                    <span className="flex items-center gap-1"><Icon name="Clock" size={11}/> {fmtTime(selOrder.start)}{"—"}{fmtTime(selOrder.start+getOrderDur(selOrder))}</span>
                   </div>
                 </div>
                 {/* Pending 오더 상세 */}
@@ -5446,7 +5446,7 @@ function AddOrderDialog({ orders, onClose, onCreate, onNavigateRequest }) {
               <div className="flex items-center gap-2 text-[11.5px]">
                 <Icon name={shifted?"AlertTriangle":"Sparkles"} size={12} className={shifted?"text-amber-600":"text-blue-600"}/>
                 <span className={"font-semibold "+(shifted?"text-amber-900":"text-blue-900")}>{shifted?"충돌 회피 적용됨":"스케줄 가능"}</span>
-                <span className="ml-auto text-slate-500 tnum">{robotId}·{fmtTime(placement.start)}—{fmtTime(placement.start+dur)}</span>
+                <span className="ml-auto text-slate-500 tnum">{robotId}·{fmtTime(placement.start)}{"—"}{fmtTime(placement.start+dur)}</span>
               </div>
               {repeat&&repeatDays.size>0&&(
                 <div className="mt-1.5 text-[10.5px] text-blue-600 flex items-center gap-1.5">
@@ -5507,14 +5507,14 @@ function LogsView({ initCat3, onMounted }) {
 
   // ── Error 로그 데이터 (Robot) ──
   const ERROR_DATA = [
-    {fleet:"Delivery-Tool",robotId:"Tool002",errorCode:"OBS_401",severity:"Error",occurredAt:"13:10:03",resolvedAt:"13:15:30",location:"MN-3 (X:320 Y:160)",message:"경로 재계산 실패 — 장애물 감지",actionStatus:"해결됨",assignee:"park.lee",  relatedOrderId:"ord-006"},
-    {fleet:"Delivery-Tool",robotId:"Tool001",errorCode:"NET_201",severity:"Warn", occurredAt:"12:58:11",resolvedAt:"13:02:00",location:"MN-2 (X:220 Y:110)",message:"네트워크 지연 — 응답 시간 180ms 초과",actionStatus:"자동복구",assignee:"-",       relatedOrderId:"ord-003"},
-    {fleet:"Delivery-Tool",robotId:"Tool004",errorCode:"BAT_101",severity:"Warn", occurredAt:"13:41:55",resolvedAt:"-",       location:"MN-10 (X:200 Y:360)",message:"배터리 31% — 자동 충전 라우팅",actionStatus:"처리중",assignee:"-",          relatedOrderId:"ord-009"},
-    {fleet:"Ride",          robotId:"Ride002",errorCode:"OBS_402",severity:"Error",occurredAt:"13:40:12",resolvedAt:"-",       location:"MN-5 (X:540 Y:280)",message:"장애물 감지 — 경로 재계산 실패",actionStatus:"EMS호출",assignee:"samsung.kim",relatedOrderId:"ord-012"},
-    {fleet:"Ride",          robotId:"Ride002",errorCode:"EMS_001",severity:"Error",occurredAt:"13:26:11",resolvedAt:"13:32:00",location:"MN-6 (X:650 Y:280)",message:"EMS 호출 — 운영자 개입",actionStatus:"해결됨",assignee:"samsung.kim",relatedOrderId:"ord-011"},
-    {fleet:"Ride",          robotId:"Ride001",errorCode:"SPD_301",severity:"Warn", occurredAt:"13:15:33",resolvedAt:"13:15:45",location:"MN-4 (X:420 Y:220)",message:"속도 제한 구역 진입 — 0.3m/s 감속",actionStatus:"자동복구",assignee:"-",    relatedOrderId:"ord-010"},
-    {fleet:"Delivery-Parts",robotId:"Part002",errorCode:"COM_501",severity:"Error",occurredAt:"13:05:22",resolvedAt:"13:28:38",location:"MN-11 (X:360 Y:360)",message:"통신 오류 — 네트워크 타임아웃(30s)",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"-"},
-    {fleet:"SEMI-x",        robotId:"x001",  errorCode:"ENV_601",severity:"Warn", occurredAt:"12:50:11",resolvedAt:"12:55:00",location:"MN-7 (X:540 Y:360)",message:"클린룸 압력 경고 — 기준치 0.2Pa 초과",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"WAFER-2201"},
+    {fleet:"Delivery-Tool",robotId:"Tool002",errorCode:"OBS_401",severity:"Error",occurredAt:"13:10:03",resolvedAt:"13:15:30",location:"MN-3 (X:320 Y:160)",message:"경로 재계산 실패 {"—"} 장애물 감지",actionStatus:"해결됨",assignee:"park.lee",  relatedOrderId:"ord-006"},
+    {fleet:"Delivery-Tool",robotId:"Tool001",errorCode:"NET_201",severity:"Warn", occurredAt:"12:58:11",resolvedAt:"13:02:00",location:"MN-2 (X:220 Y:110)",message:"네트워크 지연 {"—"} 응답 시간 180ms 초과",actionStatus:"자동복구",assignee:"-",       relatedOrderId:"ord-003"},
+    {fleet:"Delivery-Tool",robotId:"Tool004",errorCode:"BAT_101",severity:"Warn", occurredAt:"13:41:55",resolvedAt:"-",       location:"MN-10 (X:200 Y:360)",message:"배터리 31% {"—"} 자동 충전 라우팅",actionStatus:"처리중",assignee:"-",          relatedOrderId:"ord-009"},
+    {fleet:"Ride",          robotId:"Ride002",errorCode:"OBS_402",severity:"Error",occurredAt:"13:40:12",resolvedAt:"-",       location:"MN-5 (X:540 Y:280)",message:"장애물 감지 {"—"} 경로 재계산 실패",actionStatus:"EMS호출",assignee:"samsung.kim",relatedOrderId:"ord-012"},
+    {fleet:"Ride",          robotId:"Ride002",errorCode:"EMS_001",severity:"Error",occurredAt:"13:26:11",resolvedAt:"13:32:00",location:"MN-6 (X:650 Y:280)",message:"EMS 호출 {"—"} 운영자 개입",actionStatus:"해결됨",assignee:"samsung.kim",relatedOrderId:"ord-011"},
+    {fleet:"Ride",          robotId:"Ride001",errorCode:"SPD_301",severity:"Warn", occurredAt:"13:15:33",resolvedAt:"13:15:45",location:"MN-4 (X:420 Y:220)",message:"속도 제한 구역 진입 {"—"} 0.3m/s 감속",actionStatus:"자동복구",assignee:"-",    relatedOrderId:"ord-010"},
+    {fleet:"Delivery-Parts",robotId:"Part002",errorCode:"COM_501",severity:"Error",occurredAt:"13:05:22",resolvedAt:"13:28:38",location:"MN-11 (X:360 Y:360)",message:"통신 오류 {"—"} 네트워크 타임아웃(30s)",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"-"},
+    {fleet:"SEMI-x",        robotId:"x001",  errorCode:"ENV_601",severity:"Warn", occurredAt:"12:50:11",resolvedAt:"12:55:00",location:"MN-7 (X:540 Y:360)",message:"클린룸 압력 경고 {"—"} 기준치 0.2Pa 초과",actionStatus:"해결됨",assignee:"choi.jun",relatedOrderId:"WAFER-2201"},
   ];
 
   const [cat1, setCat1]=useState(new Set(["Robot"]));
@@ -5626,7 +5626,7 @@ function LogsView({ initCat3, onMounted }) {
               </div>
             </div>
 
-            {/* 소분류 — 단일 선택 */}
+            {/* 소분류 {"—"} 단일 선택 */}
             <div className="flex items-start gap-4 px-4 py-3">
               <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0 mt-1.5">소분류</span>
               <div className="flex flex-wrap gap-2">
@@ -5729,7 +5729,7 @@ function LogsView({ initCat3, onMounted }) {
                         <td className={tdCls}><span className="font-mono text-[11px]">{d.destination}</span></td>
                         <td className={tdCls+" tnum"}>{d.distance}</td>
                         <td className={tdCls+" tnum"}>{d.batteryUsed}</td>
-                        <td className={tdCls+" pr-4"}>{d.errorCode!=="-"?<span className="font-mono text-[11px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">{d.errorCode}</span>:<span className="text-slate-300">—</span>}</td>
+                        <td className={tdCls+" pr-4"}>{d.errorCode!=="-"?<span className="font-mono text-[11px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">{d.errorCode}</span>:<span className="text-slate-300">{"—"}</span>}</td>
                       </tr>
                     );
                   })}
@@ -5774,8 +5774,8 @@ function LogsView({ initCat3, onMounted }) {
                         <td className={tdCls}><span className="font-mono text-[11px]">{d.location}</span></td>
                         <td className={tdCls+" min-w-[200px] max-w-[280px] whitespace-normal leading-snug"}>{d.message}</td>
                         <td className={tdCls}>{actionBadge(d.actionStatus)}</td>
-                        <td className={tdCls}>{d.assignee!=="-"?<span className="font-mono text-[11px]">{d.assignee}</span>:<span className="text-slate-300">—</span>}</td>
-                        <td className={tdCls+" pr-4"}>{d.relatedOrderId!=="-"?<span className="font-mono text-[11px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{d.relatedOrderId}</span>:<span className="text-slate-300">—</span>}</td>
+                        <td className={tdCls}>{d.assignee!=="-"?<span className="font-mono text-[11px]">{d.assignee}</span>:<span className="text-slate-300">{"—"}</span>}</td>
+                        <td className={tdCls+" pr-4"}>{d.relatedOrderId!=="-"?<span className="font-mono text-[11px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{d.relatedOrderId}</span>:<span className="text-slate-300">{"—"}</span>}</td>
                       </tr>
                     );
                   })}
@@ -6109,7 +6109,7 @@ function PermissionsView() {
                   <Icon name="ChevronDown" size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                 </div>
               </div>
-              {/* Fleet 권한 — 다중 선택 */}
+              {/* Fleet 권한 {"—"} 다중 선택 */}
               <div>
                 <div className="text-[11px] font-medium text-slate-500 mb-1.5 flex items-center justify-between">
                   <span>Fleet 접근 권한</span>
