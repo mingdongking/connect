@@ -569,27 +569,13 @@ function CmdSelectField({ label, value, onChange, children }) {
   );
 }
 function ManualTab() {
-  const [manualFleet, setManualFleet] = useState("semi");
-  const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
-  const [manualRecipe, setManualRecipe] = useState("");
-  const [manualPriority, setManualPriority] = useState("P2");
-  const [cmdDeliveryWarn, setCmdDeliveryWarn] = useState(false);
-  const [cmdPreemptWarn, setCmdPreemptWarn] = useState(null); // {runningRecipe, newRecipe}
-  const [commission, setCommission] = useState("commission"); // commission | decommission
+  const [commission, setCommission] = useState("commission");
   const [dispatchTasks, setDispatchTasks] = useState(true);
   const [directTasks, setDirectTasks] = useState(true);
   const [idleBehavior, setIdleBehavior] = useState(false);
   const [pendingDispatch, setPendingDispatch] = useState("Reassign");
   const [pendingDirect, setPendingDirect] = useState("Complete");
   const [saved, setSaved] = useState(false);
-
-  function onFleetChange(fId){
-    if(["amr","agv","arm"].includes(fId)){ setCmdDeliveryWarn(true); return; }
-    setManualFleet(fId);
-    const rb=robots.filter(r=>r.fleet===fId);
-    setManualRobot(rb[0]?.id||"");
-    setManualRecipe("");
-  }
   function apply(){ setSaved(true); setTimeout(()=>setSaved(false), 2000); }
 
   const Toggle=({label,value,onChange})=>(
@@ -700,6 +686,19 @@ function MonitoringHome({ onNavigate }) {
   const [floorDropOpen, setFloorDropOpen] = useState(false);
   const [cmdTab, setCmdTab] = useState("command");
   const [panelOpen, setPanelOpen] = useState(false);
+  // Command 패널 state
+  const [manualFleet, setManualFleet] = useState("semi");
+  const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
+  const [manualRecipe, setManualRecipe] = useState("");
+  const [manualPriority, setManualPriority] = useState("P2");
+  const [cmdDeliveryWarn, setCmdDeliveryWarn] = useState(false);
+  const [cmdPreemptWarn, setCmdPreemptWarn] = useState(null);
+  function onFleetChange(fId){
+    if(["amr","agv","arm"].includes(fId)){ setCmdDeliveryWarn(true); return; }
+    setManualFleet(fId);
+    setManualRobot(robots.filter(r=>r.fleet===fId)[0]?.id||"");
+    setManualRecipe("");
+  }
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [moveTarget, setMoveTarget] = useState("");
