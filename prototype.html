@@ -6247,6 +6247,7 @@ function App() {
           </div>
         </div>
       )}
+      {globalPopup?.type==="cmd-preempt"&&globalPopup?.data&&(
         <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setGlobalPopup(null)}>
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-3">
