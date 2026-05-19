@@ -6230,7 +6230,7 @@ function App() {
           </div>
         </div>
       )}
-      {globalPopup?.type==="cmd-queue"&&(
+      {globalPopup?.type==="cmd-queue"&&globalPopup?.data&&(
         <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setGlobalPopup(null)}>
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-3">
@@ -6239,7 +6239,7 @@ function App() {
             </div>
             <p className="text-[12.5px] text-slate-600 leading-relaxed mb-4">
               현재 작업이 완료되고 바로<br/>
-              <span className="font-semibold text-slate-900">{globalPopup.data?.newRecipe}</span> 작업을 진행할게요!
+              <span className="font-semibold text-slate-900">{globalPopup?.data?.newRecipe}</span> 작업을 진행할게요!
             </p>
             <div className="flex justify-end">
               <button onClick={()=>setGlobalPopup(null)} className="h-8 px-5 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">확인</button>
@@ -6256,12 +6256,12 @@ function App() {
             <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
               <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                 <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
-                <span className="font-semibold">{globalPopup.data?.runningRecipe}</span>
+                <span className="font-semibold">{globalPopup?.data?.runningRecipe}</span>
               </div>
-              <div className="text-center text-slate-400 text-[12px]">↓ 중지 후</div>
+              <div className="text-center text-slate-400 text-[12px]">{"↓"} 중지 후</div>
               <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
                 <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
-                <span className="font-semibold text-blue-800">{globalPopup.data?.newRecipe}</span>
+                <span className="font-semibold text-blue-800">{globalPopup?.data?.newRecipe}</span>
               </div>
             </div>
             <div className="flex gap-2 justify-end">
