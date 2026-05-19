@@ -568,13 +568,6 @@ function CmdSelectField({ label, value, onChange, children }) {
       <Icon name="ChevronDown" size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
     </div>
   );
-}ext-slate-400 uppercase tracking-wide pointer-events-none">{label}</span>}
-      <select defaultValue={value||""} onChange={onChange} className={"w-full h-7 rounded-md border border-slate-200 bg-white text-[11.5px] outline-none appearance-none cursor-pointer "+(label?"pl-10":"pl-2.5")+" pr-6 text-slate-800 focus:border-blue-400"}>
-        {children}
-      </select>
-      <Icon name="ChevronDown" size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-    </div>
-  );
 }
 function ManualTab() {
   const [commission, setCommission] = useState("commission");
