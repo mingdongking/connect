@@ -1698,11 +1698,7 @@ function MonitoringHome({ onNavigate }) {
                           ? (cmdFleet==="amr"?"Delivery-Tool 기본 템플릿":cmdFleet==="agv"?"Ride 기본 템플릿":"Delivery-Parts 기본 템플릿")
                           : recipe?.name||manualRecipe;
                         if(robot?.st==="run"&&robot?.recipe){
-                          if(manualPriority==="P1"){
-                            onNavigate("popup",{popup:{type:"cmd-preempt",data:{runningRecipe:robot.recipe,newRecipe:recipeName}}});
-                          } else {
-                            onNavigate("popup",{popup:{type:"cmd-queue",data:{newRecipe:recipeName}}});
-                          }
+                          onNavigate("popup",{popup:{type:"cmd-queue",data:{newRecipe:recipeName}}});
                         }
                       }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(canDispatch?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
                         <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 작업 요청하기":"작업 요청하기"}
@@ -6243,31 +6239,6 @@ function App() {
             </p>
             <div className="flex justify-end">
               <button onClick={()=>setGlobalPopup(null)} className="h-8 px-5 rounded-lg bg-blue-600 text-white text-[12.5px] font-semibold hover:bg-blue-700">확인</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {globalPopup?.type==="cmd-preempt"&&globalPopup?.data&&(
-        <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setGlobalPopup(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[380px] p-5" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 grid place-items-center shrink-0"><Icon name="AlertOctagon" size={18} className="text-rose-600"/></div>
-              <div className="text-[14px] font-bold text-slate-900">진행 중 작업 중단</div>
-            </div>
-            <div className="space-y-2 mb-4 text-[12.5px] text-slate-700">
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span className="text-[10.5px] text-slate-400 block mb-0.5">현재 진행중인 작업</span>
-                <span className="font-semibold">{globalPopup?.data?.runningRecipe}</span>
-              </div>
-              <div className="text-center text-slate-400 text-[12px]">{"↓"} 중지 후</div>
-              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
-                <span className="text-[10.5px] text-blue-500 block mb-0.5">발행할 작업</span>
-                <span className="font-semibold text-blue-800">{globalPopup?.data?.newRecipe}</span>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={()=>setGlobalPopup(null)} className="h-8 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50">아니오</button>
-              <button onClick={()=>setGlobalPopup(null)} className="h-8 px-4 rounded-lg bg-rose-600 text-white text-[12.5px] font-semibold hover:bg-rose-700">네, 중단하고 발행</button>
             </div>
           </div>
         </div>
