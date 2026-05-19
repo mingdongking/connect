@@ -577,6 +577,10 @@ function ManualTab() {
   const [pendingDispatch, setPendingDispatch] = useState("Reassign");
   const [pendingDirect, setPendingDirect] = useState("Complete");
   const [saved, setSaved] = useState(false);
+  // 로컬 fleet/robot 선택 (Command 탭과 독립)
+  const [localFleet, setLocalFleet] = useState(fleets[0].id);
+  const [localRobot, setLocalRobot] = useState(robots.filter(r=>r.fleet===fleets[0].id)[0]?.id||"");
+  function onLocalFleetChange(fId){ setLocalFleet(fId); setLocalRobot(robots.filter(r=>r.fleet===fId)[0]?.id||""); }
   function apply(){ setSaved(true); setTimeout(()=>setSaved(false), 2000); }
 
   const Toggle=({label,value,onChange})=>(
@@ -633,7 +637,7 @@ function ManualTab() {
           <div className="space-y-1.5">
             <div className="text-[11px] font-medium text-slate-500">Fleet</div>
             <div className="relative">
-              <select value="" onChange={()=>{}}
+              <select value={localFleet} onChange={e=>onLocalFleetChange(e.target.value)}
                 className="h-8 w-full pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] font-medium text-slate-800 outline-none focus:border-blue-400 appearance-none cursor-pointer">
                 {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
@@ -643,9 +647,9 @@ function ManualTab() {
           <div className="space-y-1.5">
             <div className="text-[11px] font-medium text-slate-500">로봇</div>
             <div className="relative">
-              <select value={manualRobot} onChange={e=>setManualRobot(e.target.value)}
+              <select value={localRobot} onChange={e=>setLocalRobot(e.target.value)}
                 className="h-8 w-full pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] font-medium text-slate-800 outline-none focus:border-blue-400 appearance-none cursor-pointer">
-                {robots.filter(r=>r.fleet===manualFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                {robots.filter(r=>r.fleet===localFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
               </select>
               <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
             </div>
@@ -839,7 +843,7 @@ function MonitoringHome({ onNavigate }) {
           className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group relative"
           title="더블클릭 → 통계/분석">
           <div className="text-[11.5px] text-slate-500 mb-2">Fleet 운영 현황</div>
-          {fleets.map(f=>{const fr=robots.filter(r=>r.fleet===f.id),run=fr.filter(r=>r.st==="run").length,pct=Math.round(run/fr.length*100);return(
+          {fleets.map(f=>{const fr=mapRobots.filter(r=>r.fleet===f.id),run=fr.filter(r=>r.st==="run").length,pct=fr.length?Math.round(run/fr.length*100):0;return(
             <div key={f.id} className="mb-2">
               <div className="flex items-center gap-2 text-[11.5px] mb-1"><span className="text-slate-700">{f.name}</span><span className="ml-auto tnum font-medium text-slate-900">{run}/{fr.length}</span></div>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:pct+"%",background:f.color}}/></div>
@@ -868,39 +872,28 @@ function MonitoringHome({ onNavigate }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      {fleet:"Delivery-Tool",robotId:"Tool001",taskType:"이송",  statusCode:"DONE_200",priority:"P2",startAt:"13:30:00",endAt:"13:42:08",cancelAt:"-", departure:"MN-1",destination:"MN-4",distance:"124m",batteryUsed:"3%",errorCode:"-"},
-                      {fleet:"Delivery-Tool",robotId:"Tool001",taskType:"이송",  statusCode:"RUN_100", priority:"P2",startAt:"13:00:00",endAt:"-",      cancelAt:"-", departure:"MN-2",destination:"MN-6",distance:"-",  batteryUsed:"-", errorCode:"-"},
-                      {fleet:"Delivery-Tool",robotId:"Tool002",taskType:"순회",  statusCode:"WARN_301",priority:"P2",startAt:"13:20:00",endAt:"13:35:01",cancelAt:"-", departure:"MN-3",destination:"MN-5",distance:"98m", batteryUsed:"2%",errorCode:"OBS_401"},
-                      {fleet:"Delivery-Tool",robotId:"Tool003",taskType:"대기",  statusCode:"SCHED_050",priority:"P3",startAt:"-",endAt:"-",cancelAt:"-",departure:"-",destination:"-",distance:"-",batteryUsed:"-",errorCode:"-"},
-                      {fleet:"Delivery-Tool",robotId:"Tool004",taskType:"충전",  statusCode:"CHG_010", priority:"P1",startAt:"13:20:44",endAt:"-",      cancelAt:"-", departure:"MN-9",destination:"MN-10",distance:"40m",batteryUsed:"-",errorCode:"-"},
-                      {fleet:"Ride",          robotId:"Ride001",taskType:"이송", statusCode:"RUN_100", priority:"P2",startAt:"13:20:00",endAt:"-",      cancelAt:"-", departure:"MN-4",destination:"MN-6",distance:"-",  batteryUsed:"-", errorCode:"-"},
-                      {fleet:"Ride",          robotId:"Ride001",taskType:"이송", statusCode:"DONE_200",priority:"P2",startAt:"13:12:00",endAt:"13:35:20",cancelAt:"-",departure:"MN-5",destination:"MN-8",distance:"88m",batteryUsed:"3%",errorCode:"-"},
-                      {fleet:"Ride",          robotId:"Ride002",taskType:"이송", statusCode:"FAIL_500",priority:"P2",startAt:"13:00:00",endAt:"-",      cancelAt:"13:20:00",departure:"MN-3",destination:"MN-6",distance:"22m",batteryUsed:"1%",errorCode:"OBS_402"},
-                      {fleet:"Delivery-Parts",robotId:"Part001",taskType:"적재", statusCode:"RUN_100", priority:"P2",startAt:"13:27:00",endAt:"-",      cancelAt:"-", departure:"MN-11",destination:"MN-12",distance:"-",batteryUsed:"-",errorCode:"-"},
-                      {fleet:"Delivery-Parts",robotId:"Part001",taskType:"적재", statusCode:"DONE_200",priority:"P2",startAt:"13:13:00",endAt:"13:25:10",cancelAt:"-",departure:"MN-12",destination:"MN-11",distance:"60m",batteryUsed:"2%",errorCode:"-"},
-                      {fleet:"Delivery-Parts",robotId:"Part002",taskType:"적재", statusCode:"DONE_200",priority:"P2",startAt:"12:56:00",endAt:"13:10:00",cancelAt:"-",departure:"MN-11",destination:"MN-12",distance:"60m",batteryUsed:"2%",errorCode:"-"},
-                      {fleet:"SEMI-x",        robotId:"x001",  taskType:"핸들링",statusCode:"RUN_100", priority:"P1",startAt:"12:50:00",endAt:"-",      cancelAt:"-", departure:"MN-7",destination:"MN-8",distance:"-",batteryUsed:"-",errorCode:"-"},
-                      {fleet:"SEMI-x",        robotId:"x002",  taskType:"대기",  statusCode:"IDLE_000",priority:"P3",startAt:"-",endAt:"-",cancelAt:"-",departure:"-",destination:"-",distance:"-",batteryUsed:"-",errorCode:"-"},
-                    ].map((d,i)=>{
-                      const f=fleets.find(fl=>fl.name===d.fleet);
-                      const sc=d.statusCode;
-                      const scColor=sc.startsWith("DONE")?"text-emerald-700 bg-emerald-50":sc.startsWith("RUN")?"text-blue-700 bg-blue-50":sc.startsWith("FAIL")?"text-rose-700 bg-rose-50":sc.startsWith("WARN")?"text-amber-700 bg-amber-50":sc.startsWith("CHG")?"text-purple-700 bg-purple-50":"text-slate-600 bg-slate-100";
+                    {initOrders.map((o,i)=>{
+                      const robot=mapRobots.find(r=>r.id===o.robotId);
+                      const recipe=recipes.find(r=>r.id===o.recipeId);
+                      const fleetId=robot?.fleet||"";
+                      const f=fleets.find(fl=>fl.id===fleetId);
+                      const sc=o.status==="running"?"text-blue-700 bg-blue-50":o.status==="done"?"text-emerald-700 bg-emerald-50":o.status==="queued"?"text-amber-700 bg-amber-50":o.status==="error"?"text-rose-700 bg-rose-50":"text-slate-600 bg-slate-100";
+                      const statusLabel=o.status==="running"?"RUN_100":o.status==="done"?"DONE_200":o.status==="queued"?"SCHED_050":o.status==="error"?"FAIL_500":"IDLE_000";
                       return(
-                        <tr key={i} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(sc.startsWith("FAIL")?"bg-rose-50/20":"")}>
-                          <td className="py-2.5 px-3 whitespace-nowrap"><span className="text-[10.5px] font-medium px-1.5 py-0.5 rounded" style={{background:(f?.color||"#64748b")+"20",color:f?.color||"#64748b"}}>{d.fleet}</span></td>
-                          <td className="py-2.5 px-3"><span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">{d.robotId}</span></td>
-                          <td className="py-2.5 px-3 text-slate-700">{d.taskType}</td>
-                          <td className="py-2.5 px-3"><span className={"text-[10.5px] font-semibold px-1.5 py-0.5 rounded "+scColor}>{d.statusCode}</span></td>
-                          <td className="py-2.5 px-3"><span className={"text-[10.5px] font-semibold px-1.5 py-0.5 rounded "+(d.priority==="P1"?"bg-rose-50 text-rose-700":d.priority==="P2"?"bg-blue-50 text-blue-700":"bg-slate-100 text-slate-600")}>{d.priority}</span></td>
-                          <td className="py-2.5 px-3 tnum text-slate-600">{d.startAt}</td>
-                          <td className="py-2.5 px-3 tnum text-slate-600">{d.endAt}</td>
-                          <td className="py-2.5 px-3 tnum text-rose-500">{d.cancelAt!=="-"?d.cancelAt:"-"}</td>
-                          <td className="py-2.5 px-3 font-mono text-[11px]">{d.departure}</td>
-                          <td className="py-2.5 px-3 font-mono text-[11px]">{d.destination}</td>
-                          <td className="py-2.5 px-3 tnum text-slate-600">{d.distance}</td>
-                          <td className="py-2.5 px-3 tnum text-slate-600">{d.batteryUsed}</td>
-                          <td className="py-2.5 px-3">{d.errorCode!=="-"?<span className="font-mono text-[11px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">{d.errorCode}</span>:<span className="text-slate-300">{"—"}</span>}</td>
+                        <tr key={o.id} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(o.status==="error"?"bg-rose-50/20":"")}>
+                          <td className="py-2.5 px-3 whitespace-nowrap"><span className="text-[10.5px] font-medium px-1.5 py-0.5 rounded" style={{background:(f?.color||"#64748b")+"20",color:f?.color||"#64748b"}}>{f?.name||fleetId}</span></td>
+                          <td className="py-2.5 px-3"><span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">{o.robotId}</span></td>
+                          <td className="py-2.5 px-3 text-slate-700 text-[12px]">{recipe?.name||o.recipeId}</td>
+                          <td className="py-2.5 px-3"><span className={"text-[10.5px] font-semibold px-1.5 py-0.5 rounded "+sc}>{statusLabel}</span></td>
+                          <td className="py-2.5 px-3"><span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">P2</span></td>
+                          <td className="py-2.5 px-3 tnum text-slate-600 text-[11.5px]">{fmtTime(o.start)}</td>
+                          <td className="py-2.5 px-3 tnum text-slate-600 text-[11.5px]">{o.status==="done"?fmtTime(o.start+(recipe?recipeDuration(recipe):30)):"-"}</td>
+                          <td className="py-2.5 px-3 tnum text-rose-500 text-[11.5px]">-</td>
+                          <td className="py-2.5 px-3 font-mono text-[11px]">{robot?.task||"-"}</td>
+                          <td className="py-2.5 px-3 font-mono text-[11px]">-</td>
+                          <td className="py-2.5 px-3 tnum text-slate-600">-</td>
+                          <td className="py-2.5 px-3 tnum text-slate-600">-</td>
+                          <td className="py-2.5 px-3">{o.status==="error"?<span className="font-mono text-[11px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">ERR</span>:<span className="text-slate-300">{"—"}</span>}</td>
                         </tr>
                       );
                     })}
@@ -922,13 +915,29 @@ function MonitoringHome({ onNavigate }) {
             </button>
           </div>
           <div className="flex items-baseline gap-3 mb-2">
-            <div><span className="text-[22px] font-semibold text-blue-700 tnum">14</span><div className="text-[10.5px] text-blue-700 mt-px">● 진행 중</div></div>
-            <div className="h-9 w-px bg-slate-200"/>
-            <div><span className="text-[22px] font-semibold text-amber-700 tnum">22</span><div className="text-[10.5px] text-amber-700 mt-px">◷ 대기 큐</div></div>
-            <div className="h-9 w-px bg-slate-200"/>
-            <div><span className="text-[22px] font-semibold text-rose-600 tnum">3</span><div className="text-[10.5px] text-rose-600 mt-px flex items-center gap-0.5"><Icon name="AlertTriangle" size={9}/> 실패</div></div>
+            {(()=>{
+              const running=initOrders.filter(o=>o.status==="running").length;
+              const queued=initOrders.filter(o=>o.status==="queued").length;
+              const error=initOrders.filter(o=>o.status==="error").length;
+              const done=initOrders.filter(o=>o.status==="done").length;
+              const completePct=done+error>0?Math.round(done/(done+error+running+queued)*100):0;
+              return(<>
+                <div><span className="text-[22px] font-semibold text-blue-700 tnum">{running}</span><div className="text-[10.5px] text-blue-700 mt-px">● 진행 중</div></div>
+                <div className="h-9 w-px bg-slate-200"/>
+                <div><span className="text-[22px] font-semibold text-amber-700 tnum">{queued}</span><div className="text-[10.5px] text-amber-700 mt-px">◷ 대기 큐</div></div>
+                <div className="h-9 w-px bg-slate-200"/>
+                <div><span className="text-[22px] font-semibold text-rose-600 tnum">{error}</span><div className="text-[10.5px] text-rose-600 mt-px flex items-center gap-0.5"><Icon name="AlertTriangle" size={9}/> 실패</div></div>
+                <div className="ml-auto text-right"><span className="text-[18px] font-semibold text-emerald-700 tnum">{completePct}%</span><div className="text-[10px] text-emerald-600">완료율</div></div>
+              </>);
+            })()}
           </div>
-          <div className="flex items-center gap-2 text-[10.5px]"><span className="text-slate-500">금일 완료율</span><div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{width:"66%"}}/></div><span className="font-semibold tnum text-slate-900">66%</span></div>
+          <div className="flex items-center gap-2 text-[10.5px]">
+            <span className="text-slate-500">금일 완료</span>
+            <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full" style={{width:(()=>{const d=initOrders.filter(o=>o.status==="done").length,t=initOrders.length;return t?Math.round(d/t*100):0;})()+'%'}}/>
+            </div>
+            <span className="font-semibold tnum text-slate-900">{initOrders.filter(o=>o.status==="done").length}/{initOrders.length}</span>
+          </div>
           <div className="absolute bottom-2 right-2.5 text-[9.5px] text-slate-300 opacity-0 group-hover:opacity-100 transition flex items-center gap-0.5"><Icon name="MousePointerClick" size={9}/> 더블클릭</div>
         </div>
 
@@ -937,7 +946,7 @@ function MonitoringHome({ onNavigate }) {
           <div onDoubleClick={()=>onNavigate("analytics")}
             className="cursor-pointer hover:shadow-md transition-all group relative"
             title="더블클릭 → 통계/분석">
-            <KpiCard label="금일 처리량" value="247" trend="+12%" icon="TrendingUp" tone="emerald"/>
+            <KpiCard label="금일 처리량" value={initOrders.filter(o=>o.status==="done").length+"건"} trend="+12%" icon="TrendingUp" tone="emerald"/>
             <div className="absolute bottom-2 right-2.5 text-[9.5px] text-slate-300 opacity-0 group-hover:opacity-100 transition flex items-center gap-0.5"><Icon name="MousePointerClick" size={9}/> 더블클릭</div>
           </div>
           <div onDoubleClick={()=>onNavigate("logs",{logsCat3:"Error"})}
