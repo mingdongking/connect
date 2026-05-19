@@ -1981,7 +1981,8 @@ function MonitoringHome({ onNavigate }) {
    ANALYTICS
 ══════════════════════════════════════════ */
 function BarChart({ data }) {
-  const w=560,h=180,pad={l:24,r:8,t:8,b:20},max=Math.max(...data.map(d=>d[1])),bw=(w-pad.l-pad.r)/data.length;
+  if(!data||!data.length) return null;
+  const w=560,h=180,pad={l:24,r:8,t:8,b:20},max=Math.max(...data.map(d=>d[1]))||1,bw=(w-pad.l-pad.r)/data.length;
   return <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{height:180}}>
     {[0,.5,1].map((t,i)=>{const y=pad.t+(1-t)*(h-pad.t-pad.b);return <g key={i}><line x1={pad.l} y1={y} x2={w-pad.r} y2={y} stroke="#e2e8f0" strokeDasharray="2 2"/><text x={pad.l-4} y={y+3} textAnchor="end" fill="#94a3b8" fontSize={9}>{Math.round(t*max)}</text></g>;})}
     {data.map(([l,v],i)=>{const x=pad.l+i*bw+bw*.15,bh=(v/max)*(h-pad.t-pad.b),y=h-pad.b-bh;return <g key={l}><rect x={x} y={y} width={bw*.7} height={bh} fill="#2563eb" rx="2"/><text x={x+bw*.35} y={h-pad.b+12} textAnchor="middle" fill="#94a3b8" fontSize={8}>{l}</text></g>;})}
@@ -2578,6 +2579,7 @@ function AreaChart({ series, hours }) {
 
 // 누적 바 차트 (Fleet별 작업 현황)
 function StackedBarChart({ data, legend }) {
+  if(!data||!data.length) return null;
   const W=340,H=200,pl=40,pr=16,pt=10,pb=22;
   const maxV=Math.max(1,...data.map(d=>d.values.reduce((s,v)=>s+v,0)));
   const bw=(W-pl-pr)/Math.max(data.length,1);
@@ -4672,7 +4674,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
       requesterId: "samsung.kim",   // 프로토타입: 현재 로그인 사용자
     };
     setOrders(p=>[...p, newOrd]);
-    setSelOrder(newOrd.id);
+    setSelOrder(newOrd);
     if(onMounted) onMounted();
   },[pendingOrder]);
 
@@ -4862,7 +4864,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   const visualEnd = o.status==="running" ? Math.max(o.start+dur, now) : o.start+dur;
                   const left=(o.start-GANTT.startHour*60)*GANTT.pxPerMin,width=(visualEnd-o.start)*GANTT.pxPerMin,top=rowIdx*GANTT.rowH+6,height=GANTT.rowH-12;
                   const sc = SC[o.status]||SC["queued"];
-                  const s=sc, isSel=selOrder?.id===o.id, isHL=hlRcp&&o.recipeId===hlRcp, editable=isEditable(o);
+                  const s=sc, isSel=(typeof selOrder==="object"?selOrder?.id:selOrder)===o.id, isHL=hlRcp&&o.recipeId===hlRcp, editable=isEditable(o);
                   const barLabel = r?.name || o.label || o.id;
                   const barColor = o.fleetColor || sc.chip;
                   return (
@@ -5181,7 +5183,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
           </aside>
         )}
       </div>
-      {selOrder && (
+      {selOrder && typeof selOrder === "object" && (
         <div className="fixed inset-0 z-40 flex items-end justify-end p-4 pointer-events-none">
           <div className="w-96 bg-white rounded-xl shadow-2xl border border-slate-200 pointer-events-auto overflow-hidden">
             {(()=>{
