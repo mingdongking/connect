@@ -558,14 +558,14 @@ function CmdSection({ icon, tone, title, subtitle, children }) {
   );
 }
 function CmdSelectField({ label, value, onChange, children }) {
-  const cls = "w-full h-7 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none appearance-none focus:border-blue-400 pr-6 transition " + (label ? "pl-10" : "pl-2.5");
+  const cls = "w-full h-8 rounded-md border border-slate-200 bg-white text-[12px] text-slate-800 outline-none appearance-none focus:border-blue-400 pr-7 transition " + (label ? "pl-10" : "pl-2.5");
   return (
     <div className="relative flex-1 min-w-0">
-      {label && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9.5px] font-medium text-slate-400 uppercase tracking-wide pointer-events-none z-10">{label}</span>}
-      <select value={value !== undefined ? value : ""} onChange={onChange ? onChange : function(){}} className={cls}>
+      {label && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9.5px] font-semibold text-slate-400 uppercase tracking-wide pointer-events-none z-10 whitespace-nowrap">{label}</span>}
+      <select value={value !== undefined ? value : ""} onChange={onChange ? onChange : function(){}} className={cls} size={1}>
         {children}
       </select>
-      <Icon name="ChevronDown" size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+      <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
     </div>
   );
 }
@@ -1461,7 +1461,18 @@ function MonitoringHome({ onNavigate }) {
               const isFocus=focusRobot===r.id, isVis=visible.includes(r);
               const sm=statusMap[r.st], fm=fleets.find(f=>f.id===r.fleet)||{color:"#64748b"};
               return (
-                <div key={r.id} onClick={()=>{ if(!isVis) return; setFocusRobot(focusRobot===r.id?null:r.id); setPanelOpen(true); setCmdTab("props"); }}
+                <div key={r.id} onClick={()=>{
+                  if(!isVis) return;
+                  const newFocus = focusRobot===r.id ? null : r.id;
+                  setFocusRobot(newFocus);
+                  setPanelOpen(true);
+                  setCmdTab("command");
+                  if(newFocus) {
+                    // 맵 로봇 선택 → command fleet/robot 자동 지정
+                    onCmdFleetChange(r.fleet);
+                    setManualRobot(r.id);
+                  }
+                }}
                   className={"absolute -translate-x-1/2 -translate-y-1/2 transition-opacity "+(isVis?"cursor-pointer opacity-100":"opacity-15 grayscale pointer-events-none")}
                   style={{left:r.x,top:r.y}}>
                   {r.st==="run"&&isVis&&<div className="absolute w-8 h-8 rounded-full pulse-ring border-2" style={{borderColor:fm.color,left:-16,top:-16}}/>}
@@ -1555,38 +1566,6 @@ function MonitoringHome({ onNavigate }) {
             <button onClick={()=>setCmdTab("props")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="props"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Info" size={13}/> Properties</button>
             <button onClick={()=>setCmdTab("manual")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="manual"?"bg-amber-50 text-amber-700":"text-slate-600 hover:bg-slate-50")}><Icon name="SlidersHorizontal" size={13}/> Manual</button>
             <button onClick={()=>setPanelOpen(false)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500"><Icon name="X" size={13}/></button>
-          </div>
-          {/* Selected robot strip */}
-          <div className="px-3 py-2.5 border-b border-slate-200 bg-slate-50/50 shrink-0">
-            {selectedNodeId ? (
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-blue-600 grid place-items-center text-white shrink-0"><Icon name="MapPin" size={13}/></div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[12.5px] font-semibold text-slate-900">{mapNodes.find(n=>n.id===selectedNodeId)?.label}</span>
-                    <span className="text-[10px] font-semibold px-1.5 py-px rounded bg-blue-50 text-blue-600">{selectedNodeId}</span>
-                  </div>
-                  <div className="text-[10.5px] text-slate-500 tnum">
-                    X{mapNodes.find(n=>n.id===selectedNodeId)?.x} {"·"} Y{mapNodes.find(n=>n.id===selectedNodeId)?.y}
-                  </div>
-                </div>
-                <button onClick={()=>{setSelectedNodeId(null);setMoveTarget("");}} className="w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500 shrink-0"><Icon name="X" size={13}/></button>
-              </div>
-            ) : sel ? (
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md grid place-items-center text-white shrink-0" style={{background:fleets.find(f=>f.id===sel.fleet)?.color||"#64748b"}}><Icon name={sel.id.startsWith("Part")?"Cog":"Bot"} size={13}/></div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[12.5px] font-semibold text-slate-900 tnum">{sel.id}</span>
-                    <span className="text-[10px] font-semibold px-1.5 py-px rounded flex items-center gap-1" style={{background:statusMap[sel.st].bg,color:statusMap[sel.st].fg}}>{statusMap[sel.st].label}</span>
-                  </div>
-                  <div className="text-[10.5px] text-slate-500 tnum">배터리 {sel.battery}% {"·"} X{sel.x} Y{sel.y}</div>
-                </div>
-                <button onClick={()=>setFocusRobot(null)} className="w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500 shrink-0"><Icon name="X" size={13}/></button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-[11.5px] text-slate-500"><Icon name="MousePointerClick" size={12}/><span>맵에서 로봇을 클릭하여 대상 선택</span></div>
-            )}
           </div>
           {/* Tab body */}
           <div className="flex-1 overflow-y-auto">
@@ -1709,38 +1688,45 @@ function MonitoringHome({ onNavigate }) {
 
                 <CmdSection icon="Square" tone="rose" title="작업 중단하기" subtitle="진행 중인 작업을 중단합니다">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet"><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇">{robots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
+                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {robots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
                   </div>
-                  <div className="flex items-center gap-1.5">{["정상 종료","강제 정지"].map((m,i)=><button key={m} className={"flex-1 h-6 rounded text-[10.5px] font-medium border "+(i===0?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{m}</button>)}</div>
+                  <div className="flex items-center gap-1.5">{["정상 종료","강제 정지"].map((m,i)=><button key={m} className={"flex-1 h-7 rounded text-[11px] font-medium border "+(i===0?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600")}>{m}</button>)}</div>
                   <button className="w-full h-8 mt-2 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Square" size={12}/> 작업 중단하기</button>
                 </CmdSection>
 
                 <CmdSection icon="Navigation" tone="indigo" title="노드 이동하기" subtitle="대상 스테이션으로 이동">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet"><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇">{robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
+                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
                   </div>
                   <div className="relative">
-                    {moveTarget && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9.5px] font-medium text-slate-400 uppercase tracking-wide pointer-events-none">목적지</span>}
                     <select value={moveTarget} onChange={e=>setMoveTarget(e.target.value)}
-                      className={"w-full h-7 rounded-md border bg-white text-[11.5px] outline-none appearance-none pr-6 focus:border-blue-400 "+(moveTarget?"pl-10 border-blue-400 text-blue-700 font-medium":"pl-2.5 border-slate-200 text-slate-800")}>
-                      <option value="">목적지 선택 (맵 노드 클릭)</option>
+                      className={"w-full h-8 rounded-md border bg-white text-[12px] outline-none appearance-none pr-7 focus:border-blue-400 "+(moveTarget?"pl-2.5 border-blue-400 text-blue-700 font-medium":"pl-2.5 border-slate-200 text-slate-800")}>
+                      <option value="">목적지 선택</option>
                       {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
                     </select>
-                    <Icon name="ChevronDown" size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                    {moveTarget&&<button onClick={()=>setMoveTarget("")} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><Icon name="X" size={10}/></button>}
+                    <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                   </div>
-                  {moveTarget&&<div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-blue-600 bg-blue-50 rounded px-2 py-1"><Icon name="MapPin" size={10}/><span>노드 선택됨: <strong>{mapNodes.find(n=>n.id===moveTarget)?.label}</strong></span></div>}
+                  {moveTarget&&<div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-blue-600 bg-blue-50 rounded px-2 py-1"><Icon name="MapPin" size={10}/><span>선택됨: <strong>{mapNodes.find(n=>n.id===moveTarget)?.label}</strong></span></div>}
                   <button className="w-full h-8 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Navigation" size={12}/> 이동 시작</button>
                 </CmdSection>
 
                 <CmdSection icon="BatteryCharging" tone="emerald" title="충전하기" subtitle="충전 스테이션으로 복귀">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet"><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇">{robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}</CmdSelectField>
+                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {robots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
                   </div>
-                  <CmdSelectField label="충전소"><option value="auto">자동 선택 (최단경로)</option>{stations.filter(s=>s.type==="charge").map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</CmdSelectField>
+                  <CmdSelectField label="충전소" value="auto" onChange={()=>{}}>
+                    <option value="auto">자동 선택 (최단경로)</option>
+                    {stations.filter(s=>s.type==="charge").map(s=><option key={s.code} value={s.code}>{s.name}</option>)}
+                  </CmdSelectField>
                   {sel&&<div className="mt-2 flex items-center gap-2 text-[10.5px] text-slate-500"><span>{sel.id} 배터리</span><div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:sel.battery+"%",background:sel.battery>50?"#10b981":sel.battery>25?"#f59e0b":"#e11d48"}}/></div><span className="tnum font-medium text-slate-700">{sel.battery}%</span></div>}
                   <button className="w-full h-8 mt-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="BatteryCharging" size={12}/> 충전 시작</button>
                 </CmdSection>
