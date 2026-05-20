@@ -3748,7 +3748,6 @@ function MapEditorView() {
   /* ── 상수 ─────────────────────────────────────────── */
   const ROLE_COLORS={standard:"#8b98a8",station:"#0f9d58",charger:"#1f6feb",holding:"#94a3b8",holding_candidate:"#94a3b8",siding:"#e0a000"};
   const NODE_ROLES=[{id:"standard",label:"Standard",key:"1"},{id:"station",label:"Station",key:"2"},{id:"charger",label:"Charger",key:"3"},{id:"holding",label:"Holding",key:"4"},{id:"siding",label:"Siding",key:"5"}];
-  const MAPS=[{id:"map-01",name:"1F 메인 홀"},{id:"map-02",name:"2F 물류 구역"},{id:"map-03",name:"B1 주차장"}];
   const VMAX_STEP=0.1,VMAX_DEFAULT=1.0,VMAX_MIN=0.1,VMAX_MAX=3.0;
 
   /* ── 초기 데이터 ────────────────────────────────────── */
@@ -3764,7 +3763,7 @@ function MapEditorView() {
   const [primaryGraph,setPrimaryGraph]=useState(0);
   const [showInactive,setShowInactive]=useState(true);
 
-  const [activeMapId,setActiveMapId]=useState(MAPS[0].id);
+  const [activeMapId,setActiveMapId]=useState(floors[0].id);
   const [mapDropOpen,setMapDropOpen]=useState(false);
 
   const [mode,setMode]=useState("stamp");
@@ -3780,6 +3779,7 @@ function MapEditorView() {
   const [hovNodeId,setHovNodeId]=useState(null);
   const [hovEdgeId,setHovEdgeId]=useState(null);
   const [edgeSrc,setEdgeSrc]=useState(null);
+  const [dragNode,setDragNode]=useState(null); // {id, startSvgX, startSvgY, origX, origY}
 
   const [speedSelIds,setSpeedSelIds]=useState(new Set());
   const [speedVal,setSpeedVal]=useState(VMAX_DEFAULT);
@@ -3802,10 +3802,13 @@ function MapEditorView() {
   const paintRef=useRef(null);
   const fileRef=useRef(null);
   const toastRef=useRef(null);
-  const ctrlDragRef=useRef(null); // {srcId, curX, curY}
+  const ctrlDragRef=useRef(null);
+  const dragNodeRef=useRef(null); // for mousemove handler
 
   const nodesRef=useRef(nodes); useEffect(()=>{nodesRef.current=nodes;},[nodes]);
   const edgesRef=useRef(edges); useEffect(()=>{edgesRef.current=edges;},[edges]);
+  const selNodeIdsRef=useRef(selNodeIds); useEffect(()=>{selNodeIdsRef.current=selNodeIds;},[selNodeIds]);
+  const selEdgeIdRef=useRef(selEdgeId); useEffect(()=>{selEdgeIdRef.current=selEdgeId;},[selEdgeId]);
 
   /* ── 헬퍼 ─────────────────────────────────────────── */
   const nodeById=useMemo(()=>new Map(nodes.map(n=>[n.id,n])),[nodes]);
@@ -3855,11 +3858,26 @@ function MapEditorView() {
   };
   const onMouseMove=e=>{
     if(panRef.current){const{x,y,tx:ox,ty:oy}=panRef.current;setTx(ox+(e.clientX-x));setTy(oy+(e.clientY-y));return;}
+    // Node drag
+    if(dragNodeRef.current){
+      const p=svgPt(e.clientX,e.clientY);
+      const{id,startSvgX,startSvgY,origX,origY}=dragNodeRef.current;
+      const dx=p.x-startSvgX,dy=p.y-startSvgY;
+      const{x:nx,y:ny}=snap(origX+dx,origY+dy);
+      setNodes(ns=>ns.map(n=>n.id===id?{...n,x:nx,y:ny}:n));
+      return;
+    }
     if(paintRef.current&&mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[...paintRef.current,{x:p.x,y:p.y}];}
-    if(ctrlDragRef.current){const p=svgPt(e.clientX,e.clientY);ctrlDragRef.current={...ctrlDragRef.current,curX:p.x,curY:p.y};setHovNodeId(h=>h);}// force rerender
+    if(ctrlDragRef.current){const p=svgPt(e.clientX,e.clientY);ctrlDragRef.current={...ctrlDragRef.current,curX:p.x,curY:p.y};setHovNodeId(h=>h);}
   };
   const onMouseUp=e=>{
     if(panRef.current){panRef.current=null;return;}
+    if(dragNodeRef.current){
+      pushHistory(); // commit drag
+      dragNodeRef.current=null;
+      setDragNode(null);
+      return;
+    }
     if(paintRef.current&&mode==="paint"){applyPaint(paintRef.current,e.button===2,e.altKey);paintRef.current=null;return;}
     if(ctrlDragRef.current){
       const{srcId,curX,curY}=ctrlDragRef.current;
@@ -3937,6 +3955,14 @@ function MapEditorView() {
     if(mode==="build"&&buildTool==="edge"&&(e.ctrlKey||e.metaKey)){
       e.stopPropagation();e.preventDefault();
       ctrlDragRef.current={srcId:n.id,curX:n.x,curY:n.y};
+      return;
+    }
+    // Allow drag in stamp or select mode (not build-delete, not pan)
+    if(e.button===0&&!e.altKey&&mode!=="speed"&&!(mode==="build"&&buildTool==="delete")){
+      e.stopPropagation();
+      const p=svgPt(e.clientX,e.clientY);
+      dragNodeRef.current={id:n.id,startSvgX:p.x,startSvgY:p.y,origX:n.x,origY:n.y};
+      setDragNode(n.id);
     }
   };
 
@@ -4013,15 +4039,20 @@ function MapEditorView() {
       }
       // Delete
       if(e.key==="Delete"||e.key==="Backspace"){
-        if(selNodeIds.size>0){
-          pushHistory();
-          setNodes(ns=>ns.filter(n=>!selNodeIds.has(n.id)));
-          setEdges(es=>es.filter(ex=>!selNodeIds.has(ex.src)&&!selNodeIds.has(ex.dst)));
-          showToast(`${selNodeIds.size}개 노드 삭제`);
+        const curSelNodes=selNodeIdsRef.current;
+        const curSelEdge=selEdgeIdRef.current;
+        if(curSelNodes.size>0){
+          const snap2=()=>({nodes:nodesRef.current.map(n=>({...n})),edges:edgesRef.current.map(ex=>({...ex}))});
+          setPast(p=>[...p,snap2()].slice(-50));setFuture([]);
+          setNodes(ns=>ns.filter(n=>!curSelNodes.has(n.id)));
+          setEdges(es=>es.filter(ex=>!curSelNodes.has(ex.src)&&!curSelNodes.has(ex.dst)));
+          showToast(`${curSelNodes.size}개 노드 삭제`);
           setSelNodeIds(new Set());return;
         }
-        if(selEdgeId){
-          pushHistory();setEdges(es=>es.filter(ex=>ex.id!==selEdgeId));
+        if(curSelEdge){
+          const snap2=()=>({nodes:nodesRef.current.map(n=>({...n})),edges:edgesRef.current.map(ex=>({...ex}))});
+          setPast(p=>[...p,snap2()].slice(-50));setFuture([]);
+          setEdges(es=>es.filter(ex=>ex.id!==curSelEdge));
           showToast("Edge 삭제");setSelEdgeId(null);return;
         }
       }
@@ -4066,7 +4097,16 @@ function MapEditorView() {
     showToast(`Graph 복사 → ${newGraph.name}`);
   };
 
-  /* ── Node shape renderer ────────────────────────────── */
+  const deleteGraph=(idx)=>{
+    if(graphs.length<=1){showToast("마지막 그래프는 삭제할 수 없습니다");return;}
+    pushHistory();
+    setNodes(ns=>ns.filter(n=>(n.graph_idx||0)!==idx));
+    setEdges(es=>es.filter(e=>(e.graph_idx||0)!==idx));
+    setGraphs(gs=>gs.filter((_,i)=>i!==idx));
+    setActiveGraphs(prev=>{const s=new Set(prev);s.delete(idx);if(s.size===0)s.add(0);return s;});
+    setPrimaryGraph(p=>p===idx?0:p>idx?p-1:p);
+    showToast(`Graph ${graphs[idx]?.name} 삭제`);
+  };
   const nodeShape=(n)=>{
     const c=ROLE_COLORS[n.role]||ROLE_COLORS.standard;
     const isSel=selNodeIds.has(n.id),isHov=n.id===hovNodeId;
@@ -4104,16 +4144,16 @@ function MapEditorView() {
           <button onClick={()=>setMapDropOpen(o=>!o)}
             className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:border-blue-400 flex items-center gap-2 text-[12.5px] font-semibold text-slate-800 transition min-w-[140px]">
             <Icon name="Layers" size={12} className="text-blue-500"/>
-            {activeMap.name}
+            {floors.find(f=>f.id===activeMapId)?.label||activeMapId}
             <Icon name="ChevronDown" size={11} className="ml-auto text-slate-400"/>
           </button>
           {mapDropOpen&&(
             <div className="absolute top-full mt-1 left-0 z-50 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden min-w-[160px]">
-              {MAPS.map(m=>(
+              {floors.map(m=>(
                 <button key={m.id} onClick={()=>{setActiveMapId(m.id);setMapDropOpen(false);}}
                   className={"w-full flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-left hover:bg-slate-50 transition "+(m.id===activeMapId?"bg-blue-50 text-blue-700":"text-slate-700")}>
                   {m.id===activeMapId&&<Icon name="Check" size={11} className="text-blue-500"/>}
-                  <span className={m.id!==activeMapId?"ml-4":""}>{m.name}</span>
+                  <span className={m.id!==activeMapId?"ml-4":""}>{m.label}</span>
                 </button>
               ))}
             </div>
@@ -4145,22 +4185,29 @@ function MapEditorView() {
                 const nCount=nodes.filter(n=>(n.graph_idx||0)===i).length;
                 const eCount=edges.filter(e=>(e.graph_idx||0)===i).length;
                 return(
-                  <div key={i} className={"flex items-center gap-2 px-2 py-1.5 rounded-md border transition "+(isActive?"border-transparent":"border-transparent hover:bg-slate-50")}
+                  <div key={i} className={"flex items-center gap-1.5 px-2 py-1.5 rounded-md transition "+(isActive?"":"hover:bg-slate-50")}
                     style={isActive?{background:g.color+"18"}:{}}>
                     <input type="checkbox" checked={isActive}
                       onChange={ev=>{setActiveGraphs(prev=>{const s=new Set(prev);ev.target.checked?s.add(i):s.delete(i);return s;});if(!activeGraphs.has(i))setPrimaryGraph(i);}}
                       className="w-3.5 h-3.5 shrink-0" style={isActive?{accentColor:g.color}:{}}/>
+                    {/* Color picker */}
+                    <input type="color" value={g.color}
+                      onChange={ev=>setGraphs(gs=>gs.map((gr,gi)=>gi===i?{...gr,color:ev.target.value}:gr))}
+                      className="w-5 h-5 rounded cursor-pointer border-0 p-0 shrink-0"
+                      style={{appearance:"none",WebkitAppearance:"none",background:"none"}}
+                      title="색상 변경"/>
                     <button onClick={()=>setPrimaryGraph(i)}
-                      className="flex-1 flex items-center gap-1.5 text-left text-[11.5px] font-medium"
+                      className="flex-1 flex items-center gap-1 text-left text-[11.5px] font-medium truncate"
                       style={{color:isActive?g.color:"#64748b"}}>
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{background:isActive?g.color:"#cbd5e1"}}/>
                       {g.name}
-                      {isPrimary&&<span className="text-[9px] font-bold px-1 py-px rounded" style={{background:g.color+"30",color:g.color}}>PRIMARY</span>}
+                      {isPrimary&&<span className="text-[9px] font-bold px-1 py-px rounded shrink-0" style={{background:g.color+"30",color:g.color}}>P</span>}
                     </button>
                     <span className="text-[10px] text-slate-400 tnum shrink-0">{nCount}N·{eCount}E</span>
-                    <button onClick={()=>copyGraph(i)} title="그래프 복사"
-                      className="w-5 h-5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 grid place-items-center shrink-0">
-                      <Icon name="Copy" size={10}/>
+                    <button onClick={()=>copyGraph(i)} title="복사" className="w-5 h-5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 grid place-items-center shrink-0">
+                      <Icon name="Copy" size={9}/>
+                    </button>
+                    <button onClick={()=>deleteGraph(i)} title="삭제" className="w-5 h-5 rounded hover:bg-rose-100 text-slate-300 hover:text-rose-500 grid place-items-center shrink-0">
+                      <Icon name="Trash2" size={9}/>
                     </button>
                   </div>
                 );
@@ -4437,7 +4484,7 @@ function MapEditorView() {
                 const opacity=activeGraphs.has(gi)?1:0.3;
                 return(
                   <g key={n.id} opacity={opacity} transform={`translate(${n.x},${n.y})`}
-                    style={{cursor:mode==="stamp"?"cell":"pointer"}}
+                    style={{cursor:dragNode===n.id?"grabbing":mode==="stamp"?"cell":"grab"}}
                     onMouseEnter={()=>setHovNodeId(n.id)} onMouseLeave={()=>setHovNodeId(null)}
                     onClick={ev=>handleNodeClick(ev,n)}
                     onMouseDown={ev=>handleNodeMouseDown(ev,n)}>
