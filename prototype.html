@@ -3743,662 +3743,654 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
 }
 
 
+
 function MapEditorView() {
-  // ── 상수 ────────────────────────────────────────────────────
-  const ROLE_COLORS = {standard:"#8b98a8",station:"#0f9d58",charger:"#1f6feb",holding:"#94a3b8",holding_candidate:"#94a3b8",siding:"#e0a000"};
-  const FLEET_COLORS = ["#2563eb","#0ea5e9","#7c3aed","#16a34a","#f97316"];
-  const VMAX_STEP = 0.1, VMAX_DEFAULT = 1.0, VMAX_MIN = 0.1, VMAX_MAX = 3.0;
-  const NODE_ROLES = [
-    {id:"standard",label:"Standard",key:"1"},
-    {id:"station",label:"Station",key:"2"},
-    {id:"charger",label:"Charger",key:"3"},
-    {id:"holding",label:"Holding",key:"4"},
-    {id:"siding",label:"Siding",key:"5"},
-  ];
+  /* ── 상수 ─────────────────────────────────────────── */
+  const ROLE_COLORS={standard:"#8b98a8",station:"#0f9d58",charger:"#1f6feb",holding:"#94a3b8",holding_candidate:"#94a3b8",siding:"#e0a000"};
+  const NODE_ROLES=[{id:"standard",label:"Standard",key:"1"},{id:"station",label:"Station",key:"2"},{id:"charger",label:"Charger",key:"3"},{id:"holding",label:"Holding",key:"4"},{id:"siding",label:"Siding",key:"5"}];
+  const MAPS=[{id:"map-01",name:"1F 메인 홀"},{id:"map-02",name:"2F 물류 구역"},{id:"map-03",name:"B1 주차장"}];
+  const VMAX_STEP=0.1,VMAX_DEFAULT=1.0,VMAX_MIN=0.1,VMAX_MAX=3.0;
 
-  // ── 초기 데이터 (mapNodes/mapEdges → editor format) ──────────
-  const initNodes = ()=> mapNodes.map(n=>({
-    id:n.id, x:n.x, y:n.y, name:n.label||n.id,
-    role:"standard", is_charger:false, is_holding:false,
-    graph_idx:0,
-    capability:null,
-  }));
-  const initEdges = ()=> mapEdges.map(e=>({
-    id:e.id, src:e.from, dst:e.to,
-    bidir:e.dir==="bi", v_max:null, graph_idx:0,
-  }));
-  const initGraphs = ()=> fleets.map((f,i)=>({idx:i,id:f.id,name:f.name,color:f.color}));
+  /* ── 초기 데이터 ────────────────────────────────────── */
+  const initNodes=()=>mapNodes.map(n=>({id:n.id,x:n.x,y:n.y,name:n.label||n.id,role:"standard",is_charger:false,is_holding:false,graph_idx:0,capability:null}));
+  const initEdges=()=>mapEdges.map(e=>({id:e.id,src:e.from,dst:e.to,bidir:e.dir==="bi",v_max:null,graph_idx:0,dirCycle:0}));
+  const initGraphs=()=>fleets.map((f,i)=>({idx:i,id:f.id,name:f.name,color:f.color}));
 
-  // ── State ────────────────────────────────────────────────────
-  const [nodes,setNodes] = useState(initNodes);
-  const [edges,setEdges] = useState(initEdges);
-  const [graphs] = useState(initGraphs);
-  const [activeGraphIdx,setActiveGraphIdx] = useState(0);
-  const [showInactive,setShowInactive] = useState(true);
+  /* ── State ─────────────────────────────────────────── */
+  const [nodes,setNodes]=useState(initNodes);
+  const [edges,setEdges]=useState(initEdges);
+  const [graphs,setGraphs]=useState(initGraphs);
+  const [activeGraphs,setActiveGraphs]=useState(new Set([0]));
+  const [primaryGraph,setPrimaryGraph]=useState(0);
+  const [showInactive,setShowInactive]=useState(true);
 
-  const [mode,setMode] = useState("stamp"); // stamp|build|paint|speed
-  const [buildTool,setBuildTool] = useState("node"); // node|edge|delete
-  const [stampRole,setStampRole] = useState("standard");
+  const [activeMapId,setActiveMapId]=useState(MAPS[0].id);
+  const [mapDropOpen,setMapDropOpen]=useState(false);
 
-  const [tx,setTx] = useState(0);
-  const [ty,setTy] = useState(0);
-  const [scale,setScale] = useState(1);
+  const [mode,setMode]=useState("stamp");
+  const [buildTool,setBuildTool]=useState("node");
+  const [stampRole,setStampRole]=useState("standard");
 
-  const [hovNodeId,setHovNodeId] = useState(null);
-  const [hovEdgeId,setHovEdgeId] = useState(null);
-  const [selNodeId,setSelNodeId] = useState(null);
-  const [selEdgeId,setSelEdgeId] = useState(null);
-  const [edgeSrc,setEdgeSrc] = useState(null); // build edge: first click node
-  const [speedSelIds,setSpeedSelIds] = useState(new Set());
-  const [speedVal,setSpeedVal] = useState(VMAX_DEFAULT);
+  const [tx,setTx]=useState(0);
+  const [ty,setTy]=useState(0);
+  const [scale,setScale]=useState(1);
 
-  const [gridSnap,setGridSnap] = useState(false);
-  const [gridSize,setGridSize] = useState(10);
-  const [bgUrl,setBgUrl] = useState(null);
-  const [bgOpacity,setBgOpacity] = useState(0.5);
+  const [selNodeIds,setSelNodeIds]=useState(new Set());
+  const [selEdgeId,setSelEdgeId]=useState(null);
+  const [hovNodeId,setHovNodeId]=useState(null);
+  const [hovEdgeId,setHovEdgeId]=useState(null);
+  const [edgeSrc,setEdgeSrc]=useState(null);
 
-  const [past,setPast] = useState([]);
-  const [future,setFuture] = useState([]);
+  const [speedSelIds,setSpeedSelIds]=useState(new Set());
+  const [speedVal,setSpeedVal]=useState(VMAX_DEFAULT);
 
-  const [validation,setValidation] = useState([]);
-  const [toast,setToast] = useState(null);
-  const [inspTab,setInspTab] = useState("node"); // node|edge
+  const [gridSnap,setGridSnap]=useState(false);
+  const [gridSize,setGridSize]=useState(20);
+  const [showGrid,setShowGrid]=useState(true);
 
-  const svgRef = useRef(null);
-  const panRef = useRef(null); // {x,y,tx,ty,button}
-  const paintRef = useRef(null); // [{x,y}]
-  const fileRef = useRef(null);
-  const toastRef = useRef(null);
+  const [bgUrl,setBgUrl]=useState(null);
+  const [bgOpacity,setBgOpacity]=useState(0.5);
 
-  // ── 헬퍼 ────────────────────────────────────────────────────
-  const nodeById = useMemo(()=>new Map(nodes.map(n=>[n.id,n])),[nodes]);
-  const showToast = (msg)=>{
-    setToast(msg);
-    if(toastRef.current) clearTimeout(toastRef.current);
-    toastRef.current = setTimeout(()=>setToast(null),2000);
-  };
+  const [clipboard,setClipboard]=useState(null);
+  const [past,setPast]=useState([]);
+  const [future,setFuture]=useState([]);
+  const [validation,setValidation]=useState([]);
+  const [toast,setToast]=useState(null);
 
-  function snapshot(ns,es){return {nodes:(ns||nodes).map(n=>({...n})),edges:(es||edges).map(e=>({...e}))};}
-  function pushHistory(ns,es){
-    setPast(p=>{const next=[...p,snapshot(ns,es)];return next.slice(-50);});
-    setFuture([]);
-  }
-  function undo(){
-    setPast(p=>{
-      if(!p.length){showToast("Nothing to undo");return p;}
-      const prev=p[p.length-1];
-      setFuture(f=>[...f,snapshot()]);
-      setNodes(prev.nodes); setEdges(prev.edges);
-      showToast("Undo");
-      return p.slice(0,-1);
-    });
-  }
-  function redo(){
-    setFuture(f=>{
-      if(!f.length){showToast("Nothing to redo");return f;}
-      const next=f[f.length-1];
-      setPast(p=>[...p,snapshot()]);
-      setNodes(next.nodes); setEdges(next.edges);
-      showToast("Redo");
-      return f.slice(0,-1);
-    });
-  }
+  const svgRef=useRef(null);
+  const panRef=useRef(null);
+  const paintRef=useRef(null);
+  const fileRef=useRef(null);
+  const toastRef=useRef(null);
+  const ctrlDragRef=useRef(null); // {srcId, curX, curY}
 
-  // ── Validation ──────────────────────────────────────────────
+  /* ── 헬퍼 ─────────────────────────────────────────── */
+  const nodeById=useMemo(()=>new Map(nodes.map(n=>[n.id,n])),[nodes]);
+  const showToast=msg=>{setToast(msg);if(toastRef.current)clearTimeout(toastRef.current);toastRef.current=setTimeout(()=>setToast(null),1800);};
+  const snap=(x,y)=>gridSnap&&gridSize>0?{x:Math.round(x/gridSize)*gridSize,y:Math.round(y/gridSize)*gridSize}:{x,y};
+  const svgPt=(cx,cy)=>{const s=svgRef.current;if(!s)return{x:0,y:0};const p=s.createSVGPoint();p.x=cx;p.y=cy;const inv=s.getScreenCTM()?.inverse();if(!inv)return{x:0,y:0};const r=p.matrixTransform(inv);return{x:r.x,y:r.y};};
+  const newNodeId=()=>"N"+String(nodes.length+1+Math.floor(Math.random()*100)).padStart(4,"0");
+  const newEdgeId=()=>"E"+String(edges.length+1+Math.floor(Math.random()*100)).padStart(4,"0");
+  const labelScale=1/Math.max(scale,0.001);
+
+  /* ── History ────────────────────────────────────────── */
+  const snapshot=()=>({nodes:nodes.map(n=>({...n})),edges:edges.map(e=>({...e}))});
+  const pushHistory=()=>{setPast(p=>[...p,snapshot()].slice(-50));setFuture([]);};
+  const undo=()=>setPast(p=>{if(!p.length){showToast("되돌릴 내역 없음");return p;}const prev=p[p.length-1];setFuture(f=>[...f,snapshot()]);setNodes(prev.nodes);setEdges(prev.edges);showToast("Undo");return p.slice(0,-1);});
+  const redo=()=>setFuture(f=>{if(!f.length){showToast("다시 실행 없음");return f;}const next=f[f.length-1];setPast(p=>[...p,snapshot()]);setNodes(next.nodes);setEdges(next.edges);showToast("Redo");return f.slice(0,-1);});
+
+  /* ── Validation ─────────────────────────────────────── */
   useEffect(()=>{
     const warns=[];
-    const degree = new Map(nodes.map(n=>[n.id,{in:0,out:0}]));
-    edges.forEach(e=>{
-      const a=degree.get(e.src),b=degree.get(e.dst);
-      if(a){a.out++;if(e.bidir)a.in++;}
-      if(b){b.in++;if(e.bidir)b.out++;}
-    });
-    nodes.forEach(n=>{
-      const d=degree.get(n.id)||{in:0,out:0};
-      if(d.in===0&&d.out===0) warns.push({type:"isolated",id:n.id,msg:`고립 노드: ${n.id}`});
-    });
-    // connected components
+    const degree=new Map(nodes.map(n=>[n.id,{in:0,out:0}]));
+    edges.forEach(e=>{const a=degree.get(e.src),b=degree.get(e.dst);if(a){a.out++;if(e.bidir)a.in++;}if(b){b.in++;if(e.bidir)b.out++;}});
+    nodes.forEach(n=>{const d=degree.get(n.id)||{in:0,out:0};if(!d.in&&!d.out)warns.push({msg:`고립 노드: ${n.id}`});});
     const parent=new Map(nodes.map(n=>[n.id,n.id]));
     const find=x=>{while(parent.get(x)!==x){parent.set(x,parent.get(parent.get(x)));x=parent.get(x);}return x;};
     edges.forEach(e=>{const ra=find(e.src),rb=find(e.dst);if(ra!==rb)parent.set(ra,rb);});
     const roots=new Set(nodes.map(n=>find(n.id)));
-    if(roots.size>1) warns.push({type:"disconnected",msg:`비연결 컴포넌트 ${roots.size}개`});
+    if(roots.size>1)warns.push({msg:`비연결 컴포넌트 ${roots.size}개`});
     setValidation(warns);
   },[nodes,edges]);
 
-  // ── Coordinate helpers ───────────────────────────────────────
-  function svgPt(clientX,clientY){
-    const svg=svgRef.current; if(!svg)return{x:0,y:0};
-    const pt=svg.createSVGPoint();
-    pt.x=clientX; pt.y=clientY;
-    const inv=svg.getScreenCTM()?.inverse();
-    if(!inv)return{x:0,y:0};
-    const r=pt.matrixTransform(inv);
-    return{x:r.x,y:r.y};
-  }
-  function snapPt(x,y){
-    if(!gridSnap||gridSize<=0)return{x,y};
-    return{x:Math.round(x/gridSize)*gridSize,y:Math.round(y/gridSize)*gridSize};
-  }
-
-  // ── Pan / Zoom ───────────────────────────────────────────────
-  function onWheel(e){
+  /* ── Pan / Zoom ─────────────────────────────────────── */
+  const onWheel=e=>{
     e.preventDefault();
-    const svg=svgRef.current; if(!svg)return;
-    const rect=svg.getBoundingClientRect();
-    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const svg=svgRef.current;if(!svg)return;
     if(mode==="speed"&&e.shiftKey&&speedSelIds.size>0){
-      const delta=e.deltaY<0?VMAX_STEP:-VMAX_STEP;
-      setEdges(es=>es.map(e2=>speedSelIds.has(e2.id)?{...e2,v_max:Math.min(VMAX_MAX,Math.max(VMAX_MIN,Math.round(((e2.v_max||VMAX_DEFAULT)+delta)*10)/10))}:e2));
+      const d=e.deltaY<0?VMAX_STEP:-VMAX_STEP;
+      setEdges(es=>es.map(ex=>speedSelIds.has(ex.id)?{...ex,v_max:Math.min(VMAX_MAX,Math.max(VMAX_MIN,Math.round(((ex.v_max||VMAX_DEFAULT)+d)*10)/10))}:ex));
       return;
     }
-    const factor=e.deltaY<0?1.15:1/1.15;
-    setScale(s=>{const ns=Math.min(10,Math.max(0.1,s*factor));
-      setTx(t=>mx-(mx-t)*(ns/s));
-      setTy(t=>my-(my-t)*(ns/s));
-      return ns;
-    });
-  }
-
-  function onMouseDown(e){
-    if(e.button===1||(e.button===0&&e.altKey&&mode!=="build")){
-      panRef.current={x:e.clientX,y:e.clientY,tx,ty};
-      e.preventDefault(); return;
-    }
-  }
-  function onMouseMove(e){
-    if(panRef.current){
-      const{x,y,tx:ox,ty:oy}=panRef.current;
-      setTx(ox+(e.clientX-x)); setTy(oy+(e.clientY-y));
-      return;
-    }
-    if(paintRef.current&&mode==="paint"){
-      const p=svgPt(e.clientX,e.clientY);
-      paintRef.current=[...paintRef.current,{x:p.x,y:p.y}];
-    }
-  }
-  function onMouseUp(e){
+    const rect=svg.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const f=e.deltaY<0?1.15:1/1.15;
+    setScale(s=>{const ns=Math.min(10,Math.max(0.1,s*f));setTx(t=>mx-(mx-t)*(ns/s));setTy(t=>my-(my-t)*(ns/s));return ns;});
+  };
+  const onMouseDown=e=>{
+    if(e.button===1||(e.button===0&&e.altKey)){panRef.current={x:e.clientX,y:e.clientY,tx,ty};e.preventDefault();}
+  };
+  const onMouseMove=e=>{
+    if(panRef.current){const{x,y,tx:ox,ty:oy}=panRef.current;setTx(ox+(e.clientX-x));setTy(oy+(e.clientY-y));return;}
+    if(paintRef.current&&mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[...paintRef.current,{x:p.x,y:p.y}];}
+    if(ctrlDragRef.current){const p=svgPt(e.clientX,e.clientY);ctrlDragRef.current={...ctrlDragRef.current,curX:p.x,curY:p.y};setHovNodeId(h=>h);}// force rerender
+  };
+  const onMouseUp=e=>{
     if(panRef.current){panRef.current=null;return;}
-    if(paintRef.current&&mode==="paint"){
-      applyPaint(paintRef.current,e.button===2,e.altKey);
-      paintRef.current=null; return;
+    if(paintRef.current&&mode==="paint"){applyPaint(paintRef.current,e.button===2,e.altKey);paintRef.current=null;return;}
+    if(ctrlDragRef.current){
+      const{srcId,curX,curY}=ctrlDragRef.current;
+      ctrlDragRef.current=null;
+      const target=nodes.find(n=>{const dx=n.x-curX,dy=n.y-curY;return Math.hypot(dx,dy)<10*labelScale&&n.id!==srcId;});
+      pushHistory();
+      if(target){
+        setEdges(es=>[...es,{id:newEdgeId(),src:srcId,dst:target.id,bidir:false,v_max:null,graph_idx:primaryGraph,dirCycle:0}]);
+        showToast(`+ Edge ${srcId}→${target.id}`);
+      } else {
+        const{x,y}=snap(curX,curY);
+        const nid=newNodeId();
+        setNodes(ns=>[...ns,{id:nid,x,y,name:nid,role:"standard",is_charger:false,is_holding:false,graph_idx:primaryGraph,capability:null}]);
+        setEdges(es=>[...es,{id:newEdgeId(),src:srcId,dst:nid,bidir:false,v_max:null,graph_idx:primaryGraph,dirCycle:0}]);
+        showToast(`+ Node ${nid} + Edge`);
+      }
     }
-  }
-  function resetView(){setTx(0);setTy(0);setScale(1);}
+  };
 
-  // ── Node bounds for auto-fit ─────────────────────────────────
-  const bounds = useMemo(()=>{
-    if(!nodes.length)return{minX:0,maxX:100,minY:0,maxY:100};
-    const xs=nodes.map(n=>n.x),ys=nodes.map(n=>n.y);
-    return{minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)};
-  },[nodes]);
-
-  // ── Node/Edge rendering helpers ──────────────────────────────
-  function nodeShape(n){
-    const c=ROLE_COLORS[n.role]||ROLE_COLORS.standard;
-    const isSel=n.id===selNodeId, isHov=n.id===hovNodeId;
-    const r=n.role==="station"?7:n.role==="holding"||n.role==="holding_candidate"?4:5;
-    const stroke=isSel?"#2563eb":isHov?"#64748b":c;
-    const sw=isSel?2.5:isHov?1.5:1;
-    if(n.is_charger||n.role==="charger")
-      return <rect x={-r} y={-r} width={r*2} height={r*2} rx={1.5} fill={c} stroke={stroke} strokeWidth={sw}/>;
-    if(n.role==="siding")
-      return <polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={c} stroke={stroke} strokeWidth={sw}/>;
-    if(n.role==="holding_candidate")
-      return <circle r={r} fill="none" stroke={c} strokeWidth={1.5} strokeDasharray="2 2"/>;
-    return <circle r={r} fill={n.is_holding?"none":c} stroke={stroke} strokeWidth={sw}
-      strokeDasharray={n.is_holding?"3 2":"none"}/>;
-  }
-
-  function edgeColor(e){
-    const gi=e.graph_idx||0;
-    const isActive=gi===activeGraphIdx;
-    if(!isActive) return"#9aa5b1";
-    if(e.v_max!=null) return"#c77700";
-    return graphs[gi]?.color||(e.bidir?"#2459d1":"#0f9d58");
-  }
-
-  // ── Paint mode ───────────────────────────────────────────────
-  function applyPaint(traj,forceBidir,altKey){
+  /* ── Paint ──────────────────────────────────────────── */
+  const applyPaint=(traj,forceBidir,altKey)=>{
     if(traj.length<2)return;
     pushHistory();
-    const t0=traj[0],tN=traj[traj.length-1];
-    const tdx=tN.x-t0.x,tdy=tN.y-t0.y;
+    const t0=traj[0],tN=traj[traj.length-1],tdx=tN.x-t0.x,tdy=tN.y-t0.y;
     setEdges(es=>es.map(e=>{
-      const a=nodeById.get(e.src),b=nodeById.get(e.dst);
-      if(!a||!b)return e;
-      const ex=((a.x+b.x)/2)-t0.x,ey=((a.y+b.y)/2)-t0.y;
-      const near=Math.abs(ex*tdx+ey*tdy)/Math.hypot(tdx,tdy)<15
-        &&Math.abs(ey*tdx-ex*tdy)/Math.hypot(tdx,tdy)<12;
-      if(!near)return e;
-      if(forceBidir)return{...e,bidir:true};
-      const dot=tdx*(b.x-a.x)+tdy*(b.y-a.y);
-      if(altKey)return{...e,bidir:false,src:e.dst,dst:e.src};
-      if(dot<0)return{...e,bidir:false,src:e.dst,dst:e.src};
-      return{...e,bidir:false};
-    }));
-  }
-
-  // ── Stamp mode ───────────────────────────────────────────────
-  function applyStamp(nodeId){
-    pushHistory();
-    setNodes(ns=>ns.map(n=>{
-      if(n.id!==nodeId)return n;
-      const base={...n,role:stampRole,is_charger:stampRole==="charger",is_holding:stampRole==="holding"||stampRole==="holding_candidate"};
-      return base;
-    }));
-  }
-
-  // ── Build mode ───────────────────────────────────────────────
-  function handleSvgClick(e){
-    if(e.target===svgRef.current||e.target.dataset.bg){
-      if(mode==="build"&&buildTool==="node"){
-        const p=svgPt(e.clientX,e.clientY);
-        const{x,y}=snapPt(p.x,p.y);
-        const id="N"+String(nodes.length+1).padStart(4,"0");
-        pushHistory();
-        setNodes(ns=>[...ns,{id,x,y,name:id,role:"standard",is_charger:false,is_holding:false,graph_idx:activeGraphIdx,capability:null}]);
-        showToast(`+ Node ${id}`);
-      } else {
-        setSelNodeId(null);setSelEdgeId(null);setEdgeSrc(null);
-        if(mode==="speed") setSpeedSelIds(new Set());
+      const a=nodeById.get(e.src),b=nodeById.get(e.dst);if(!a||!b)return e;
+      const ex=(a.x+b.x)/2-t0.x,ey=(a.y+b.y)/2-t0.y;
+      const len=Math.hypot(tdx,tdy)||1;
+      if(Math.abs(ex*tdx/len+ey*tdy/len)<18&&Math.abs(ey*tdx/len-ex*tdy/len)<12){
+        if(forceBidir)return{...e,bidir:true,dirCycle:1};
+        if(altKey)return{...e,bidir:false,src:e.dst,dst:e.src,dirCycle:0};
+        const dot=tdx*(b.x-a.x)+tdy*(b.y-a.y);
+        if(dot<0)return{...e,bidir:false,src:e.dst,dst:e.src,dirCycle:0};
+        return{...e,bidir:false,dirCycle:0};
       }
-    }
-  }
+      return e;
+    }));
+  };
 
-  function handleNodeClick(e,n){
+  /* ── Node interaction ───────────────────────────────── */
+  const handleNodeClick=(e,n)=>{
     e.stopPropagation();
-    if(mode==="stamp"){applyStamp(n.id);return;}
+    if(mode==="stamp"){pushHistory();setNodes(ns=>ns.map(x=>x.id!==n.id?x:{...x,role:stampRole,is_charger:stampRole==="charger",is_holding:stampRole==="holding"||stampRole==="holding_candidate"}));return;}
     if(mode==="build"){
-      if(buildTool==="delete"){
-        pushHistory();
-        setNodes(ns=>ns.filter(x=>x.id!==n.id));
-        setEdges(es=>es.filter(x=>x.src!==n.id&&x.dst!==n.id));
-        showToast(`- Node ${n.id}`);return;
-      }
+      if(buildTool==="delete"){pushHistory();setNodes(ns=>ns.filter(x=>x.id!==n.id));setEdges(es=>es.filter(x=>x.src!==n.id&&x.dst!==n.id));setSelNodeIds(new Set());showToast(`- Node ${n.id}`);return;}
       if(buildTool==="edge"){
-        if(!edgeSrc){setEdgeSrc(n.id);showToast(`Edge 시작: ${n.id} → 다음 노드 클릭`);return;}
+        if(e.ctrlKey||e.metaKey){ctrlDragRef.current={srcId:n.id,curX:n.x,curY:n.y};return;}
+        if(!edgeSrc){setEdgeSrc(n.id);showToast(`Edge: ${n.id} 선택 → 다음 노드 클릭`);return;}
         if(edgeSrc===n.id){setEdgeSrc(null);return;}
-        const bidir=e.button===2||e.shiftKey;
-        const exists=edges.find(x=>(x.src===edgeSrc&&x.dst===n.id)||(x.src===n.id&&x.dst===edgeSrc));
-        if(exists){showToast("이미 존재하는 엣지");setEdgeSrc(null);return;}
-        const id="E"+String(edges.length+1).padStart(4,"0");
+        const bidir=e.shiftKey;
+        if(edges.find(x=>(x.src===edgeSrc&&x.dst===n.id)||(x.src===n.id&&x.dst===edgeSrc))){showToast("이미 존재하는 엣지");setEdgeSrc(null);return;}
         pushHistory();
-        setEdges(es=>[...es,{id,src:edgeSrc,dst:n.id,bidir,v_max:null,graph_idx:activeGraphIdx}]);
+        setEdges(es=>[...es,{id:newEdgeId(),src:edgeSrc,dst:n.id,bidir,v_max:null,graph_idx:primaryGraph,dirCycle:bidir?1:0}]);
         showToast(`+ Edge ${edgeSrc}→${n.id}${bidir?" (bi)":""}`);
         setEdgeSrc(null);return;
       }
+      if(buildTool==="node"){
+        // Ctrl+drag handled on mousedown
+        setSelNodeIds(prev=>{const s=new Set(prev);e.shiftKey?s.has(n.id)?s.delete(n.id):s.add(n.id):(s.clear(),s.add(n.id));return s;});
+        return;
+      }
     }
     if(mode==="speed")return;
-    setSelNodeId(selNodeId===n.id?null:n.id);
+    setSelNodeIds(prev=>{const s=new Set(prev);e.shiftKey?s.has(n.id)?s.delete(n.id):s.add(n.id):(s.clear(),s.add(n.id));return s;});
     setSelEdgeId(null);
-    setInspTab("node");
-  }
+  };
 
-  function handleEdgeClick(e,edge){
+  const handleNodeMouseDown=(e,n)=>{
+    if(mode==="build"&&buildTool==="edge"&&(e.ctrlKey||e.metaKey)){
+      e.stopPropagation();e.preventDefault();
+      ctrlDragRef.current={srcId:n.id,curX:n.x,curY:n.y};
+    }
+  };
+
+  /* ── Edge interaction ───────────────────────────────── */
+  const handleEdgeClick=(e,edge)=>{
     e.stopPropagation();
-    if(mode==="build"&&buildTool==="delete"){
-      pushHistory();
-      setEdges(es=>es.filter(x=>x.id!==edge.id));
-      showToast(`- Edge ${edge.id}`);return;
-    }
-    if(mode==="build"&&buildTool==="edge"){
-      pushHistory();
-      setEdges(es=>es.map(x=>x.id!==edge.id?x:{...x,bidir:!x.bidir}));
-      return;
-    }
-    if(mode==="speed"){
-      if(e.shiftKey)setSpeedSelIds(prev=>{const n=new Set(prev);n.has(edge.id)?n.delete(edge.id):n.add(edge.id);return n;});
-      else setSpeedSelIds(new Set([edge.id]));
-      return;
-    }
+    if(mode==="build"&&buildTool==="delete"){pushHistory();setEdges(es=>es.filter(x=>x.id!==edge.id));setSelEdgeId(null);showToast(`- Edge ${edge.id}`);return;}
+    if(mode==="build"&&buildTool==="edge"){pushHistory();setEdges(es=>es.map(x=>x.id!==edge.id?x:{...x,bidir:!x.bidir,dirCycle:x.bidir?0:1}));return;}
+    if(mode==="speed"){e.shiftKey?setSpeedSelIds(prev=>{const s=new Set(prev);s.has(edge.id)?s.delete(edge.id):s.add(edge.id);return s;}):setSpeedSelIds(new Set([edge.id]));return;}
     setSelEdgeId(selEdgeId===edge.id?null:edge.id);
-    setSelNodeId(null);
-    setInspTab("edge");
-  }
+    setSelNodeIds(new Set());
+  };
+  const handleEdgeDblClick=(e,edge)=>{
+    e.stopPropagation();
+    pushHistory();
+    setEdges(es=>es.map(ex=>{
+      if(ex.id!==edge.id)return ex;
+      const next=(ex.dirCycle+1)%3;
+      if(next===0)return{...ex,bidir:false,src:edge.src,dst:edge.dst,dirCycle:0};
+      if(next===1)return{...ex,bidir:true,dirCycle:1};
+      return{...ex,bidir:false,src:edge.dst,dst:edge.src,dirCycle:2};
+    }));
+    showToast("Edge 방향 변경");
+  };
 
-  // ── Keyboard shortcuts ───────────────────────────────────────
-  useEffect(()=>{
-    function onKey(e){
-      if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;
-      if((e.ctrlKey||e.metaKey)&&e.key==="z"){e.preventDefault();e.shiftKey?redo():undo();return;}
-      if((e.ctrlKey||e.metaKey)&&e.key==="y"){e.preventDefault();redo();return;}
-      const k=e.key.toLowerCase();
-      if(k==="p")setMode("paint");
-      if(k==="s")setMode("stamp");
-      if(k==="b")setMode("build");
-      if(k==="v")setMode("speed");
-      if(k==="n")setBuildTool("node");
-      if(k==="e")setBuildTool("edge");
-      if(k==="d")setBuildTool("delete");
-      if(k==="g"||k==="tab"){e.preventDefault();setActiveGraphIdx(i=>(i+1)%graphs.length);}
-      if(k==="1")setStampRole("standard");
-      if(k==="2")setStampRole("station");
-      if(k==="3")setStampRole("charger");
-      if(k==="4")setStampRole("holding");
-      if(k==="5")setStampRole("siding");
-      if(k==="escape"){setSelNodeId(null);setSelEdgeId(null);setEdgeSrc(null);setSpeedSelIds(new Set());}
+  /* ── SVG click (empty area) ─────────────────────────── */
+  const handleSvgClick=e=>{
+    if(e.target===svgRef.current||e.target.dataset.bg){
+      if(mode==="build"&&buildTool==="node"){
+        const p=svgPt(e.clientX,e.clientY);const{x,y}=snap(p.x,p.y);
+        const id=newNodeId();pushHistory();
+        setNodes(ns=>[...ns,{id,x,y,name:id,role:"standard",is_charger:false,is_holding:false,graph_idx:primaryGraph,capability:null}]);
+        showToast(`+ Node ${id}`);
+      } else {
+        setSelNodeIds(new Set());setSelEdgeId(null);setEdgeSrc(null);
+        if(mode==="speed")setSpeedSelIds(new Set());
+      }
     }
+  };
+
+  /* ── Paint mode start ───────────────────────────────── */
+  const handleSvgMouseDown=e=>{
+    if(mode==="paint"&&e.button===0&&!panRef.current&&!e.altKey){
+      const p=svgPt(e.clientX,e.clientY);paintRef.current=[{x:p.x,y:p.y}];
+    }
+    onMouseDown(e);
+  };
+
+  /* ── Keyboard shortcuts ─────────────────────────────── */
+  useEffect(()=>{
+    const onKey=e=>{
+      if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA")return;
+      const ctrl=e.ctrlKey||e.metaKey;
+      // Undo/Redo
+      if(ctrl&&e.key==="z"){e.preventDefault();e.shiftKey?redo():undo();return;}
+      if(ctrl&&e.key==="y"){e.preventDefault();redo();return;}
+      // Copy / Paste
+      if(ctrl&&e.key==="c"&&selNodeIds.size>0){
+        const sel=nodes.filter(n=>selNodeIds.has(n.id));
+        const selEdges=edges.filter(ex=>selNodeIds.has(ex.src)&&selNodeIds.has(ex.dst));
+        setClipboard({nodes:sel,edges:selEdges});
+        showToast(`${sel.length}개 노드 복사`);return;
+      }
+      if(ctrl&&e.key==="v"&&clipboard){
+        e.preventDefault();
+        pushHistory();
+        const idMap=new Map();
+        const newNodes=clipboard.nodes.map(n=>{const id=newNodeId();idMap.set(n.id,id);return{...n,id,x:n.x+20,y:n.y+20,name:id};});
+        const newEdges=clipboard.edges.map(ex=>({...ex,id:newEdgeId(),src:idMap.get(ex.src)||ex.src,dst:idMap.get(ex.dst)||ex.dst}));
+        setNodes(ns=>[...ns,...newNodes]);
+        setEdges(es=>[...es,...newEdges]);
+        setSelNodeIds(new Set(newNodes.map(n=>n.id)));
+        showToast(`${newNodes.length}개 노드 붙여넣기`);return;
+      }
+      // Delete
+      if((e.key==="Delete"||e.key==="Backspace")&&!e.target.closest("input")){
+        if(selNodeIds.size>0){
+          pushHistory();
+          setNodes(ns=>ns.filter(n=>!selNodeIds.has(n.id)));
+          setEdges(es=>es.filter(ex=>!selNodeIds.has(ex.src)&&!selNodeIds.has(ex.dst)));
+          showToast(`${selNodeIds.size}개 노드 삭제`);
+          setSelNodeIds(new Set());return;
+        }
+        if(selEdgeId){
+          pushHistory();setEdges(es=>es.filter(ex=>ex.id!==selEdgeId));
+          showToast("Edge 삭제");setSelEdgeId(null);return;
+        }
+      }
+      // Mode shortcuts
+      const k=e.key.toLowerCase();
+      if(!ctrl){
+        if(k==="p")setMode("paint");if(k==="s")setMode("stamp");if(k==="b")setMode("build");if(k==="v")setMode("speed");
+        if(k==="n")setBuildTool("node");if(k==="e")setBuildTool("edge");if(k==="d")setBuildTool("delete");
+        if(k==="g"||k==="tab"){e.preventDefault();setPrimaryGraph(i=>(i+1)%graphs.length);}
+        if(k==="1")setStampRole("standard");if(k==="2")setStampRole("station");if(k==="3")setStampRole("charger");
+        if(k==="4")setStampRole("holding");if(k==="5")setStampRole("siding");
+        if(k==="escape"){setSelNodeIds(new Set());setSelEdgeId(null);setEdgeSrc(null);setSpeedSelIds(new Set());ctrlDragRef.current=null;}
+      }
+    };
     window.addEventListener("keydown",onKey);
     return()=>window.removeEventListener("keydown",onKey);
-  },[mode,graphs.length,undo,redo]);
+  },[mode,graphs.length,undo,redo,selNodeIds,selEdgeId,clipboard,nodes,edges,primaryGraph]);
 
-  // ── SVG wheel event (non-passive) ────────────────────────────
+  /* ── Wheel event (non-passive) ──────────────────────── */
   useEffect(()=>{
-    const el=svgRef.current; if(!el)return;
+    const el=svgRef.current;if(!el)return;
     el.addEventListener("wheel",onWheel,{passive:false});
     return()=>el.removeEventListener("wheel",onWheel);
   },[mode,speedSelIds,scale,tx,ty]);
 
-  // ── Render ───────────────────────────────────────────────────
-  const selNode=selNodeId?nodeById.get(selNodeId):null;
-  const selEdge=selEdgeId?edges.find(e=>e.id===selEdgeId):null;
-  const transform=`translate(${tx},${ty}) scale(${scale})`;
-  const labelScale=1/Math.max(scale,0.001);
+  /* ── Graph operations ───────────────────────────────── */
+  const copyGraph=(idx)=>{
+    const srcGraph=graphs[idx];
+    const newIdx=graphs.length;
+    const newGraph={idx:newIdx,id:"graph-copy-"+newIdx,name:srcGraph.name+" (복사)",color:"#"+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,"0")};
+    const srcNodes=nodes.filter(n=>(n.graph_idx||0)===idx);
+    const srcEdges=edges.filter(e=>(e.graph_idx||0)===idx);
+    const idMap=new Map();
+    const newNodes=srcNodes.map(n=>{const id="N"+String(nodes.length+srcNodes.indexOf(n)+1).padStart(4,"0");idMap.set(n.id,id);return{...n,id,name:id,graph_idx:newIdx};});
+    const newEdges=srcEdges.map(e=>({...e,id:"E"+String(edges.length+srcEdges.indexOf(e)+1).padStart(4,"0"),src:idMap.get(e.src)||e.src,dst:idMap.get(e.dst)||e.dst,graph_idx:newIdx}));
+    pushHistory();
+    setGraphs(g=>[...g,newGraph]);
+    setNodes(n=>[...n,...newNodes]);
+    setEdges(ex=>[...ex,...newEdges]);
+    setActiveGraphs(prev=>{const s=new Set(prev);s.add(newIdx);return s;});
+    setPrimaryGraph(newIdx);
+    showToast(`Graph 복사 → ${newGraph.name}`);
+  };
 
+  /* ── Node shape renderer ────────────────────────────── */
+  const nodeShape=(n)=>{
+    const c=ROLE_COLORS[n.role]||ROLE_COLORS.standard;
+    const isSel=selNodeIds.has(n.id),isHov=n.id===hovNodeId;
+    const r=n.role==="station"?7:n.role==="holding"||n.role==="holding_candidate"?4:5;
+    const stroke=isSel?"#2563eb":isHov?"#64748b":c;
+    const sw=isSel?2.5:isHov?1.5:1;
+    if(n.is_charger||n.role==="charger")return<rect x={-r} y={-r} width={r*2} height={r*2} rx={1.5} fill={c} stroke={stroke} strokeWidth={sw}/>;
+    if(n.role==="siding")return<polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={c} stroke={stroke} strokeWidth={sw}/>;
+    if(n.role==="holding_candidate")return<circle r={r} fill="none" stroke={c} strokeWidth={1.5} strokeDasharray="2 2"/>;
+    return<circle r={r} fill={n.is_holding?"none":c} stroke={stroke} strokeWidth={sw} strokeDasharray={n.is_holding?"3 2":"none"}/>;
+  };
+  const edgeColor=(e)=>{
+    const gi=e.graph_idx||0;
+    if(!activeGraphs.has(gi)&&!showInactive)return null;
+    if(!activeGraphs.has(gi))return"#c8d4e0";
+    if(e.v_max!=null)return"#c77700";
+    return graphs[gi]?.color||"#2459d1";
+  };
+
+  const transform=`translate(${tx},${ty}) scale(${scale})`;
+  const selNode=selNodeIds.size===1?nodeById.get([...selNodeIds][0]):null;
+  const selEdge=selEdgeId?edges.find(e=>e.id===selEdgeId):null;
+  const activeMap=MAPS.find(m=>m.id===activeMapId)||MAPS[0];
+
+  /* ── Render ─────────────────────────────────────────── */
   return (
-    <div className="h-full flex flex-col bg-slate-50">
+    <div className="h-full flex flex-col bg-slate-50" onClick={()=>setMapDropOpen(false)}>
       {/* Top bar */}
       <div className="h-11 px-4 bg-white border-b border-slate-200 flex items-center gap-3 shrink-0">
         <Icon name="Map" size={15} className="text-blue-600"/>
         <span className="text-[13px] font-bold text-slate-900">Map Editor</span>
+
+        {/* Map 선택 드롭다운 */}
+        <div className="relative" onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>setMapDropOpen(o=>!o)}
+            className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:border-blue-400 flex items-center gap-2 text-[12.5px] font-semibold text-slate-800 transition min-w-[140px]">
+            <Icon name="Layers" size={12} className="text-blue-500"/>
+            {activeMap.name}
+            <Icon name="ChevronDown" size={11} className="ml-auto text-slate-400"/>
+          </button>
+          {mapDropOpen&&(
+            <div className="absolute top-full mt-1 left-0 z-50 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden min-w-[160px]">
+              {MAPS.map(m=>(
+                <button key={m.id} onClick={()=>{setActiveMapId(m.id);setMapDropOpen(false);}}
+                  className={"w-full flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-left hover:bg-slate-50 transition "+(m.id===activeMapId?"bg-blue-50 text-blue-700":"text-slate-700")}>
+                  {m.id===activeMapId&&<Icon name="Check" size={11} className="text-blue-500"/>}
+                  <span className={m.id!==activeMapId?"ml-4":""}>{m.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="h-4 w-px bg-slate-200"/>
         <span className="text-[11.5px] text-slate-500">{nodes.length} nodes · {edges.length} edges</span>
-        {validation.length>0&&(
-          <span className="ml-1 flex items-center gap-1 text-[11px] font-semibold text-amber-600">
-            <Icon name="AlertTriangle" size={11}/>{validation.length}건 경고
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={resetView} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center gap-1.5">
-            <Icon name="Home" size={12}/> Reset View
-          </button>
-          <button onClick={undo} disabled={!past.length} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center gap-1.5 disabled:opacity-40">
-            <Icon name="Undo2" size={12}/> Undo
-          </button>
-          <button onClick={redo} disabled={!future.length} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center gap-1.5 disabled:opacity-40">
-            <Icon name="Redo2" size={12}/> Redo
-          </button>
-          <button className="h-7 px-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-[11.5px] font-semibold flex items-center gap-1.5">
-            <Icon name="Save" size={12}/> Save
-          </button>
+        {validation.length>0&&<span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600"><Icon name="AlertTriangle" size={11}/>{validation.length}건</span>}
+        <div className="ml-auto flex items-center gap-1.5">
+          <button onClick={()=>{setTx(0);setTy(0);setScale(1);}} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center gap-1.5"><Icon name="Home" size={12}/> Reset</button>
+          <button onClick={undo} disabled={!past.length} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center gap-1.5 disabled:opacity-40"><Icon name="Undo2" size={12}/> Undo</button>
+          <button onClick={redo} disabled={!future.length} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center gap-1.5 disabled:opacity-40"><Icon name="Redo2" size={12}/> Redo</button>
+          <button className="h-7 px-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-[11.5px] font-semibold flex items-center gap-1.5"><Icon name="Save" size={12}/> Save</button>
         </div>
       </div>
 
       <div className="flex-1 min-h-0 flex">
-        {/* Map SVG */}
+        {/* SVG 맵 */}
         <div className="flex-1 relative overflow-hidden"
           onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
           <svg ref={svgRef} className="w-full h-full"
             style={{cursor:panRef.current?"grabbing":mode==="build"&&buildTool==="node"?"crosshair":mode==="stamp"?"cell":"default"}}
-            onMouseDown={onMouseDown}
+            onMouseDown={handleSvgMouseDown}
             onClick={handleSvgClick}
-            onContextMenu={e=>e.preventDefault()}>
+            onContextMenu={e=>{e.preventDefault();if(mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[{x:p.x,y:p.y}];}}}>
 
             {/* Background image */}
-            {bgUrl&&<image href={bgUrl} x="0" y="0" width="100%" height="100%"
-              opacity={bgOpacity} preserveAspectRatio="xMidYMid meet" data-bg="1"/>}
+            {bgUrl&&<image href={bgUrl} x="0" y="0" width="100%" height="100%" opacity={bgOpacity} preserveAspectRatio="xMidYMid meet" data-bg="1"/>}
 
             <g transform={transform}>
-              {/* Arrowhead defs */}
               <defs>
-                {["#2459d1","#0f9d58","#c77700","#9aa5b1",...FLEET_COLORS].map((c,i)=>(
-                  <React.Fragment key={i}>
-                    <marker id={"arr-"+i} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-                      <path d="M0,0 L7,3.5 L0,7 Z" fill={c}/>
-                    </marker>
-                  </React.Fragment>
+                {/* Grid pattern */}
+                {showGrid&&gridSize>0&&(
+                  <pattern id="grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+                    <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="#e2e8f0" strokeWidth={0.5*labelScale}/>
+                  </pattern>
+                )}
+                {/* Arrowhead markers */}
+                {[...graphs.map(g=>g.color),"#c77700","#9aa5b1"].map((c,i)=>(
+                  <marker key={i} id={"arr-"+i} markerWidth={6*labelScale} markerHeight={6*labelScale} refX={5*labelScale} refY={3*labelScale} orient="auto" markerUnits="userSpaceOnUse">
+                    <path d={`M0,0 L${6*labelScale},${3*labelScale} L0,${6*labelScale} Z`} fill={c}/>
+                  </marker>
                 ))}
               </defs>
 
+              {/* Grid background */}
+              {showGrid&&gridSize>0&&(
+                <rect x={-10000} y={-10000} width={20000} height={20000} fill="url(#grid)" data-bg="1"/>
+              )}
+
               {/* Edges */}
               {edges.map(e=>{
-                const a=nodeById.get(e.src),b=nodeById.get(e.dst);
-                if(!a||!b)return null;
+                const a=nodeById.get(e.src),b=nodeById.get(e.dst);if(!a||!b)return null;
                 const gi=e.graph_idx||0;
-                const isActive=gi===activeGraphIdx;
-                if(!isActive&&!showInactive)return null;
-                const isSel=e.id===selEdgeId;
-                const isHov=e.id===hovEdgeId;
-                const isSpeedSel=speedSelIds.has(e.id);
-                const c=edgeColor(e);
-                const opacity=(!isActive)?0.25:1;
-                const sw=isSel||isSpeedSel?4:isHov?3:2;
-                const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+                if(!activeGraphs.has(gi)&&!showInactive)return null;
+                const c=edgeColor(e);if(!c)return null;
+                const isSel=e.id===selEdgeId,isHov=e.id===hovEdgeId,isSpd=speedSelIds.has(e.id);
+                const sw=(isSel||isSpd?3:isHov?2.5:1.5)*labelScale;
                 const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+                const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
                 const nx=dx/len,ny=dy/len;
-                const aw=8*labelScale,ah=5*labelScale;
-                const arrowFwd=`M${-aw/2},${-ah/2} L${aw/2},0 L${-aw/2},${ah/2} Z`;
-                const aFwd={transform:`translate(${mx+nx*4},${my+ny*4}) rotate(${Math.atan2(ny,nx)*180/Math.PI})`};
-                const aBack={transform:`translate(${mx-nx*4},${my-ny*4}) rotate(${(Math.atan2(ny,nx)+Math.PI)*180/Math.PI})`};
+                const aw=7*labelScale,ah=4*labelScale;
+                const arrFwd=`M${-aw/2},${-ah/2} L${aw/2},0 L${-aw/2},${ah/2} Z`;
                 return(
-                  <g key={e.id} opacity={opacity} style={{cursor:"pointer"}}
+                  <g key={e.id} style={{cursor:"pointer"}} opacity={activeGraphs.has(gi)?1:0.25}
                     onMouseEnter={()=>setHovEdgeId(e.id)} onMouseLeave={()=>setHovEdgeId(null)}
-                    onClick={(ev)=>handleEdgeClick(ev,e)} onContextMenu={ev=>{ev.preventDefault();handleEdgeClick({...ev,button:2},e);}}>
-                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={10*labelScale}/>
-                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c} strokeWidth={sw*labelScale}
-                      strokeDasharray={e.v_max!=null?`${4*labelScale} ${2*labelScale}`:"none"}/>
-                    <path d={arrowFwd} fill={c} {...aFwd}/>
-                    {e.bidir&&<path d={arrowFwd} fill={c} {...aBack}/>}
-                    {e.v_max!=null&&(
-                      <text x={mx+ny*8} y={my-nx*8} textAnchor="middle" dominantBaseline="middle"
-                        fontSize={9*labelScale} fontWeight="700" fill="#c77700">{e.v_max}m/s</text>
-                    )}
-                    {isSel&&<line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                      stroke="#2563eb" strokeWidth={(sw+2)*labelScale} opacity={0.3}/>}
+                    onClick={ev=>handleEdgeClick(ev,e)}
+                    onDoubleClick={ev=>handleEdgeDblClick(ev,e)}>
+                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={12*labelScale}/>
+                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={isSel?"#2563eb":c} strokeWidth={sw} strokeDasharray={e.v_max!=null?`${4*labelScale} ${2*labelScale}`:"none"}/>
+                    {/* Forward arrow */}
+                    <path d={arrFwd} fill={isSel?"#2563eb":c} transform={`translate(${mx+nx*5*labelScale},${my+ny*5*labelScale}) rotate(${Math.atan2(ny,nx)*180/Math.PI})`}/>
+                    {/* Back arrow (bidir) */}
+                    {e.bidir&&<path d={arrFwd} fill={isSel?"#2563eb":c} transform={`translate(${mx-nx*5*labelScale},${my-ny*5*labelScale}) rotate(${(Math.atan2(ny,nx)+Math.PI)*180/Math.PI})`}/>}
+                    {e.v_max!=null&&<text x={mx+ny*9*labelScale} y={my-nx*9*labelScale} textAnchor="middle" dominantBaseline="middle" fontSize={8*labelScale} fontWeight="700" fill="#c77700">{e.v_max}</text>}
+                    {isSel&&<line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#2563eb" strokeWidth={(sw+2)*labelScale} opacity={0.25}/>}
                   </g>
                 );
               })}
 
               {/* Edge-src indicator */}
-              {edgeSrc&&nodeById.get(edgeSrc)&&(()=>{
-                const n=nodeById.get(edgeSrc);
-                return <circle cx={n.x} cy={n.y} r={12*labelScale} fill="none" stroke="#f59e0b"
-                  strokeWidth={2*labelScale} strokeDasharray={`${3*labelScale} ${2*labelScale}`}
-                  opacity={0.8}/>;
+              {edgeSrc&&nodeById.get(edgeSrc)&&(()=>{const n=nodeById.get(edgeSrc);return<circle cx={n.x} cy={n.y} r={14*labelScale} fill="none" stroke="#f59e0b" strokeWidth={2*labelScale} strokeDasharray={`${3*labelScale} ${2*labelScale}`}/>;})()}
+
+              {/* Ctrl+drag preview */}
+              {ctrlDragRef.current&&nodeById.get(ctrlDragRef.current.srcId)&&(()=>{
+                const sn=nodeById.get(ctrlDragRef.current.srcId);
+                const{curX,curY}=ctrlDragRef.current;
+                return<g><line x1={sn.x} y1={sn.y} x2={curX} y2={curY} stroke="#2563eb" strokeWidth={1.5*labelScale} strokeDasharray={`${4*labelScale} ${2*labelScale}`} opacity={0.7}/><circle cx={curX} cy={curY} r={6*labelScale} fill="#dbeafe" stroke="#2563eb" strokeWidth={1.5*labelScale} opacity={0.8}/></g>;
               })()}
 
               {/* Nodes */}
               {nodes.map(n=>{
                 const gi=n.graph_idx||0;
-                const isActive=gi===activeGraphIdx;
-                const opacity=(!isActive)?(showInactive?0.35:0):1;
+                if(!activeGraphs.has(gi)&&!showInactive)return null;
+                const opacity=activeGraphs.has(gi)?1:0.3;
                 return(
-                  <g key={n.id} opacity={opacity}
-                    transform={`translate(${n.x},${n.y})`}
+                  <g key={n.id} opacity={opacity} transform={`translate(${n.x},${n.y})`}
                     style={{cursor:mode==="stamp"?"cell":"pointer"}}
                     onMouseEnter={()=>setHovNodeId(n.id)} onMouseLeave={()=>setHovNodeId(null)}
-                    onClick={ev=>handleNodeClick(ev,n)}>
+                    onClick={ev=>handleNodeClick(ev,n)}
+                    onMouseDown={ev=>handleNodeMouseDown(ev,n)}>
                     <circle r={14*labelScale} fill="transparent"/>
                     {nodeShape(n)}
-                    <text y={9*labelScale} textAnchor="middle" fontSize={8*labelScale} fontWeight="600"
-                      fill="#475569" style={{userSelect:"none",pointerEvents:"none"}}>{n.id}</text>
+                    <text y={9*labelScale} textAnchor="middle" fontSize={7.5*labelScale} fontWeight="600" fill="#475569" style={{userSelect:"none",pointerEvents:"none"}}>{n.id}</text>
                   </g>
                 );
               })}
 
-              {/* Paint trajectory preview */}
+              {/* Paint preview */}
               {paintRef.current&&paintRef.current.length>1&&(()=>{
-                const pts=paintRef.current;
-                const d="M"+pts.map(p=>`${p.x},${p.y}`).join(" L");
+                const d="M"+paintRef.current.map(p=>`${p.x},${p.y}`).join(" L");
                 return<path d={d} fill="none" stroke="#2563eb" strokeWidth={2*labelScale} opacity={0.5} strokeDasharray={`${4*labelScale} ${2*labelScale}`}/>;
               })()}
             </g>
           </svg>
 
           {/* Toast */}
-          {toast&&(
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[12px] font-medium px-3 py-1.5 rounded-lg shadow-lg pointer-events-none z-50">
-              {toast}
-            </div>
-          )}
+          {toast&&<div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[12px] font-medium px-3 py-1.5 rounded-lg shadow-lg pointer-events-none z-50">{toast}</div>}
         </div>
 
         {/* Right Panel */}
-        <div className="w-72 border-l border-slate-200 bg-white overflow-y-auto flex flex-col shrink-0">
+        <div className="w-72 border-l border-slate-200 bg-white overflow-y-auto flex flex-col shrink-0 text-[12px]">
 
-          {/* Active Graph (Fleet) */}
+          {/* Active Graphs - 다중 선택 */}
           <div className="p-3 border-b border-slate-100">
             <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Active Graph</div>
             <div className="flex flex-col gap-1">
-              {graphs.map((g,i)=>(
-                <button key={i} onClick={()=>setActiveGraphIdx(i)}
-                  className={"flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition "+(i===activeGraphIdx?"text-white":"bg-transparent text-slate-600 hover:bg-slate-50")}
-                  style={i===activeGraphIdx?{background:g.color}:{}}>
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{background:i===activeGraphIdx?"rgba(255,255,255,0.7)":g.color}}/>
-                  {g.name}
-                  <span className="ml-auto text-[10px] opacity-70">
-                    {edges.filter(e=>(e.graph_idx||0)===i).length}E
-                  </span>
-                </button>
-              ))}
+              {graphs.map((g,i)=>{
+                const isActive=activeGraphs.has(i);
+                const isPrimary=primaryGraph===i;
+                const nCount=nodes.filter(n=>(n.graph_idx||0)===i).length;
+                const eCount=edges.filter(e=>(e.graph_idx||0)===i).length;
+                return(
+                  <div key={i} className={"flex items-center gap-2 px-2 py-1.5 rounded-md border transition "+(isActive?"border-transparent":"border-transparent hover:bg-slate-50")}
+                    style={isActive?{background:g.color+"18"}:{}}>
+                    <input type="checkbox" checked={isActive}
+                      onChange={ev=>{setActiveGraphs(prev=>{const s=new Set(prev);ev.target.checked?s.add(i):s.delete(i);return s;});if(!activeGraphs.has(i))setPrimaryGraph(i);}}
+                      className="w-3.5 h-3.5 shrink-0" style={isActive?{accentColor:g.color}:{}}/>
+                    <button onClick={()=>setPrimaryGraph(i)}
+                      className="flex-1 flex items-center gap-1.5 text-left text-[11.5px] font-medium"
+                      style={{color:isActive?g.color:"#64748b"}}>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{background:isActive?g.color:"#cbd5e1"}}/>
+                      {g.name}
+                      {isPrimary&&<span className="text-[9px] font-bold px-1 py-px rounded" style={{background:g.color+"30",color:g.color}}>PRIMARY</span>}
+                    </button>
+                    <span className="text-[10px] text-slate-400 tnum shrink-0">{nCount}N·{eCount}E</span>
+                    <button onClick={()=>copyGraph(i)} title="그래프 복사"
+                      className="w-5 h-5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 grid place-items-center shrink-0">
+                      <Icon name="Copy" size={10}/>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             <label className="mt-2 flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
               <input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)} className="w-3.5 h-3.5"/>
-              비활성 그래프 표시 (흐리게)
+              비활성 그래프 흐리게 표시
             </label>
-            <div className="mt-1 text-[10px] text-slate-400">Tab / G 키로 순환</div>
+            <div className="mt-1 text-[10px] text-slate-400">체크박스=표시, 이름 클릭=Primary 설정</div>
           </div>
 
           {/* Edit Mode */}
           <div className="p-3 border-b border-slate-100">
             <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Edit Mode</div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-1 mb-3">
               {[{id:"stamp",label:"Stamp",key:"S",icon:"Stamp"},{id:"build",label:"Build",key:"B",icon:"Hammer"},{id:"paint",label:"Paint",key:"P",icon:"Brush"},{id:"speed",label:"Speed",key:"V",icon:"Zap"}].map(m=>(
                 <button key={m.id} onClick={()=>setMode(m.id)}
-                  className={"flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-md border text-[10.5px] font-semibold transition "+
-                    (mode===m.id?"bg-blue-600 border-blue-600 text-white":"bg-white border-slate-200 text-slate-600 hover:border-slate-300")}>
-                  <Icon name={m.icon} size={13}/>
-                  {m.label}
-                  <span className="text-[9px] opacity-60">[{m.key}]</span>
+                  className={"flex flex-col items-center py-1.5 rounded-md border text-[10px] font-semibold gap-0.5 transition "+(mode===m.id?"bg-blue-600 border-blue-600 text-white":"bg-white border-slate-200 text-slate-600 hover:border-slate-300")}>
+                  <Icon name={m.icon} size={12}/>{m.label}<span className="opacity-50">[{m.key}]</span>
                 </button>
               ))}
             </div>
 
-            {/* Stamp options */}
+            {/* Stamp */}
             {mode==="stamp"&&(
-              <div className="mt-2">
-                <div className="text-[10.5px] text-slate-400 mb-1.5">Node Role Stamp</div>
-                <div className="flex flex-col gap-1">
-                  {NODE_ROLES.map(r=>(
-                    <button key={r.id} onClick={()=>setStampRole(r.id)}
-                      className={"flex items-center gap-2 px-2 py-1 rounded text-[11.5px] font-medium transition "+
-                        (stampRole===r.id?"bg-blue-50 border border-blue-400 text-blue-800":"border border-transparent text-slate-700 hover:bg-slate-50")}>
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{background:ROLE_COLORS[r.id]}}/>
-                      {r.label}
-                      <span className="ml-auto text-[9.5px] text-slate-400">[{r.key}]</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="space-y-1">
+                <div className="text-[10.5px] text-slate-400 mb-1">Node Role</div>
+                {NODE_ROLES.map(r=>(
+                  <button key={r.id} onClick={()=>setStampRole(r.id)}
+                    className={"flex items-center gap-2 w-full px-2 py-1 rounded text-[11.5px] font-medium transition "+(stampRole===r.id?"bg-blue-50 border border-blue-400 text-blue-800":"border border-transparent text-slate-700 hover:bg-slate-50")}>
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{background:ROLE_COLORS[r.id]}}/>
+                    {r.label}<span className="ml-auto text-[9.5px] text-slate-400">[{r.key}]</span>
+                  </button>
+                ))}
               </div>
             )}
 
-            {/* Build options */}
+            {/* Build */}
             {mode==="build"&&(
-              <div className="mt-2 space-y-2">
+              <div className="space-y-2">
                 <div className="grid grid-cols-3 gap-1">
                   {[{id:"node",label:"Node",key:"N"},{id:"edge",label:"Edge",key:"E"},{id:"delete",label:"Delete",key:"D"}].map(t=>(
                     <button key={t.id} onClick={()=>{setBuildTool(t.id);setEdgeSrc(null);}}
-                      className={"py-1.5 rounded border text-[11px] font-semibold transition "+
-                        (buildTool===t.id?"bg-blue-600 border-blue-600 text-white":"bg-white border-slate-200 text-slate-600 hover:border-slate-300")}>
+                      className={"py-1.5 rounded border text-[11px] font-semibold transition "+(buildTool===t.id?"bg-blue-600 border-blue-600 text-white":"bg-white border-slate-200 text-slate-600 hover:border-slate-300")}>
                       {t.label} <span className="text-[9px] opacity-60">[{t.key}]</span>
                     </button>
                   ))}
                 </div>
-                <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer">
-                  <input type="checkbox" checked={gridSnap} onChange={e=>setGridSnap(e.target.checked)} className="w-3.5 h-3.5"/>
-                  Grid Snap
-                  <input type="number" value={gridSize} min="0.5" step="0.5"
-                    onChange={e=>setGridSize(+e.target.value)}
-                    className="w-14 h-6 px-1.5 rounded border border-slate-200 text-[11px] text-right ml-auto"/>
-                  <span className="text-slate-400">units</span>
-                </label>
-                {edgeSrc&&<div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                  <Icon name="ArrowRight" size={10} className="inline mr-1"/>src: {edgeSrc}<br/>
-                  <span className="text-[10px] text-amber-600">다음 노드 클릭 → 연결 / Shift+클릭 → 양방향</span>
-                </div>}
-                <div className="text-[10.5px] text-slate-400 leading-relaxed">
-                  · Node: 빈 공간 클릭<br/>
-                  · Edge: 노드A → 노드B (Shift=양방향)<br/>
-                  · Delete: 노드/엣지 클릭
+                {edgeSrc&&<div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5"><Icon name="ArrowRight" size={10} className="inline mr-1"/>시작: {edgeSrc}<br/><span className="text-[10px]">다음 노드 클릭 → 연결 · Shift=양방향</span></div>}
+                <div className="text-[10.5px] text-slate-500 space-y-0.5 leading-relaxed">
+                  <div className="font-semibold text-slate-600 mb-1">Node</div>
+                  <div>· 빈 공간 클릭 → 추가</div>
+                  <div>· Ctrl+C/V → 복제 (새 ID)</div>
+                  <div>· Delete → 삭제</div>
+                  <div className="font-semibold text-slate-600 mt-1.5 mb-1">Edge</div>
+                  <div>· 노드A → 노드B 클릭</div>
+                  <div>· Ctrl+드래그 → 엣지+노드 자동생성</div>
+                  <div>· 더블클릭 → 방향 순환 (→/↔/←)</div>
+                  <div>· Delete → 삭제</div>
                 </div>
               </div>
             )}
 
-            {/* Paint options */}
+            {/* Paint */}
             {mode==="paint"&&(
-              <div className="mt-2 text-[11px] text-slate-500 leading-relaxed space-y-1">
-                <div>드래그로 가까운 엣지 방향 일괄 변경</div>
-                <div className="flex flex-col gap-0.5 mt-1">
-                  <span><span className="font-semibold text-green-700">좌클릭 드래그</span> → 단방향</span>
-                  <span><span className="font-semibold text-blue-700">우클릭 드래그</span> → 양방향</span>
-                  <span><span className="font-semibold">Alt+드래그</span> → 역방향</span>
-                </div>
+              <div className="text-[11px] text-slate-500 space-y-1 leading-relaxed">
+                <div>드래그로 엣지 방향 일괄 변경</div>
+                <div><span className="font-semibold text-green-700">좌클릭 드래그</span> → 단방향</div>
+                <div><span className="font-semibold text-blue-700">우클릭 드래그</span> → 양방향</div>
+                <div><span className="font-semibold">Alt+드래그</span> → 역방향</div>
               </div>
             )}
 
-            {/* Speed options */}
+            {/* Speed */}
             {mode==="speed"&&(
-              <div className="mt-2 space-y-2">
-                <div className="text-[11px] text-amber-700 font-semibold">v_max 편집 모드</div>
-                <div>
-                  <div className="text-[10.5px] text-slate-400 mb-1">선택됨: {speedSelIds.size}개 엣지</div>
-                  <div className="flex items-center gap-2">
-                    <input type="number" value={speedVal} min={VMAX_MIN} max={VMAX_MAX} step={VMAX_STEP}
-                      onChange={e=>setSpeedVal(+e.target.value)}
-                      className="flex-1 h-7 px-2 rounded border border-slate-200 text-[12px] font-semibold text-center"/>
-                    <span className="text-[11px] text-slate-500 shrink-0">m/s</span>
-                  </div>
-                  <input type="range" value={speedVal} min={VMAX_MIN} max={VMAX_MAX} step={VMAX_STEP}
-                    onChange={e=>setSpeedVal(+e.target.value)}
-                    className="w-full mt-1"/>
-                  <div className="flex gap-1.5 mt-1">
-                    <button disabled={!speedSelIds.size} onClick={()=>{
-                      pushHistory();
-                      setEdges(es=>es.map(e=>speedSelIds.has(e.id)?{...e,v_max:speedVal}:e));
-                      showToast(`v_max = ${speedVal} 적용`);
-                    }} className="flex-1 h-7 rounded bg-amber-500 hover:bg-amber-600 text-white text-[11.5px] font-semibold disabled:opacity-40">Apply</button>
-                    <button disabled={!speedSelIds.size} onClick={()=>{
-                      pushHistory();
-                      setEdges(es=>es.map(e=>speedSelIds.has(e.id)?{...e,v_max:null}:e));
-                      showToast("v_max 해제");
-                    }} className="flex-1 h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 disabled:opacity-40">Unset</button>
-                  </div>
-                  <div className="text-[10.5px] text-slate-400 mt-1">Shift+휠 → ±0.1 미세조정</div>
+              <div className="space-y-2">
+                <div className="text-[11px] text-amber-700 font-semibold">v_max 편집 · {speedSelIds.size}개 선택</div>
+                <div className="flex items-center gap-2">
+                  <input type="number" value={speedVal} min={VMAX_MIN} max={VMAX_MAX} step={VMAX_STEP}
+                    onChange={e=>setSpeedVal(+e.target.value)} className="flex-1 h-7 px-2 rounded border border-slate-200 text-[12px] font-semibold text-center"/>
+                  <span className="text-[11px] text-slate-500 shrink-0">m/s</span>
                 </div>
+                <input type="range" value={speedVal} min={VMAX_MIN} max={VMAX_MAX} step={VMAX_STEP} onChange={e=>setSpeedVal(+e.target.value)} className="w-full"/>
+                <div className="flex gap-1.5">
+                  <button disabled={!speedSelIds.size} onClick={()=>{pushHistory();setEdges(es=>es.map(e=>speedSelIds.has(e.id)?{...e,v_max:speedVal}:e));showToast(`v_max=${speedVal}`);}} className="flex-1 h-7 rounded bg-amber-500 hover:bg-amber-600 text-white text-[11.5px] font-semibold disabled:opacity-40">Apply</button>
+                  <button disabled={!speedSelIds.size} onClick={()=>{pushHistory();setEdges(es=>es.map(e=>speedSelIds.has(e.id)?{...e,v_max:null}:e));showToast("v_max 해제");}} className="flex-1 h-7 rounded border border-slate-200 bg-white text-[11.5px] disabled:opacity-40">Unset</button>
+                </div>
+                <div className="text-[10.5px] text-slate-400">Shift+휠 → ±0.1 미세조정</div>
               </div>
             )}
+          </div>
+
+          {/* Grid */}
+          <div className="p-3 border-b border-slate-100">
+            <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Grid</div>
+            <label className="flex items-center gap-2 text-[11.5px] text-slate-700 cursor-pointer mb-1.5">
+              <input type="checkbox" checked={showGrid} onChange={e=>setShowGrid(e.target.checked)} className="w-3.5 h-3.5"/>
+              Grid 표시
+            </label>
+            <label className="flex items-center gap-2 text-[11.5px] text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={gridSnap} onChange={e=>setGridSnap(e.target.checked)} className="w-3.5 h-3.5"/>
+              Grid Snap
+              <input type="number" value={gridSize} min="0.5" step="0.5"
+                onChange={e=>setGridSize(+e.target.value)}
+                className="w-14 h-6 px-1.5 rounded border border-slate-200 text-[11px] text-right ml-auto"/>
+              <span className="text-[10.5px] text-slate-400 shrink-0">units</span>
+            </label>
           </div>
 
           {/* Inspector */}
           <div className="p-3 border-b border-slate-100">
             <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Inspector</div>
             {!selNode&&!selEdge?(
-              <div className="text-[11.5px] text-slate-400 italic text-center py-3">노드 또는 엣지를 클릭하세요</div>
+              <div className="text-[11.5px] text-slate-400 italic text-center py-2">
+                {selNodeIds.size>1?`${selNodeIds.size}개 노드 선택됨`:"노드 또는 엣지를 클릭하세요"}
+              </div>
             ):selNode?(
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{background:ROLE_COLORS[selNode.role]}}/>
+                  <span className="w-3 h-3 rounded-full" style={{background:ROLE_COLORS[selNode.role]}}/>
                   <span className="text-[12.5px] font-bold text-slate-900">{selNode.id}</span>
-                  <button onClick={()=>{pushHistory();setNodes(ns=>ns.filter(n=>n.id!==selNode.id));setEdges(es=>es.filter(e=>e.src!==selNode.id&&e.dst!==selNode.id));setSelNodeId(null);}}
-                    className="ml-auto w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-500 grid place-items-center">
-                    <Icon name="Trash2" size={11}/>
-                  </button>
+                  <button onClick={()=>{pushHistory();setNodes(ns=>ns.filter(n=>n.id!==selNode.id));setEdges(es=>es.filter(e=>e.src!==selNode.id&&e.dst!==selNode.id));setSelNodeIds(new Set());}} className="ml-auto w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-500 grid place-items-center"><Icon name="Trash2" size={11}/></button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {[["ID",selNode.id],["Name",selNode.name],["X",selNode.x?.toFixed(2)],["Y",selNode.y?.toFixed(2)],["Role",selNode.role],["Graph",graphs[selNode.graph_idx||0]?.name]].map(([l,v])=>(
+                  {[["X",selNode.x?.toFixed(1)],["Y",selNode.y?.toFixed(1)],["Role",selNode.role],["Graph",graphs[selNode.graph_idx||0]?.name]].map(([l,v])=>(
                     <div key={l}><div className="text-[9.5px] text-slate-400">{l}</div><div className="text-[11.5px] font-medium text-slate-800 truncate tnum">{v}</div></div>
                   ))}
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 mb-1">이름 편집</div>
-                  <input value={selNode.name} onChange={e=>setNodes(ns=>ns.map(n=>n.id===selNode.id?{...n,name:e.target.value}:n))}
-                    className="w-full h-7 px-2 rounded border border-slate-200 text-[11.5px] outline-none focus:border-blue-400"/>
+                  <div className="text-[10px] text-slate-400 mb-1">이름</div>
+                  <input value={selNode.name} onChange={e=>setNodes(ns=>ns.map(n=>n.id===selNode.id?{...n,name:e.target.value}:n))} className="w-full h-7 px-2 rounded border border-slate-200 text-[11.5px] outline-none focus:border-blue-400"/>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 mb-1">Graph 지정</div>
-                  <select value={selNode.graph_idx||0} onChange={e=>setNodes(ns=>ns.map(n=>n.id===selNode.id?{...n,graph_idx:+e.target.value}:n))}
-                    className="w-full h-7 px-2 rounded border border-slate-200 text-[11.5px] outline-none">
+                  <div className="text-[10px] text-slate-400 mb-1">Graph</div>
+                  <select value={selNode.graph_idx||0} onChange={e=>setNodes(ns=>ns.map(n=>n.id===selNode.id?{...n,graph_idx:+e.target.value}:n))} className="w-full h-7 px-2 rounded border border-slate-200 text-[11.5px] outline-none">
                     {graphs.map((g,i)=><option key={i} value={i}>{g.name}</option>)}
                   </select>
                 </div>
@@ -4407,13 +4399,10 @@ function MapEditorView() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-[12.5px] font-bold text-slate-900">{selEdge.id}</span>
-                  <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{background:edgeColor(selEdge)+"22",color:edgeColor(selEdge)}}>
-                    {selEdge.bidir?"↔ 양방향":"→ 단방향"}
+                  <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{background:edgeColor(selEdge)+"22",color:edgeColor(selEdge)||"#64748b"}}>
+                    {selEdge.bidir?"↔ 양방향":selEdge.dirCycle===2?"← 역방향":"→ 단방향"}
                   </span>
-                  <button onClick={()=>{pushHistory();setEdges(es=>es.filter(e=>e.id!==selEdge.id));setSelEdgeId(null);}}
-                    className="ml-auto w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-500 grid place-items-center">
-                    <Icon name="Trash2" size={11}/>
-                  </button>
+                  <button onClick={()=>{pushHistory();setEdges(es=>es.filter(e=>e.id!==selEdge.id));setSelEdgeId(null);}} className="ml-auto w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-500 grid place-items-center"><Icon name="Trash2" size={11}/></button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   {[["From",selEdge.src],["To",selEdge.dst],["v_max",selEdge.v_max!=null?selEdge.v_max+"m/s":"미설정"],["Graph",graphs[selEdge.graph_idx||0]?.name]].map(([l,v])=>(
@@ -4421,15 +4410,11 @@ function MapEditorView() {
                   ))}
                 </div>
                 <div className="flex gap-1.5">
-                  <button onClick={()=>{pushHistory();setEdges(es=>es.map(e=>e.id===selEdge.id?{...e,bidir:!e.bidir}:e));}}
-                    className="flex-1 h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-700">
-                    {selEdge.bidir?"→ 단방향":"↔ 양방향"} 전환
-                  </button>
+                  <button onClick={()=>handleEdgeDblClick({stopPropagation:()=>{}},selEdge)} className="flex-1 h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-700">방향 순환 →↔←</button>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 mb-1">Graph 지정</div>
-                  <select value={selEdge.graph_idx||0} onChange={e=>setEdges(es=>es.map(ed=>ed.id===selEdge.id?{...ed,graph_idx:+e.target.value}:ed))}
-                    className="w-full h-7 px-2 rounded border border-slate-200 text-[11.5px] outline-none">
+                  <div className="text-[10px] text-slate-400 mb-1">Graph</div>
+                  <select value={selEdge.graph_idx||0} onChange={e=>setEdges(es=>es.map(ed=>ed.id===selEdge.id?{...ed,graph_idx:+e.target.value}:ed))} className="w-full h-7 px-2 rounded border border-slate-200 text-[11.5px] outline-none">
                     {graphs.map((g,i)=><option key={i} value={i}>{g.name}</option>)}
                   </select>
                 </div>
@@ -4437,42 +4422,24 @@ function MapEditorView() {
             )}
           </div>
 
-          {/* Background Image */}
+          {/* Background */}
           <div className="p-3 border-b border-slate-100">
             <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Background Image</div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden"
-              onChange={e=>{const f=e.target.files?.[0];if(f){const r=new FileReader();r.onload=ev=>setBgUrl(ev.target?.result);r.readAsDataURL(f);}}}/>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f){const r=new FileReader();r.onload=ev=>setBgUrl(ev.target?.result);r.readAsDataURL(f);}}}/>
             <div className="flex gap-1.5">
-              <button onClick={()=>fileRef.current?.click()}
-                className="flex-1 h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center justify-center gap-1">
-                <Icon name="Image" size={11}/> 이미지 선택
-              </button>
-              {bgUrl&&<button onClick={()=>setBgUrl(null)}
-                className="w-7 h-7 rounded border border-slate-200 bg-white hover:bg-rose-50 text-rose-400 grid place-items-center">
-                <Icon name="X" size={11}/>
-              </button>}
+              <button onClick={()=>fileRef.current?.click()} className="flex-1 h-7 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] text-slate-600 flex items-center justify-center gap-1"><Icon name="Image" size={11}/> 선택</button>
+              {bgUrl&&<button onClick={()=>setBgUrl(null)} className="w-7 h-7 rounded border border-slate-200 bg-white hover:bg-rose-50 text-rose-400 grid place-items-center"><Icon name="X" size={11}/></button>}
             </div>
-            {bgUrl&&(
-              <div className="mt-2">
-                <div className="flex items-center justify-between text-[10.5px] text-slate-500 mb-1">
-                  <span>불투명도</span><span className="tnum">{Math.round(bgOpacity*100)}%</span>
-                </div>
-                <input type="range" min={0} max={1} step={0.05} value={bgOpacity}
-                  onChange={e=>setBgOpacity(+e.target.value)} className="w-full"/>
-              </div>
-            )}
+            {bgUrl&&<div className="mt-2"><div className="flex justify-between text-[10.5px] text-slate-500 mb-1"><span>불투명도</span><span className="tnum">{Math.round(bgOpacity*100)}%</span></div><input type="range" min={0} max={1} step={0.05} value={bgOpacity} onChange={e=>setBgOpacity(+e.target.value)} className="w-full"/></div>}
           </div>
 
           {/* Validation */}
           <div className="p-3">
             <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               Validation
-              {validation.length===0?<span className="text-[10px] font-semibold text-emerald-600">✓ 정상</span>
-               :<span className="text-[10px] font-semibold text-amber-600">{validation.length}건 경고</span>}
+              {validation.length===0?<span className="text-[10px] text-emerald-600 font-semibold">✓ 정상</span>:<span className="text-[10px] text-amber-600 font-semibold">{validation.length}건</span>}
             </div>
-            {validation.length===0?(
-              <div className="text-[11px] text-slate-400 italic">경고 없음</div>
-            ):(
+            {validation.length===0?<div className="text-[11px] text-slate-400 italic">경고 없음</div>:(
               <div className="space-y-1">
                 {validation.map((w,i)=>(
                   <div key={i} className="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
