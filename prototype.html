@@ -303,6 +303,7 @@ let recipes = [
     steps:[{nodeId:"N1",actionType:"MOVE",duration:3},{nodeId:"N2",actionType:"LIFT",duration:5},{nodeId:"N3",actionType:"MOVE",duration:7},{nodeId:"N4",actionType:"UNLOAD",duration:5}], nodes:[]},
 ];
 const recipeDuration = r => r.steps.reduce((s,st)=>s+st.duration,0);
+const recipeMaxSlots = r => r.steps ? Math.max(1,...r.steps.map(s=>s.slots?s.slots.length:1)) : 1;
 const initOrders = [
   {id:"ord-001",robotId:"Tool001",recipeId:"rcp-01",start:8*60+15, status:"done"},
   {id:"ord-002",robotId:"Tool001",recipeId:"rcp-02",start:9*60+30, status:"done"},
@@ -740,6 +741,7 @@ function MonitoringHome({ onNavigate }) {
   const [cmdPassId,   setCmdPassId]   = useState("");
   const [cmdUserId,   setCmdUserId]   = useState("");
   const [stopMode,    setStopMode]    = useState("정상 종료");
+  const [commission,  setCommission]  = useState("commission");
   // fleet 변경 시 상태 초기화
   function onCmdFleetChange(fId){
     setCmdFleet(fId);
@@ -1759,7 +1761,6 @@ function MonitoringHome({ onNavigate }) {
           <div className="h-11 px-3 border-b border-slate-200 flex items-center gap-1 shrink-0">
             <button onClick={()=>setCmdTab("command")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="command"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Terminal" size={13}/> Command</button>
             <button onClick={()=>setCmdTab("props")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="props"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Info" size={13}/> Properties</button>
-            <button onClick={()=>setCmdTab("manual")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="manual"?"bg-amber-50 text-amber-700":"text-slate-600 hover:bg-slate-50")}><Icon name="SlidersHorizontal" size={13}/> Manual</button>
             <button onClick={()=>setPanelOpen(false)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500"><Icon name="X" size={13}/></button>
           </div>
           {/* Tab body */}
@@ -2252,11 +2253,29 @@ function MonitoringHome({ onNavigate }) {
                       {initOrders.filter(o=>o.robotId===sel.id).length===0&&<div className="px-3 py-4 text-center text-[11.5px] text-slate-400 italic">할당된 오더가 없습니다.</div>}
                     </div>
                   </div>
+
+                  {/* Commission 설정 */}
+                  <div className="rounded-md border border-slate-200 overflow-hidden">
+                    <div className="px-2.5 py-2 bg-slate-50 border-b border-slate-200">
+                      <div className="text-[12px] font-semibold text-slate-800">Commission 설정</div>
+                      <div className="text-[10.5px] text-amber-600 mt-0.5 flex items-start gap-1 leading-snug">
+                        <Icon name="AlertTriangle" size={10} className="shrink-0 mt-px"/>
+                        수동 Order·노드 이동 시 Decommission으로 변경하세요.
+                      </div>
+                    </div>
+                    <div className="p-2.5 flex items-center gap-2">
+                      {[{id:"commission",label:"Commission",icon:"CheckCircle2",cl:"text-emerald-700 bg-emerald-50 border-emerald-400"},
+                        {id:"decommission",label:"Decommission",icon:"XCircle",cl:"text-rose-700 bg-rose-50 border-rose-400"}].map(o=>(
+                        <button key={o.id} onClick={()=>setCommission(o.id)}
+                          className={"flex-1 h-9 rounded-lg border-2 text-[11.5px] font-semibold flex items-center justify-center gap-1.5 transition "+(commission===o.id?o.cl:"border-slate-200 bg-white text-slate-500 hover:border-slate-300")}>
+                          <Icon name={o.icon} size={12}/>{o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </>))}
               </div>
             )}
-            {/* ── Manual 탭 ── */}
-            {cmdTab==="manual"&&<ManualTab sel={sel}/>}
           </div>
       </div>
       </div>
@@ -5753,6 +5772,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
   const [selOrder,setSelOrder]=useState(null);
   const [draggingRcp,setDraggingRcp]=useState(null);
   const [hoverPrev,setHoverPrev]=useState(null);
+  const [slotPending,setSlotPending]=useState(null); // {recipe, groupId, filled:[{slot,robotId}], total}
   const [libOpen,setLibOpen]=useState(true);
   const [libTab,setLibTab]=useState("library");
   const [filterTemplate,setFilterTemplate]=useState(null);
@@ -5847,11 +5867,16 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
     const r=recipes.find(r=>r.id===draggingRcp);if(!r)return;
     const robot=visR.find(rb=>rb.id===rId);
     if(robot && robot.fleet!==r.fleet){setDraggingRcp(null);setHoverPrev(null);return;}
-    // 현재 시점 이전 드롭 차단
     if(timeFromX(e.clientX)<now){setDraggingRcp(null);setHoverPrev(null);return;}
     const dur=recipeDuration(r),start=Math.max(now+1,timeFromX(e.clientX));
     const p=computePlacement(orders,rId,start,dur,null);
-    setOrders(o=>[...o,{id:"ord-"+(1000+o.length),robotId:rId,recipeId:r.id,start:p.start,status:"queued"}]);
+    const groupId="grp-"+(Date.now());
+    const newOrder={id:"ord-"+(1000+orders.length),robotId:rId,recipeId:r.id,start:p.start,status:"queued",groupId};
+    setOrders(o=>[...o,newOrder]);
+    const maxSlots=recipeMaxSlots(r);
+    if(maxSlots>1){
+      setSlotPending({recipe:r,groupId,start:p.start,dur,filled:[{slot:0,robotId:rId}],total:maxSlots});
+    }
     setDraggingRcp(null);setHoverPrev(null);
   }
   function isEditable(o){return o.status==="queued"&&o.start>now;}
@@ -5874,7 +5899,94 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
-      {/* Sub-header */}
+
+      {/* 멀티슬롯 로봇 배정 모달 */}
+      {slotPending&&(
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center" onClick={()=>setSlotPending(null)}>
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-[420px] overflow-hidden" onClick={e=>e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 grid place-items-center">
+                  <Icon name="Users" size={15} className="text-blue-600"/>
+                </div>
+                <div>
+                  <div className="text-[14px] font-bold text-slate-900">멀티 로봇 배정</div>
+                  <div className="text-[11.5px] text-slate-500">{slotPending.recipe.name} · {slotPending.total}개 슬롯</div>
+                </div>
+                <button onClick={()=>setSlotPending(null)} className="ml-auto w-7 h-7 rounded hover:bg-slate-100 grid place-items-center text-slate-400">
+                  <Icon name="X" size={14}/>
+                </button>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="text-[12px] text-slate-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-start gap-2">
+                <Icon name="Info" size={12} className="text-blue-500 shrink-0 mt-px"/>
+                이 템플릿은 <strong>{slotPending.total}개 슬롯</strong>을 포함합니다. 각 슬롯에 로봇을 배정하세요.
+              </div>
+              {Array.from({length:slotPending.total}).map((_,slotIdx)=>{
+                const filled=slotPending.filled.find(f=>f.slot===slotIdx);
+                const slotLabel=String.fromCharCode(65+slotIdx);
+                const availableRobots=visR.filter(rb=>rb.fleet===slotPending.recipe.fleet&&!slotPending.filled.find(f=>f.slot!==slotIdx&&f.robotId===rb.id));
+                return(
+                  <div key={slotIdx} className={"rounded-lg border p-3 "+(filled?"border-blue-300 bg-blue-50":"border-slate-200 bg-white")}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={"w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center "+(filled?"bg-blue-600 text-white":"bg-slate-200 text-slate-600")}>
+                        {slotLabel}
+                      </span>
+                      <span className="text-[12.5px] font-semibold text-slate-800">슬롯 {slotLabel}</span>
+                      {filled&&<span className="ml-auto text-[11px] font-medium text-blue-700 bg-blue-100 px-2 py-px rounded-full">{filled.robotId}</span>}
+                    </div>
+                    {slotIdx===0?(
+                      <div className="text-[11.5px] text-slate-500 italic flex items-center gap-1">
+                        <Icon name="Check" size={11} className="text-emerald-500"/>
+                        {slotPending.filled[0]?.robotId} (드래그 배정 완료)
+                      </div>
+                    ):(
+                      <div className="relative">
+                        <select
+                          value={filled?.robotId||""}
+                          onChange={e=>{
+                            const robotId=e.target.value;
+                            if(!robotId)return;
+                            setSlotPending(prev=>{
+                              const newFilled=prev.filled.filter(f=>f.slot!==slotIdx);
+                              if(robotId) newFilled.push({slot:slotIdx,robotId});
+                              return{...prev,filled:newFilled};
+                            });
+                          }}
+                          className="w-full h-8 pl-3 pr-8 rounded-md border border-slate-200 bg-white text-[12px] text-slate-800 outline-none appearance-none focus:border-blue-400">
+                          <option value="">로봇 선택...</option>
+                          {availableRobots.map(rb=><option key={rb.id} value={rb.id}>{rb.id}</option>)}
+                        </select>
+                        <Icon name="ChevronDown" size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 pb-5 flex gap-2">
+              <button onClick={()=>setSlotPending(null)}
+                className="flex-1 h-9 rounded-lg border border-slate-200 bg-white text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">
+                나중에
+              </button>
+              <button
+                disabled={slotPending.filled.length<slotPending.total}
+                onClick={()=>{
+                  const newOrders=slotPending.filled.filter(f=>f.slot>0).map((f,i)=>{
+                    const p=computePlacement(orders,f.robotId,slotPending.start,slotPending.dur,null);
+                    return{id:"ord-"+(1000+orders.length+i+1),robotId:f.robotId,recipeId:slotPending.recipe.id,start:p.start,status:"queued",groupId:slotPending.groupId,slotIdx:f.slot};
+                  });
+                  setOrders(o=>[...o,...newOrders]);
+                  setSlotPending(null);
+                }}
+                className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12.5px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+                <Icon name="Check" size={13}/> 배정 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="h-12 px-5 border-b border-slate-200 bg-white flex items-center gap-2">
         {/* 날짜 선택 */}
         <div className="relative flex items-center gap-1.5">
@@ -6110,6 +6222,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                 .filter(r=>(libFleetF.size===0||libFleetF.has(r.fleet))&&(!libQ||r.name.toLowerCase().includes(libQ.toLowerCase())))
                 .map(r=>{
                   const fm=fleetMeta(r.fleet), dur=recipeDuration(r), isHL=r.id===hlRcp;
+                  const maxSlots=recipeMaxSlots(r);
                   // 이 템플릿(fleet)을 사용 중인 pending 오더 수
                   const pendingCount = r.locked
                     ? orders.filter(o=>o.fromRequest&&o.fleet===r.fleet).length
@@ -6134,6 +6247,11 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                             {pendingCount>0&&(
                               <span className="shrink-0 min-w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold px-1.5 grid place-items-center">
                                 {pendingCount}
+                              </span>
+                            )}
+                            {maxSlots>1&&(
+                              <span className="shrink-0 h-5 px-1.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center gap-0.5">
+                                <Icon name="Users" size={9}/>{maxSlots}
                               </span>
                             )}
                           </div>
