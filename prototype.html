@@ -3804,6 +3804,9 @@ function MapEditorView() {
   const toastRef=useRef(null);
   const ctrlDragRef=useRef(null); // {srcId, curX, curY}
 
+  const nodesRef=useRef(nodes); useEffect(()=>{nodesRef.current=nodes;},[nodes]);
+  const edgesRef=useRef(edges); useEffect(()=>{edgesRef.current=edges;},[edges]);
+
   /* ── 헬퍼 ─────────────────────────────────────────── */
   const nodeById=useMemo(()=>new Map(nodes.map(n=>[n.id,n])),[nodes]);
   const showToast=msg=>{setToast(msg);if(toastRef.current)clearTimeout(toastRef.current);toastRef.current=setTimeout(()=>setToast(null),1800);};
@@ -3814,10 +3817,10 @@ function MapEditorView() {
   const labelScale=1/Math.max(scale,0.001);
 
   /* ── History ────────────────────────────────────────── */
-  const snapshot=()=>({nodes:nodes.map(n=>({...n})),edges:edges.map(e=>({...e}))});
+  const snapshot=()=>({nodes:nodesRef.current.map(n=>({...n})),edges:edgesRef.current.map(e=>({...e}))});
   const pushHistory=()=>{setPast(p=>[...p,snapshot()].slice(-50));setFuture([]);};
-  const undo=()=>setPast(p=>{if(!p.length){showToast("되돌릴 내역 없음");return p;}const prev=p[p.length-1];setFuture(f=>[...f,snapshot()]);setNodes(prev.nodes);setEdges(prev.edges);showToast("Undo");return p.slice(0,-1);});
-  const redo=()=>setFuture(f=>{if(!f.length){showToast("다시 실행 없음");return f;}const next=f[f.length-1];setPast(p=>[...p,snapshot()]);setNodes(next.nodes);setEdges(next.edges);showToast("Redo");return f.slice(0,-1);});
+  const undo=()=>setPast(p=>{if(!p.length){showToast("되돌릴 내역 없음");return p;}const prev=p[p.length-1];setFuture(f=>[...f,snapshot()]);setNodes(prev.nodes);setEdges(prev.edges);showToast("Undo ↩");return p.slice(0,-1);});
+  const redo=()=>setFuture(f=>{if(!f.length){showToast("다시 실행 없음");return f;}const next=f[f.length-1];setPast(p=>[...p,snapshot()]);setNodes(next.nodes);setEdges(next.edges);showToast("Redo ↪");return f.slice(0,-1);});
 
   /* ── Validation ─────────────────────────────────────── */
   useEffect(()=>{
@@ -3899,6 +3902,12 @@ function MapEditorView() {
   /* ── Node interaction ───────────────────────────────── */
   const handleNodeClick=(e,n)=>{
     e.stopPropagation();
+    // Build+Node 모드에서 다른 그래프의 노드 위 클릭 → 새 노드 생성(겹치기 허용)
+    if(mode==="build"&&buildTool==="node"&&(n.graph_idx||0)!==primaryGraph){
+      const{x,y}=snap(n.x,n.y);const id=newNodeId();pushHistory();
+      setNodes(ns=>[...ns,{id,x,y,name:id,role:"standard",is_charger:false,is_holding:false,graph_idx:primaryGraph,capability:null}]);
+      showToast(`+ Node ${id} (겹침)`);return;
+    }
     if(mode==="stamp"){pushHistory();setNodes(ns=>ns.map(x=>x.id!==n.id?x:{...x,role:stampRole,is_charger:stampRole==="charger",is_holding:stampRole==="holding"||stampRole==="holding_candidate"}));return;}
     if(mode==="build"){
       if(buildTool==="delete"){pushHistory();setNodes(ns=>ns.filter(x=>x.id!==n.id));setEdges(es=>es.filter(x=>x.src!==n.id&&x.dst!==n.id));setSelNodeIds(new Set());showToast(`- Node ${n.id}`);return;}
@@ -4003,7 +4012,7 @@ function MapEditorView() {
         showToast(`${newNodes.length}개 노드 붙여넣기`);return;
       }
       // Delete
-      if((e.key==="Delete"||e.key==="Backspace")&&!e.target.closest("input")){
+      if(e.key==="Delete"||e.key==="Backspace"){
         if(selNodeIds.size>0){
           pushHistory();
           setNodes(ns=>ns.filter(n=>!selNodeIds.has(n.id)));
@@ -4123,111 +4132,8 @@ function MapEditorView() {
       </div>
 
       <div className="flex-1 min-h-0 flex">
-        {/* SVG 맵 */}
-        <div className="flex-1 relative overflow-hidden"
-          onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
-          <svg ref={svgRef} className="w-full h-full"
-            style={{cursor:panRef.current?"grabbing":mode==="build"&&buildTool==="node"?"crosshair":mode==="stamp"?"cell":"default"}}
-            onMouseDown={handleSvgMouseDown}
-            onClick={handleSvgClick}
-            onContextMenu={e=>{e.preventDefault();if(mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[{x:p.x,y:p.y}];}}}>
-
-            {/* Background image */}
-            {bgUrl&&<image href={bgUrl} x="0" y="0" width="100%" height="100%" opacity={bgOpacity} preserveAspectRatio="xMidYMid meet" data-bg="1"/>}
-
-            <g transform={transform}>
-              <defs>
-                {/* Grid pattern */}
-                {showGrid&&gridSize>0&&(
-                  <pattern id="grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
-                    <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="#e2e8f0" strokeWidth={0.5*labelScale}/>
-                  </pattern>
-                )}
-                {/* Arrowhead markers */}
-                {[...graphs.map(g=>g.color),"#c77700","#9aa5b1"].map((c,i)=>(
-                  <marker key={i} id={"arr-"+i} markerWidth={6*labelScale} markerHeight={6*labelScale} refX={5*labelScale} refY={3*labelScale} orient="auto" markerUnits="userSpaceOnUse">
-                    <path d={`M0,0 L${6*labelScale},${3*labelScale} L0,${6*labelScale} Z`} fill={c}/>
-                  </marker>
-                ))}
-              </defs>
-
-              {/* Grid background */}
-              {showGrid&&gridSize>0&&(
-                <rect x={-10000} y={-10000} width={20000} height={20000} fill="url(#grid)" data-bg="1"/>
-              )}
-
-              {/* Edges */}
-              {edges.map(e=>{
-                const a=nodeById.get(e.src),b=nodeById.get(e.dst);if(!a||!b)return null;
-                const gi=e.graph_idx||0;
-                if(!activeGraphs.has(gi)&&!showInactive)return null;
-                const c=edgeColor(e);if(!c)return null;
-                const isSel=e.id===selEdgeId,isHov=e.id===hovEdgeId,isSpd=speedSelIds.has(e.id);
-                const sw=(isSel||isSpd?3:isHov?2.5:1.5)*labelScale;
-                const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
-                const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
-                const nx=dx/len,ny=dy/len;
-                const aw=7*labelScale,ah=4*labelScale;
-                const arrFwd=`M${-aw/2},${-ah/2} L${aw/2},0 L${-aw/2},${ah/2} Z`;
-                return(
-                  <g key={e.id} style={{cursor:"pointer"}} opacity={activeGraphs.has(gi)?1:0.25}
-                    onMouseEnter={()=>setHovEdgeId(e.id)} onMouseLeave={()=>setHovEdgeId(null)}
-                    onClick={ev=>handleEdgeClick(ev,e)}
-                    onDoubleClick={ev=>handleEdgeDblClick(ev,e)}>
-                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={12*labelScale}/>
-                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={isSel?"#2563eb":c} strokeWidth={sw} strokeDasharray={e.v_max!=null?`${4*labelScale} ${2*labelScale}`:"none"}/>
-                    {/* Forward arrow */}
-                    <path d={arrFwd} fill={isSel?"#2563eb":c} transform={`translate(${mx+nx*5*labelScale},${my+ny*5*labelScale}) rotate(${Math.atan2(ny,nx)*180/Math.PI})`}/>
-                    {/* Back arrow (bidir) */}
-                    {e.bidir&&<path d={arrFwd} fill={isSel?"#2563eb":c} transform={`translate(${mx-nx*5*labelScale},${my-ny*5*labelScale}) rotate(${(Math.atan2(ny,nx)+Math.PI)*180/Math.PI})`}/>}
-                    {e.v_max!=null&&<text x={mx+ny*9*labelScale} y={my-nx*9*labelScale} textAnchor="middle" dominantBaseline="middle" fontSize={8*labelScale} fontWeight="700" fill="#c77700">{e.v_max}</text>}
-                    {isSel&&<line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#2563eb" strokeWidth={(sw+2)*labelScale} opacity={0.25}/>}
-                  </g>
-                );
-              })}
-
-              {/* Edge-src indicator */}
-              {edgeSrc&&nodeById.get(edgeSrc)&&(()=>{const n=nodeById.get(edgeSrc);return<circle cx={n.x} cy={n.y} r={14*labelScale} fill="none" stroke="#f59e0b" strokeWidth={2*labelScale} strokeDasharray={`${3*labelScale} ${2*labelScale}`}/>;})()}
-
-              {/* Ctrl+drag preview */}
-              {ctrlDragRef.current&&nodeById.get(ctrlDragRef.current.srcId)&&(()=>{
-                const sn=nodeById.get(ctrlDragRef.current.srcId);
-                const{curX,curY}=ctrlDragRef.current;
-                return<g><line x1={sn.x} y1={sn.y} x2={curX} y2={curY} stroke="#2563eb" strokeWidth={1.5*labelScale} strokeDasharray={`${4*labelScale} ${2*labelScale}`} opacity={0.7}/><circle cx={curX} cy={curY} r={6*labelScale} fill="#dbeafe" stroke="#2563eb" strokeWidth={1.5*labelScale} opacity={0.8}/></g>;
-              })()}
-
-              {/* Nodes */}
-              {nodes.map(n=>{
-                const gi=n.graph_idx||0;
-                if(!activeGraphs.has(gi)&&!showInactive)return null;
-                const opacity=activeGraphs.has(gi)?1:0.3;
-                return(
-                  <g key={n.id} opacity={opacity} transform={`translate(${n.x},${n.y})`}
-                    style={{cursor:mode==="stamp"?"cell":"pointer"}}
-                    onMouseEnter={()=>setHovNodeId(n.id)} onMouseLeave={()=>setHovNodeId(null)}
-                    onClick={ev=>handleNodeClick(ev,n)}
-                    onMouseDown={ev=>handleNodeMouseDown(ev,n)}>
-                    <circle r={14*labelScale} fill="transparent"/>
-                    {nodeShape(n)}
-                    <text y={9*labelScale} textAnchor="middle" fontSize={7.5*labelScale} fontWeight="600" fill="#475569" style={{userSelect:"none",pointerEvents:"none"}}>{n.id}</text>
-                  </g>
-                );
-              })}
-
-              {/* Paint preview */}
-              {paintRef.current&&paintRef.current.length>1&&(()=>{
-                const d="M"+paintRef.current.map(p=>`${p.x},${p.y}`).join(" L");
-                return<path d={d} fill="none" stroke="#2563eb" strokeWidth={2*labelScale} opacity={0.5} strokeDasharray={`${4*labelScale} ${2*labelScale}`}/>;
-              })()}
-            </g>
-          </svg>
-
-          {/* Toast */}
-          {toast&&<div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[12px] font-medium px-3 py-1.5 rounded-lg shadow-lg pointer-events-none z-50">{toast}</div>}
-        </div>
-
-        {/* Right Panel */}
-        <div className="w-72 border-l border-slate-200 bg-white overflow-y-auto flex flex-col shrink-0 text-[12px]">
+        {/* Left Panel */}
+        <div className="w-72 border-r border-slate-200 bg-white overflow-y-auto flex flex-col shrink-0 text-[12px]">
 
           {/* Active Graphs - 다중 선택 */}
           <div className="p-3 border-b border-slate-100">
@@ -4450,6 +4356,112 @@ function MapEditorView() {
             )}
           </div>
         </div>
+
+        {/* SVG 맵 */}
+        <div className="flex-1 relative overflow-hidden"
+          onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
+          <svg ref={svgRef} className="w-full h-full"
+            style={{cursor:panRef.current?"grabbing":mode==="build"&&buildTool==="node"?"crosshair":mode==="stamp"?"cell":"default"}}
+            onMouseDown={handleSvgMouseDown}
+            onClick={handleSvgClick}
+            onContextMenu={e=>{e.preventDefault();if(mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[{x:p.x,y:p.y}];}}}>
+
+            {/* Background image */}
+            {bgUrl&&<image href={bgUrl} x="0" y="0" width="100%" height="100%" opacity={bgOpacity} preserveAspectRatio="xMidYMid meet" data-bg="1"/>}
+
+            <g transform={transform}>
+              <defs>
+                {/* Grid pattern */}
+                {showGrid&&gridSize>0&&(
+                  <pattern id="grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+                    <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="#e2e8f0" strokeWidth={0.5*labelScale}/>
+                  </pattern>
+                )}
+                {/* Arrowhead markers */}
+                {[...graphs.map(g=>g.color),"#c77700","#9aa5b1"].map((c,i)=>(
+                  <marker key={i} id={"arr-"+i} markerWidth={6*labelScale} markerHeight={6*labelScale} refX={5*labelScale} refY={3*labelScale} orient="auto" markerUnits="userSpaceOnUse">
+                    <path d={`M0,0 L${6*labelScale},${3*labelScale} L0,${6*labelScale} Z`} fill={c}/>
+                  </marker>
+                ))}
+              </defs>
+
+              {/* Grid background */}
+              {showGrid&&gridSize>0&&(
+                <rect x={-10000} y={-10000} width={20000} height={20000} fill="url(#grid)" data-bg="1"/>
+              )}
+
+              {/* Edges */}
+              {edges.map(e=>{
+                const a=nodeById.get(e.src),b=nodeById.get(e.dst);if(!a||!b)return null;
+                const gi=e.graph_idx||0;
+                if(!activeGraphs.has(gi)&&!showInactive)return null;
+                const c=edgeColor(e);if(!c)return null;
+                const isSel=e.id===selEdgeId,isHov=e.id===hovEdgeId,isSpd=speedSelIds.has(e.id);
+                const sw=(isSel||isSpd?3:isHov?2.5:1.5)*labelScale;
+                const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+                const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+                const nx=dx/len,ny=dy/len;
+                const aw=7*labelScale,ah=4*labelScale;
+                const arrFwd=`M${-aw/2},${-ah/2} L${aw/2},0 L${-aw/2},${ah/2} Z`;
+                return(
+                  <g key={e.id} style={{cursor:"pointer"}} opacity={activeGraphs.has(gi)?1:0.25}
+                    onMouseEnter={()=>setHovEdgeId(e.id)} onMouseLeave={()=>setHovEdgeId(null)}
+                    onClick={ev=>handleEdgeClick(ev,e)}
+                    onDoubleClick={ev=>handleEdgeDblClick(ev,e)}>
+                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={12*labelScale}/>
+                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={isSel?"#2563eb":c} strokeWidth={sw} strokeDasharray={e.v_max!=null?`${4*labelScale} ${2*labelScale}`:"none"}/>
+                    {/* Forward arrow */}
+                    <path d={arrFwd} fill={isSel?"#2563eb":c} transform={`translate(${mx+nx*5*labelScale},${my+ny*5*labelScale}) rotate(${Math.atan2(ny,nx)*180/Math.PI})`}/>
+                    {/* Back arrow (bidir) */}
+                    {e.bidir&&<path d={arrFwd} fill={isSel?"#2563eb":c} transform={`translate(${mx-nx*5*labelScale},${my-ny*5*labelScale}) rotate(${(Math.atan2(ny,nx)+Math.PI)*180/Math.PI})`}/>}
+                    {e.v_max!=null&&<text x={mx+ny*9*labelScale} y={my-nx*9*labelScale} textAnchor="middle" dominantBaseline="middle" fontSize={8*labelScale} fontWeight="700" fill="#c77700">{e.v_max}</text>}
+                    {isSel&&<line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#2563eb" strokeWidth={(sw+2)*labelScale} opacity={0.25}/>}
+                  </g>
+                );
+              })}
+
+              {/* Edge-src indicator */}
+              {edgeSrc&&nodeById.get(edgeSrc)&&(()=>{const n=nodeById.get(edgeSrc);return<circle cx={n.x} cy={n.y} r={14*labelScale} fill="none" stroke="#f59e0b" strokeWidth={2*labelScale} strokeDasharray={`${3*labelScale} ${2*labelScale}`}/>;})()}
+
+              {/* Ctrl+drag preview */}
+              {ctrlDragRef.current&&nodeById.get(ctrlDragRef.current.srcId)&&(()=>{
+                const sn=nodeById.get(ctrlDragRef.current.srcId);
+                const{curX,curY}=ctrlDragRef.current;
+                return<g><line x1={sn.x} y1={sn.y} x2={curX} y2={curY} stroke="#2563eb" strokeWidth={1.5*labelScale} strokeDasharray={`${4*labelScale} ${2*labelScale}`} opacity={0.7}/><circle cx={curX} cy={curY} r={6*labelScale} fill="#dbeafe" stroke="#2563eb" strokeWidth={1.5*labelScale} opacity={0.8}/></g>;
+              })()}
+
+              {/* Nodes */}
+              {nodes.map(n=>{
+                const gi=n.graph_idx||0;
+                if(!activeGraphs.has(gi)&&!showInactive)return null;
+                const opacity=activeGraphs.has(gi)?1:0.3;
+                return(
+                  <g key={n.id} opacity={opacity} transform={`translate(${n.x},${n.y})`}
+                    style={{cursor:mode==="stamp"?"cell":"pointer"}}
+                    onMouseEnter={()=>setHovNodeId(n.id)} onMouseLeave={()=>setHovNodeId(null)}
+                    onClick={ev=>handleNodeClick(ev,n)}
+                    onMouseDown={ev=>handleNodeMouseDown(ev,n)}>
+                    <circle r={14*labelScale} fill="transparent"/>
+                    {nodeShape(n)}
+                    <text y={9*labelScale} textAnchor="middle" fontSize={7.5*labelScale} fontWeight="600" fill="#475569" style={{userSelect:"none",pointerEvents:"none"}}>{n.id}</text>
+                  </g>
+                );
+              })}
+
+              {/* Paint preview */}
+              {paintRef.current&&paintRef.current.length>1&&(()=>{
+                const d="M"+paintRef.current.map(p=>`${p.x},${p.y}`).join(" L");
+                return<path d={d} fill="none" stroke="#2563eb" strokeWidth={2*labelScale} opacity={0.5} strokeDasharray={`${4*labelScale} ${2*labelScale}`}/>;
+              })()}
+            </g>
+          </svg>
+
+          {/* Toast */}
+          {toast&&<div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[12px] font-medium px-3 py-1.5 rounded-lg shadow-lg pointer-events-none z-50">{toast}</div>}
+        </div>
+
+        {/* Right Panel */}
+
       </div>
     </div>
   );
