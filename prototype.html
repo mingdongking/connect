@@ -4129,7 +4129,7 @@ function MapEditorView() {
   const transform=`translate(${tx},${ty}) scale(${scale})`;
   const selNode=selNodeIds.size===1?nodeById.get([...selNodeIds][0]):null;
   const selEdge=selEdgeId?edges.find(e=>e.id===selEdgeId):null;
-  const activeMap=MAPS.find(m=>m.id===activeMapId)||MAPS[0];
+  const activeMap=floors.find(f=>f.id===activeMapId)||floors[0];
 
   /* ── Render ─────────────────────────────────────────── */
   return (
