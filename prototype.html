@@ -3800,10 +3800,13 @@ function MapEditorView() {
   const svgRef=useRef(null);
   const panRef=useRef(null);
   const paintRef=useRef(null);
+  const paintBtnRef=useRef(null); // 0=left(단방향), 2=right(양방향)
   const fileRef=useRef(null);
   const toastRef=useRef(null);
   const ctrlDragRef=useRef(null);
-  const dragNodeRef=useRef(null); // for mousemove handler
+  const dragNodeRef=useRef(null);
+  const selRectRef=useRef(null); // {x1,y1,x2,y2}
+  const [selRect,setSelRect]=useState(null);
 
   const nodesRef=useRef(nodes); useEffect(()=>{nodesRef.current=nodes;},[nodes]);
   const edgesRef=useRef(edges); useEffect(()=>{edgesRef.current=edges;},[edges]);
@@ -3867,18 +3870,40 @@ function MapEditorView() {
       setNodes(ns=>ns.map(n=>n.id===id?{...n,x:nx,y:ny}:n));
       return;
     }
-    if(paintRef.current&&mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[...paintRef.current,{x:p.x,y:p.y}];}
+    // Ctrl+drag selection rect
+    if(selRectRef.current){
+      const p=svgPt(e.clientX,e.clientY);
+      selRectRef.current={...selRectRef.current,x2:p.x,y2:p.y};
+      setSelRect({...selRectRef.current});
+      return;
+    }
+    if(paintRef.current){const p=svgPt(e.clientX,e.clientY);paintRef.current=[...paintRef.current,{x:p.x,y:p.y}];}
     if(ctrlDragRef.current){const p=svgPt(e.clientX,e.clientY);ctrlDragRef.current={...ctrlDragRef.current,curX:p.x,curY:p.y};setHovNodeId(h=>h);}
   };
   const onMouseUp=e=>{
     if(panRef.current){panRef.current=null;return;}
     if(dragNodeRef.current){
-      pushHistory(); // commit drag
+      pushHistory();
       dragNodeRef.current=null;
       setDragNode(null);
       return;
     }
-    if(paintRef.current&&mode==="paint"){applyPaint(paintRef.current,e.button===2,e.altKey);paintRef.current=null;return;}
+    // Ctrl+drag selection rect 확정
+    if(selRectRef.current){
+      const r=selRectRef.current;
+      const minX=Math.min(r.x1,r.x2),maxX=Math.max(r.x1,r.x2);
+      const minY=Math.min(r.y1,r.y2),maxY=Math.max(r.y1,r.y2);
+      if(maxX-minX>3||maxY-minY>3){
+        const inside=nodesRef.current.filter(n=>n.x>=minX&&n.x<=maxX&&n.y>=minY&&n.y<=maxY);
+        if(inside.length>0){setSelNodeIds(new Set(inside.map(n=>n.id)));showToast(`${inside.length}개 노드 선택`);}
+      }
+      selRectRef.current=null;setSelRect(null);return;
+    }
+    // Paint 완료 → paintBtnRef로 방향 결정
+    if(paintRef.current&&mode==="paint"){
+      applyPaint(paintRef.current,paintBtnRef.current===2,e.altKey);
+      paintRef.current=null;paintBtnRef.current=null;return;
+    }
     if(ctrlDragRef.current){
       const{srcId,curX,curY}=ctrlDragRef.current;
       ctrlDragRef.current=null;
@@ -4005,8 +4030,22 @@ function MapEditorView() {
 
   /* ── Paint mode start ───────────────────────────────── */
   const handleSvgMouseDown=e=>{
-    if(mode==="paint"&&e.button===0&&!panRef.current&&!e.altKey){
-      const p=svgPt(e.clientX,e.clientY);paintRef.current=[{x:p.x,y:p.y}];
+    const isCtrl=e.ctrlKey||e.metaKey;
+    // Ctrl+drag on empty map → selection rectangle
+    if(isCtrl&&e.button===0&&mode!=="build"){
+      e.preventDefault();
+      const p=svgPt(e.clientX,e.clientY);
+      selRectRef.current={x1:p.x,y1:p.y,x2:p.x,y2:p.y};
+      setSelRect({x1:p.x,y1:p.y,x2:p.x,y2:p.y});
+      return;
+    }
+    // Paint mode: left(단방향), right(양방향), alt+left(역방향)
+    if(mode==="paint"&&!panRef.current&&(e.button===0||e.button===2)){
+      e.preventDefault();
+      const p=svgPt(e.clientX,e.clientY);
+      paintRef.current=[{x:p.x,y:p.y}];
+      paintBtnRef.current=e.button;
+      return;
     }
     onMouseDown(e);
   };
@@ -4064,7 +4103,7 @@ function MapEditorView() {
         if(k==="g"||k==="tab"){e.preventDefault();setPrimaryGraph(i=>(i+1)%graphs.length);}
         if(k==="1")setStampRole("standard");if(k==="2")setStampRole("station");if(k==="3")setStampRole("charger");
         if(k==="4")setStampRole("holding");if(k==="5")setStampRole("siding");
-        if(k==="escape"){setSelNodeIds(new Set());setSelEdgeId(null);setEdgeSrc(null);setSpeedSelIds(new Set());ctrlDragRef.current=null;}
+        if(k==="escape"){setSelNodeIds(new Set());setSelEdgeId(null);setEdgeSrc(null);setSpeedSelIds(new Set());ctrlDragRef.current=null;selRectRef.current=null;setSelRect(null);}
       }
     };
     window.addEventListener("keydown",onKey);
@@ -4411,7 +4450,7 @@ function MapEditorView() {
             style={{cursor:panRef.current?"grabbing":mode==="build"&&buildTool==="node"?"crosshair":mode==="stamp"?"cell":"default"}}
             onMouseDown={handleSvgMouseDown}
             onClick={handleSvgClick}
-            onContextMenu={e=>{e.preventDefault();if(mode==="paint"){const p=svgPt(e.clientX,e.clientY);paintRef.current=[{x:p.x,y:p.y}];}}}>
+            onContextMenu={e=>e.preventDefault()}>
 
             {/* Background image */}
             {bgUrl&&<image href={bgUrl} x="0" y="0" width="100%" height="100%" opacity={bgOpacity} preserveAspectRatio="xMidYMid meet" data-bg="1"/>}
@@ -4500,6 +4539,16 @@ function MapEditorView() {
                 const d="M"+paintRef.current.map(p=>`${p.x},${p.y}`).join(" L");
                 return<path d={d} fill="none" stroke="#2563eb" strokeWidth={2*labelScale} opacity={0.5} strokeDasharray={`${4*labelScale} ${2*labelScale}`}/>;
               })()}
+
+              {/* Ctrl+drag 선택 영역 */}
+              {selRect&&(
+                <rect
+                  x={Math.min(selRect.x1,selRect.x2)} y={Math.min(selRect.y1,selRect.y2)}
+                  width={Math.abs(selRect.x2-selRect.x1)} height={Math.abs(selRect.y2-selRect.y1)}
+                  fill="rgba(37,99,235,0.06)" stroke="#2563eb"
+                  strokeWidth={1.5*labelScale} strokeDasharray={`${5*labelScale} ${3*labelScale}`}
+                  style={{pointerEvents:"none"}}/>
+              )}
             </g>
           </svg>
 
