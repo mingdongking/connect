@@ -742,6 +742,13 @@ function MonitoringHome({ onNavigate }) {
   const [cmdUserId,   setCmdUserId]   = useState("");
   const [stopMode,    setStopMode]    = useState("정상 종료");
   const [commission,  setCommission]  = useState("commission");
+  const [dispatchTasks, setDispatchTasks] = useState(true);
+  const [directTasks,   setDirectTasks]   = useState(true);
+  const [idleBehavior,  setIdleBehavior]  = useState(false);
+  const [pendingDispatch, setPendingDispatch] = useState("Reassign");
+  const [pendingDirect,   setPendingDirect]   = useState("Complete");
+  const [paramSaved, setParamSaved] = useState(false);
+  const paramApply = ()=>{ setParamSaved(true); setTimeout(()=>setParamSaved(false),2000); };
   // fleet 변경 시 상태 초기화
   function onCmdFleetChange(fId){
     setCmdFleet(fId);
@@ -2272,6 +2279,40 @@ function MonitoringHome({ onNavigate }) {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Parameter 설정 */}
+                  <div className="rounded-md border border-slate-200 p-2.5 space-y-3">
+                    <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Parameter 설정</div>
+                    <div className="rounded-md border border-slate-200 px-2.5 divide-y divide-slate-100">
+                      {[["Dispatch Tasks",dispatchTasks,setDispatchTasks],["Direct Tasks",directTasks,setDirectTasks],["Idle Behavior",idleBehavior,setIdleBehavior]].map(([label,val,set])=>(
+                        <div key={label} className="flex items-center justify-between py-2.5">
+                          <span className="text-[12px] text-slate-800">{label}</span>
+                          <button onClick={()=>set(!val)}
+                            className={"w-9 h-5 rounded-full relative transition-colors shrink-0 "+(val?"bg-blue-500":"bg-slate-300")}>
+                            <div className={"absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all "+(val?"left-4":"left-0.5")}/>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {[["Pending Dispatch Tasks Policy",pendingDispatch,setPendingDispatch,["Reassign","Complete","Cancel"]],
+                      ["Pending Direct Tasks Policy",pendingDirect,setPendingDirect,["Complete","Cancel"]]].map(([label,val,set,opts])=>(
+                      <div key={label} className="space-y-1.5">
+                        <div className="text-[11px] font-medium text-slate-500">{label}</div>
+                        <div className="relative">
+                          <select value={val} onChange={e=>set(e.target.value)}
+                            className="h-8 w-full pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] text-slate-800 outline-none focus:border-blue-400 appearance-none cursor-pointer">
+                            {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                          </select>
+                          <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={paramApply}
+                      className={"w-full h-9 rounded-md text-[12px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-all "+(paramSaved?"bg-emerald-500 text-white":"bg-amber-500 hover:bg-amber-600 text-white")}>
+                      <Icon name={paramSaved?"Check":"SlidersHorizontal"} size={13}/>
+                      {paramSaved?"적용 완료!":"설정 적용"}
+                    </button>
                   </div>
                 </>))}
               </div>
