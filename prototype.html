@@ -322,6 +322,9 @@ const initOrders = [
   {id:"ord-015",robotId:"Part002",recipeId:"rcp-04",start:9*60+15, status:"done"},
   {id:"ord-016",robotId:"PM001",  recipeId:"rcp-s01",start:8*60,   status:"running"},
   {id:"ord-017",robotId:"PM002",  recipeId:"rcp-s01",start:10*60,  status:"done"},
+  // 1-5 테스트: 작업상태=running + 로봇상태=down(오류) → 적색 하이라이트 + 더블클릭 팝업
+  {id:"ord-018",robotId:"Ride002",recipeId:"rcp-05",start:10*60+30,status:"running"},
+  {id:"ord-019",robotId:"Ride002",recipeId:"rcp-02",start:9*60+15, status:"running"},
 ];
 const logs = [
   {ts:"13:42:08",level:"info", robot:"Tool001",msg:"Recipe 'A동→B동 자재이송' 완료 (PICK-2041)"},
