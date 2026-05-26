@@ -934,51 +934,69 @@ function MonitoringHome({ onNavigate }) {
           title="더블클릭 → 통계/분석">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[11.5px] text-slate-500">작업 현황</span>
-            <button onClick={e=>{
+            <button onDoubleClick={e=>{
               e.stopPropagation();
               const requesters=["USR-001","USR-042","USR-017","USR-033","USR-008","USR-025","USR-011","USR-019","USR-007","USR-031","USR-044","USR-013","USR-022","USR-038","USR-005","USR-029","USR-016","USR-021"];
+              const stMap={"run":"운행중","idle":"대기","charge":"충전중","down":"오류","error":"오류"};
               const ordersData=initOrders.map(function(o,idx){
                 var robot=mapRobots.find(function(r){return r.id===o.robotId;});
                 var recipe=recipes.find(function(r){return r.id===o.recipeId;});
                 var f=fleets.find(function(fl){return fl.id===(robot&&robot.fleet);});
                 var endTime=o.status==="done"?o.start+(recipe?recipeDuration(recipe):30):null;
-                return {id:o.id,robotId:o.robotId,fleetName:(f&&f.name)||(robot&&robot.fleet)||"",fleetColor:(f&&f.color)||"#64748b",recipeName:(recipe&&recipe.name)||o.recipeId,status:o.status,start:o.start,end:endTime,requester:requesters[idx%requesters.length]};
+                var robotSt=robot?robot.st:"idle";
+                return {id:o.id,robotId:o.robotId,robotSt:robotSt,robotStLabel:stMap[robotSt]||robotSt,fleetName:(f&&f.name)||(robot&&robot.fleet)||"",fleetColor:(f&&f.color)||"#64748b",recipeName:(recipe&&recipe.name)||o.recipeId,status:o.status,start:o.start,end:endTime,requester:requesters[idx%requesters.length]};
               });
-              const uniqueFleets=[];
+              var uniqueFleets=[];
               ordersData.forEach(function(o){if(o.fleetName&&uniqueFleets.indexOf(o.fleetName)<0)uniqueFleets.push(o.fleetName);});
-              const uniqueRobots=[];
+              var uniqueRobots=[];
               ordersData.forEach(function(o){if(o.robotId&&uniqueRobots.indexOf(o.robotId)<0)uniqueRobots.push(o.robotId);});
               uniqueRobots.sort();
-              const running=initOrders.filter(function(o){return o.status==="running";}).length;
-              const queued=initOrders.filter(function(o){return o.status==="queued";}).length;
-              const done=initOrders.filter(function(o){return o.status==="done";}).length;
-              const error=initOrders.filter(function(o){return o.status==="error";}).length;
-              const fleetOpts=uniqueFleets.map(function(f){return "<option value=\""+f+"\">"+f+"</option>";}).join("");
-              const robotOpts=uniqueRobots.map(function(r){return "<option value=\""+r+"\">"+r+"</option>";}).join("");
-              const safeData=JSON.stringify(ordersData);
-
-              const popup=[
+              var running=initOrders.filter(function(o){return o.status==="running";}).length;
+              var queued=initOrders.filter(function(o){return o.status==="queued";}).length;
+              var done=initOrders.filter(function(o){return o.status==="done";}).length;
+              var error=initOrders.filter(function(o){return o.status==="error";}).length;
+              var fleetOpts=uniqueFleets.map(function(f){return "<option value=\""+f+"\">"+f+"</option>";}).join("");
+              var robotOpts=uniqueRobots.map(function(r){return "<option value=\""+r+"\">"+r+"</option>";}).join("");
+              var safeData=JSON.stringify(ordersData);
+              var popup=[
                 "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>작업 현황 목록</title>",
                 "<style>",
                 "*{box-sizing:border-box;margin:0;padding:0}",
                 "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#f8fafc;color:#1e293b;font-size:13px}",
                 ".hdr{padding:12px 20px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.06)}",
                 ".badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}",
-                ".tb2{padding:10px 20px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;position:sticky;top:57px;z-index:19}",
-                "select{height:32px;padding:0 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155;cursor:pointer;outline:none;min-width:120px}",
+                ".tb2{padding:8px 20px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:57px;z-index:19}",
+                ".srch{height:30px;padding:0 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155;outline:none;min-width:160px;}",
+                ".srch:focus{border-color:#93c5fd;}",
+                "select{height:30px;padding:0 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155;cursor:pointer;outline:none;min-width:110px}",
                 ".tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#eff6ff;color:#1d4ed8;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer}",
                 ".tag:hover{background:#dbeafe}",
                 ".tags{display:flex;flex-wrap:wrap;gap:4px;flex:1}",
                 ".wrap{padding:16px 20px}",
                 "table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07)}",
-                "th{padding:10px 12px;font-size:11px;font-weight:600;color:#64748b;text-align:left;white-space:nowrap;background:#f8fafc;border-bottom:2px solid #e2e8f0;cursor:pointer;user-select:none}",
+                "th{padding:9px 11px;font-size:11px;font-weight:600;color:#64748b;text-align:left;white-space:nowrap;background:#f8fafc;border-bottom:2px solid #e2e8f0;cursor:pointer;user-select:none}",
                 "th:hover{background:#f1f5f9;color:#334155}",
                 "th.asc:after{content:\" ▲\";font-size:9px}th.desc:after{content:\" ▼\";font-size:9px}",
-                "td{padding:8px 12px;font-size:12px;color:#334155;white-space:nowrap;border-bottom:1px solid #f1f5f9}",
+                "td{padding:8px 11px;font-size:12px;color:#334155;white-space:nowrap;border-bottom:1px solid #f1f5f9}",
                 "tr:hover td{background:#f8fafc}",
-                "tr.err td{background:#fff5f5}tr.err:hover td{background:#fef2f2}",
+                "tr.hl-crit td{background:#fff1f2}tr.hl-crit:hover td{background:#ffe4e6}",
+                "tr.hl-fail td{background:#fff8f0}tr.hl-fail:hover td{background:#fff1e0}",
+                "tr.hl-crit{cursor:pointer}",
                 ".chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}",
                 ".mono{font-family:monospace}.nodata{text-align:center;padding:40px;color:#94a3b8}",
+                ".modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:center;justify-content:center}",
+                ".modal{background:#fff;border-radius:16px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden}",
+                ".modal-hdr{padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px}",
+                ".modal-body{padding:20px}",
+                ".modal-foot{padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;gap:8px;justify-content:flex-end}",
+                ".radio-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:.15s;margin-bottom:8px}",
+                ".radio-item:hover{border-color:#93c5fd;background:#f0f7ff}",
+                ".radio-item.sel{border-color:#2563eb;background:#eff6ff}",
+                ".radio-item input{accent-color:#2563eb}",
+                ".btn-pri{height:36px;padding:0 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}",
+                ".btn-pri:hover{background:#1d4ed8}.btn-pri:disabled{opacity:.4;cursor:not-allowed}",
+                ".btn-sec{height:36px;padding:0 16px;background:#fff;color:#475569;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer}",
+                ".btn-sec:hover{background:#f1f5f9}",
                 "</style></head><body>",
                 "<div class=\"hdr\">",
                 "<span style=\"font-size:15px;font-weight:700\">작업 현황 목록</span>",
@@ -990,85 +1008,135 @@ function MonitoringHome({ onNavigate }) {
                 "<span class=\"badge\" style=\"background:#fef2f2;color:#991b1b\">실패 "+error+"</span>",
                 "</div></div>",
                 "<div class=\"tb2\">",
+                "<input id=\"srch\" class=\"srch\" placeholder=\"🔍 Fleet / Robot 검색...\" oninput=\"onSearch()\"/>",
                 "<label style=\"font-size:11px;font-weight:600;color:#64748b\">Fleet</label>",
                 "<select id=\"flt\" multiple size=\"1\"><option value=\"\">전체</option>"+fleetOpts+"</select>",
                 "<label style=\"font-size:11px;font-weight:600;color:#64748b\">로봇</label>",
                 "<select id=\"rbt\" multiple size=\"1\"><option value=\"\">전체</option>"+robotOpts+"</select>",
+                "<label style=\"font-size:11px;font-weight:600;color:#64748b\">로봇상태</label>",
+                "<select id=\"rst\" multiple size=\"1\"><option value=\"\">전체</option><option value=\"run\">운행중</option><option value=\"idle\">대기</option><option value=\"charge\">충전중</option><option value=\"down\">오류</option></select>",
+                "<label style=\"font-size:11px;font-weight:600;color:#64748b\">작업상태</label>",
+                "<select id=\"ost\" multiple size=\"1\"><option value=\"\">전체</option><option value=\"running\">진행중</option><option value=\"queued\">대기</option><option value=\"done\">완료</option><option value=\"error\">실패</option></select>",
                 "<div class=\"tags\" id=\"tags\"></div>",
-                "<button onclick=\"clearAll()\" style=\"margin-left:auto;height:32px;padding:0 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#64748b;cursor:pointer\">초기화</button>",
+                "<button onclick=\"clearAll()\" style=\"margin-left:auto;height:30px;padding:0 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#64748b;cursor:pointer\">초기화</button>",
                 "</div>",
                 "<div class=\"wrap\"><table><thead><tr>",
                 "<th onclick=\"srt('fleetName')\" id=\"h-fleetName\">Fleet</th>",
                 "<th onclick=\"srt('robotId')\" id=\"h-robotId\">Robot ID</th>",
+                "<th onclick=\"srt('robotSt')\" id=\"h-robotSt\">로봇 상태</th>",
                 "<th onclick=\"srt('recipeName')\" id=\"h-recipeName\">작업명</th>",
-                "<th onclick=\"srt('status')\" id=\"h-status\">상태</th>",
+                "<th onclick=\"srt('status')\" id=\"h-status\">작업 상태</th>",
                 "<th onclick=\"srt('start')\" id=\"h-start\">시작</th>",
                 "<th onclick=\"srt('end')\" id=\"h-end\" class=\"desc\">종료</th>",
                 "<th onclick=\"srt('requester')\" id=\"h-requester\">요청자</th>",
                 "</tr></thead><tbody id=\"tb\"></tbody></table></div>",
+                "<div id=\"modal-root\"></div>",
                 "<script>",
                 "var D="+safeData+";",
-                "var sc='end',sd='desc',ff=[],rf=[];",
+                "var sc='end',sd='desc',ff=[],rf=[],rsf=[],osf=[],srchQ='';",
                 "D.sort(function(a,b){return (b.end||0)-(a.end||0);});",
                 "function ft(m){if(m==null||m===undefined)return '-';var h=Math.floor(m/60),mn=m%60;return (h<10?'0':'')+h+':'+(mn<10?'0':'')+mn;}",
+                "function rstStyle(s){if(s==='run'||s==='running')return 'color:#1d4ed8;background:#eff6ff';if(s==='charge')return 'color:#7c3aed;background:#f5f3ff';if(s==='idle')return 'color:#475569;background:#f1f5f9';if(s==='down'||s==='error')return 'color:#dc2626;background:#fef2f2';return 'color:#475569;background:#f1f5f9';}",
+                "function rstLabel(s){if(s==='run')return '운행중';if(s==='idle')return '대기';if(s==='charge')return '충전중';if(s==='down'||s==='error')return '오류';return s||'—';}",
                 "function ss(s){if(s==='running')return 'color:#1d4ed8;background:#eff6ff';if(s==='done')return 'color:#065f46;background:#ecfdf5';if(s==='queued')return 'color:#92400e;background:#fffbeb';if(s==='error')return 'color:#991b1b;background:#fef2f2';return 'color:#475569;background:#f1f5f9';}",
                 "function sl(s){if(s==='running')return '진행중';if(s==='done')return '완료';if(s==='queued')return '대기';if(s==='error')return '실패';return '-';}",
+                "function rowClass(o){if(o.status==='running'&&(o.robotSt==='down'||o.robotSt==='error'))return 'hl-crit';if(o.status==='error')return 'hl-fail';return '';}",
+                "function onSearch(){srchQ=document.getElementById('srch').value.toLowerCase();render();}",
                 "function render(){",
                 "  var rows=[];",
                 "  for(var i=0;i<D.length;i++){",
                 "    var o=D[i];",
+                "    if(srchQ&&o.fleetName.toLowerCase().indexOf(srchQ)<0&&o.robotId.toLowerCase().indexOf(srchQ)<0)continue;",
                 "    if(ff.length>0){var ok=false;for(var j=0;j<ff.length;j++){if(ff[j]===o.fleetName)ok=true;}if(!ok)continue;}",
                 "    if(rf.length>0){var ok2=false;for(var j=0;j<rf.length;j++){if(rf[j]===o.robotId)ok2=true;}if(!ok2)continue;}",
+                "    if(rsf.length>0){var ok3=false;for(var j=0;j<rsf.length;j++){if(rsf[j]===o.robotSt)ok3=true;}if(!ok3)continue;}",
+                "    if(osf.length>0){var ok4=false;for(var j=0;j<osf.length;j++){if(osf[j]===o.status)ok4=true;}if(!ok4)continue;}",
                 "    rows.push(o);",
                 "  }",
                 "  var tb=document.getElementById('tb');",
-                "  if(!rows.length){tb.innerHTML='<tr><td colspan=\"7\" class=\"nodata\">조건에 맞는 데이터가 없습니다.</td></tr>';updateTags();return;}",
+                "  if(!rows.length){tb.innerHTML='<tr><td colspan=\"8\" class=\"nodata\">조건에 맞는 데이터가 없습니다.</td></tr>';updateTags();return;}",
                 "  var html='';",
                 "  for(var i=0;i<rows.length;i++){",
                 "    var o=rows[i];",
-                "    html+='<tr class=\"'+( o.status==='error'?'err':'')+'\">'",
-                "      +'<td><span class=\"chip\" style=\"background:'+o.fleetColor+'22;color:'+o.fleetColor+'\">'+o.fleetName+'</span></td>'",
-                "      +'<td><span class=\"mono chip\" style=\"background:#f1f5f9;color:#334155\">'+o.robotId+'</span></td>'",
-                "      +'<td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis\">'+o.recipeName+'</td>'",
-                "      +'<td><span class=\"chip\" style=\"'+ss(o.status)+'\">'+sl(o.status)+'</span></td>'",
-                "      +'<td class=\"mono\">'+ft(o.start)+'</td>'",
-                "      +'<td class=\"mono\">'+ft(o.end)+'</td>'",
-                "      +'<td class=\"mono\" style=\"color:#64748b\">'+o.requester+'</td></tr>';",
-                "  }",
-                "  tb.innerHTML=html;",
-                "  updateTags();",
+                "    var rc=rowClass(o);",
+                "    var dbl=rc==='hl-crit'?' ondblclick=\"openModal(\\'"+'\'+'"\"+o.id+\"\'"+'\'+'"\\')\"':'';'+'';'}",
+                "RENDER_PLACEHOLDER",
                 "}",
                 "function srt(col){",
                 "  if(sc===col){sd=sd==='asc'?'desc':'asc';}else{sc=col;sd=(col==='end'||col==='start')?'desc':'asc';}",
-                "  D.sort(function(a,b){",
-                "    var av=a[col]!=null?a[col]:-1;",
-                "    var bv=b[col]!=null?b[col]:-1;",
-                "    if(typeof av==='string'){av=av.toLowerCase();bv=typeof b[col]==='string'?b[col].toLowerCase():'';}",
-                "    return sd==='asc'?(av>bv?1:(av<bv?-1:0)):(av<bv?1:(av>bv?-1:0));",
-                "  });",
-                "  var ths=document.querySelectorAll('th');",
-                "  for(var i=0;i<ths.length;i++)ths[i].className='';",
+                "  D.sort(function(a,b){var av=a[col]!=null?a[col]:-1;var bv=b[col]!=null?b[col]:-1;if(typeof av==='string'){av=av.toLowerCase();bv=typeof b[col]==='string'?b[col].toLowerCase():'';}return sd==='asc'?(av>bv?1:(av<bv?-1:0)):(av<bv?1:(av>bv?-1:0));});",
+                "  var ths=document.querySelectorAll('th');for(var i=0;i<ths.length;i++)ths[i].className='';",
                 "  var el=document.getElementById('h-'+col);if(el)el.className=sd;",
                 "  render();",
                 "}",
                 "function updateTags(){",
-                "  var t=document.getElementById('tags');",
-                "  var html='';",
-                "  for(var i=0;i<ff.length;i++){html+='<span class=\"tag\" onclick=\"rmF(\\\''+ff[i]+'\\')\">'+ff[i]+' <span>x</span></span>';}",
-                "  for(var i=0;i<rf.length;i++){html+='<span class=\"tag\" onclick=\"rmR(\\\''+rf[i]+'\\')\">'+rf[i]+' <span>x</span></span>';}",
+                "  var t=document.getElementById('tags');var html='';",
+                "  for(var i=0;i<ff.length;i++){html+='<span class=\"tag\" onclick=\"rmF(\\\''+ff[i]+'\\')\">'+ff[i]+' x</span>';}",
+                "  for(var i=0;i<rf.length;i++){html+='<span class=\"tag\" onclick=\"rmR(\\\''+rf[i]+'\\')\">'+rf[i]+' x</span>';}",
+                "  for(var i=0;i<rsf.length;i++){html+='<span class=\"tag\" style=\"background:#f5f3ff;color:#7c3aed\" onclick=\"rmRS(\\\''+rsf[i]+'\\')\">'+rsf[i]+' x</span>';}",
+                "  for(var i=0;i<osf.length;i++){html+='<span class=\"tag\" style=\"background:#ecfdf5;color:#065f46\" onclick=\"rmOS(\\\''+osf[i]+'\\')\">'+osf[i]+' x</span>';}",
                 "  t.innerHTML=html;",
                 "}",
-                "function rmF(f){var nf=[];for(var i=0;i<ff.length;i++){if(ff[i]!==f)nf.push(ff[i]);}ff=nf;syncSel();render();}",
-                "function rmR(r){var nr=[];for(var i=0;i<rf.length;i++){if(rf[i]!==r)nr.push(rf[i]);}rf=nr;syncSel();render();}",
-                "function clearAll(){ff=[];rf=[];rebuildRobotOpts();syncSel();render();}",
-                "function syncSel(){var opts=document.getElementById('flt').options;for(var i=0;i<opts.length;i++){var ok=false;for(var j=0;j<ff.length;j++){if(ff[j]===opts[i].value)ok=true;}opts[i].selected=ok;}rebuildRobotOpts();var opts2=document.getElementById('rbt').options;for(var i=0;i<opts2.length;i++){var ok=false;for(var j=0;j<rf.length;j++){if(rf[j]===opts2[i].value)ok=true;}opts2[i].selected=ok;}}",
+                "function rmF(f){ff=ff.filter(function(x){return x!==f;});rebuildRobotOpts();syncSel();render();}",
+                "function rmR(r){rf=rf.filter(function(x){return x!==r;});syncSel();render();}",
+                "function rmRS(r){rsf=rsf.filter(function(x){return x!==r;});syncSel();render();}",
+                "function rmOS(r){osf=osf.filter(function(x){return x!==r;});syncSel();render();}",
+                "function clearAll(){ff=[];rf=[];rsf=[];osf=[];srchQ='';document.getElementById('srch').value='';rebuildRobotOpts();syncSel();render();}",
                 "function rebuildRobotOpts(){var sel=document.getElementById('rbt');var prevRf=rf.slice();while(sel.firstChild)sel.removeChild(sel.firstChild);var all=document.createElement('option');all.value='';all.textContent='전체';sel.appendChild(all);var robots=[];for(var i=0;i<D.length;i++){var o=D[i];if(ff.length>0){var match=false;for(var j=0;j<ff.length;j++){if(ff[j]===o.fleetName)match=true;}if(!match)continue;}if(robots.indexOf(o.robotId)<0)robots.push(o.robotId);}robots.sort();for(var i=0;i<robots.length;i++){var opt=document.createElement('option');opt.value=robots[i];opt.textContent=robots[i];sel.appendChild(opt);}rf=[];for(var i=0;i<prevRf.length;i++){if(robots.indexOf(prevRf[i])>=0)rf.push(prevRf[i]);}}",
+                "function syncSel(){",
+                "  var opts=document.getElementById('flt').options;for(var i=0;i<opts.length;i++){var ok=false;for(var j=0;j<ff.length;j++){if(ff[j]===opts[i].value)ok=true;}opts[i].selected=ok;}",
+                "  var opts2=document.getElementById('rbt').options;for(var i=0;i<opts2.length;i++){var ok=false;for(var j=0;j<rf.length;j++){if(rf[j]===opts2[i].value)ok=true;}opts2[i].selected=ok;}",
+                "  var opts3=document.getElementById('rst').options;for(var i=0;i<opts3.length;i++){var ok=false;for(var j=0;j<rsf.length;j++){if(rsf[j]===opts3[i].value)ok=true;}opts3[i].selected=ok;}",
+                "  var opts4=document.getElementById('ost').options;for(var i=0;i<opts4.length;i++){var ok=false;for(var j=0;j<osf.length;j++){if(osf[j]===opts4[i].value)ok=true;}opts4[i].selected=ok;}",
+                "}",
                 "document.getElementById('flt').onchange=function(){ff=[];var opts=this.options;for(var i=0;i<opts.length;i++){if(opts[i].selected&&opts[i].value)ff.push(opts[i].value);}rebuildRobotOpts();render();};",
                 "document.getElementById('rbt').onchange=function(){rf=[];var opts=this.options;for(var i=0;i<opts.length;i++){if(opts[i].selected&&opts[i].value)rf.push(opts[i].value);}render();};",
+                "document.getElementById('rst').onchange=function(){rsf=[];var opts=this.options;for(var i=0;i<opts.length;i++){if(opts[i].selected&&opts[i].value)rsf.push(opts[i].value);}render();};",
+                "document.getElementById('ost').onchange=function(){osf=[];var opts=this.options;for(var i=0;i<opts.length;i++){if(opts[i].selected&&opts[i].value)osf.push(opts[i].value);}render();};",
+                "function openModal(orderId){",
+                "  var o=null;for(var i=0;i<D.length;i++){if(D[i].id===orderId){o=D[i];break;}}",
+                "  if(!o)return;",
+                "  var sel='';",
+                "  var mr=document.getElementById('modal-root');",
+                "  var opts=[{val:'reassign',label:'새로운 로봇에 다시 할당',desc:'현재 작업을 다른 가용 로봇에 재배정합니다'},{val:'cancel',label:'Manual Cancel',desc:'작업을 즉시 취소합니다'},{val:'complete',label:'Manual Complete',desc:'작업을 완료 처리합니다'}];",
+                "  function renderModal(){",
+                "    var items='';",
+                "    for(var i=0;i<opts.length;i++){",
+                "      var isSel=sel===opts[i].val;",
+                "      items+='<label class=\"radio-item'+(isSel?' sel':'')+'\"><input type=\"radio\" name=\"action\" value=\"'+opts[i].val+'\" '+(isSel?'checked':'')+' onchange=\"selChanged(\\\''+opts[i].val+'\\')\">'+",
+                "        '<div><div style=\"font-size:13px;font-weight:600;color:#1e293b\">'+opts[i].label+'</div><div style=\"font-size:11px;color:#64748b;margin-top:2px\">'+opts[i].desc+'</div></div></label>';",
+                "    }",
+                "    mr.innerHTML='<div class=\"modal-bg\" onclick=\"closeModal()\"><div class=\"modal\" onclick=\"event.stopPropagation()\"><div class=\"modal-hdr\"><div style=\"width:32px;height:32px;background:#fef2f2;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px\">⚠</div><div><div style=\"font-size:14px;font-weight:700;color:#dc2626\">Order 조치 필요</div><div style=\"font-size:11px;color:#94a3b8\">'+o.recipeName+' · '+o.robotId+'</div></div></div><div class=\"modal-body\"><div style=\"font-size:13px;color:#334155;margin-bottom:14px;padding:10px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px\">Order 상태를 조치 현황에 따라 변경해주세요!</div>'+items+'</div><div class=\"modal-foot\"><button class=\"btn-sec\" onclick=\"closeModal()\">닫기</button><button class=\"btn-pri\" id=\"btn-confirm\" '+(!sel?'disabled':'')+' onclick=\"confirmAction()\">선택 완료</button></div></div></div>';",
+                "  }",
+                "  renderModal();",
+                "  window.selChanged=function(v){sel=v;renderModal();};",
+                "  window.closeModal=function(){mr.innerHTML='';};",
+                "  window.confirmAction=function(){",
+                "    if(!sel)return;",
+                "    var newSt=sel==='cancel'?'error':sel==='complete'?'done':'queued';",
+                "    var newLabel=sel==='reassign'?'새로운 로봇에 다시 할당':sel==='cancel'?'Manual Cancel':'Manual Complete';",
+                "    for(var i=0;i<D.length;i++){if(D[i].id===orderId){D[i].status=newSt;break;}}",
+                "    closeModal();render();",
+                "  };",
+                "}",
                 "render();",
                 "<\/script></body></html>"
               ].join("\n");
-              const w=window.open("","_blank","width=1100,height=680,resizable=yes,scrollbars=yes");
+
+              // RENDER_PLACEHOLDER 실제 render 함수 본문으로 교체
+              popup=popup.replace("RENDER_PLACEHOLDER","    var rc=rowClass(o);"+
+                "    var dblEvt=rc==='hl-crit'?' ondblclick=\"openModal(\\'\'+o.id+'\\')\"':'';"+
+                "    html+='<tr class=\"'+rc+'\"'+dblEvt+'>'+"+
+                "      '<td><span class=\"chip\" style=\"background:'+o.fleetColor+'22;color:'+o.fleetColor+'\">'+o.fleetName+'</span></td>'+"+
+                "      '<td><span class=\"mono chip\" style=\"background:#f1f5f9;color:#334155\">'+o.robotId+'</span></td>'+"+
+                "      '<td><span class=\"chip\" style=\"'+rstStyle(o.robotSt)+'\">'+rstLabel(o.robotSt)+'</span></td>'+"+
+                "      '<td style=\"max-width:200px;overflow:hidden;text-overflow:ellipsis\">'+o.recipeName+'</td>'+"+
+                "      '<td><span class=\"chip\" style=\"'+ss(o.status)+'\">'+sl(o.status)+'</span></td>'+"+
+                "      '<td class=\"mono\">'+ft(o.start)+'</td>'+"+
+                "      '<td class=\"mono\">'+ft(o.end)+'</td>'+"+
+                "      '<td class=\"mono\" style=\"color:#64748b\">'+o.requester+'</td></tr>';");
+
+              const w=window.open("","_blank","width=1200,height=700,resizable=yes,scrollbars=yes");
               w.document.write(popup);
               w.document.close();
             }}
