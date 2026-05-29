@@ -1702,56 +1702,6 @@ function MonitoringHome({ onNavigate }) {
                 </div>
               );
             })}
-                  className={"absolute -translate-x-1/2 -translate-y-1/2 transition-opacity "+(isVis?"cursor-pointer opacity-100":"opacity-15 grayscale pointer-events-none")}
-                  style={{left:r.x,top:r.y,zIndex:10}}>
-
-                  {attachedCart?(
-                    /* ── 결합 아이콘 (로봇 + 카트) ── */
-                    <div className={"flex flex-col items-center "+(isFocus?"scale-125":"scale-100")}
-                      style={{filter:isFocus?`drop-shadow(0 0 5px ${fm.color}99)`:"none",transition:"all .15s"}}>
-                      <svg width="32" height="42" viewBox="0 0 32 42" fill="none">
-                        {/* 로봇 */}
-                        <rect x="4" y="1" width="24" height="18" rx="5" fill={fm.color}/>
-                        <circle cx="11" cy="9" r="2.5" fill="white" opacity="0.85"/>
-                        <circle cx="21" cy="9" r="2.5" fill="white" opacity="0.85"/>
-                        <circle cx="11" cy="9" r="1.2" fill={fm.color}/>
-                        <circle cx="21" cy="9" r="1.2" fill={fm.color}/>
-                        <rect x="9" y="14" width="6" height="1.5" rx="0.75" fill="white" opacity="0.5"/>
-                        <rect x="17" y="14" width="6" height="1.5" rx="0.75" fill="white" opacity="0.5"/>
-                        {/* 연결 */}
-                        <rect x="12" y="19" width="8" height="3" rx="1.5" fill={fm.color}/>
-                        {/* 카트 */}
-                        <rect x="2" y="22" width="28" height="13" rx="3" fill="#10b981"/>
-                        <rect x="5" y="25" width="22" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
-                        <rect x="5" y="28.5" width="22" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
-                        {/* 바퀴 */}
-                        <circle cx="9"  cy="38" r="3" fill="#065f46"/>
-                        <circle cx="9"  cy="38" r="1.5" fill="#6ee7b7"/>
-                        <circle cx="23" cy="38" r="3" fill="#065f46"/>
-                        <circle cx="23" cy="38" r="1.5" fill="#6ee7b7"/>
-                        {/* 상태 dot */}
-                        <circle cx="28" cy="3" r="3.5" fill="white"/>
-                        <circle cx="28" cy="3" r="2.5" fill={sm.color}/>
-                      </svg>
-                      <div className="text-center mt-0.5">
-                        <div className={"text-[9px] font-bold tnum whitespace-nowrap "+(isFocus?"text-slate-900":"text-slate-600")}>{r.id}</div>
-                        <div className="text-[8px] text-emerald-600 whitespace-nowrap">{attachedCart.id}</div>
-                      </div>
-                    </div>
-                  ):(
-                    /* ── 일반 로봇 아이콘 ── */
-                    <>
-                      {r.st==="run"&&isVis&&<div className="absolute w-8 h-8 rounded-full pulse-ring border-2" style={{borderColor:fm.color,left:-16,top:-16}}/>}
-                      <div className={"w-8 h-8 rounded-full grid place-items-center shadow-md border-2 text-white relative "+(isFocus?"scale-125 z-10 ring-4 ring-blue-300/40":"")} style={{background:fm.color,borderColor:"white"}}>
-                        <Icon name={r.id.startsWith("Part")?"Cog":"Bot"} size={13}/>
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white" style={{background:sm.color}}/>
-                      </div>
-                      <div className={"absolute top-full left-1/2 -translate-x-1/2 mt-1 text-[10px] font-semibold tnum whitespace-nowrap px-1 rounded "+(isFocus?"bg-slate-900 text-white":"text-slate-700")}>{r.id}</div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
 
             {/* Tool Cart 아이콘 - cart 레이어 ON + (Delivery-Tool fleet 선택 OR 에러) */}
             {layers.has("cart")&&carts.map(cart=>{
@@ -1821,7 +1771,6 @@ function MonitoringHome({ onNavigate }) {
             )}
             </div>{/* /변환 레이어 */}
           </div>{/* /mapCanvasRef */}
-        </div>
         </div>{/* /map-view */}
       </div>{/* /map-container */}
 
