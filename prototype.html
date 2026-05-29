@@ -551,7 +551,7 @@ function CommandPalette({ open, onClose, onJump }) {
   const sections = [
     { title:"템플릿", icon:"Workflow",
       items: recipes.filter(r=>!q||r.name.toLowerCase().includes(ql)).slice(0,5).map(r=>({
-        key:"r-"+r.id, left:r.name, right:r.id, jump:{view:"schedule",payload:{focusRecipeId:r.id}}
+        key:"r-"+r.id, left:r.name, right:r.id, jump:{view:"schedule",payload:{focusRecipe:r.id}}
       }))
     },
     { title:"로봇", icon:"Bot",
@@ -576,7 +576,7 @@ function CommandPalette({ open, onClose, onJump }) {
           <kbd className="font-mono text-[10.5px] bg-slate-50 border border-slate-200 rounded px-1.5 py-px text-slate-500">ESC</kbd>
         </div>
         <div className="max-h-[380px] overflow-y-auto py-2">
-          {sections.length===0 && <div className="px-4 py-8 text-center text-[13px] text-slate-400">결과가 없습니다.</div>}
+          {sections.length===0&&<div className="px-4 py-8 text-center text-[13px] text-slate-400">결과가 없습니다.</div>}
           {sections.map(s=>(
             <div key={s.title} className="mb-1">
               <div className="px-4 pt-2 pb-1 text-[10.5px] font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -588,7 +588,7 @@ function CommandPalette({ open, onClose, onJump }) {
                   <Icon name={s.icon} size={14} className="text-slate-400 group-hover:text-blue-600"/>
                   <span className="text-[13px] text-slate-900 flex-1">{it.left}</span>
                   <span className="text-[11.5px] text-slate-400 tnum">{it.right}</span>
-                  <Icon name="CornerDownLeft" size={12} className="text-slate-300 group-hover:text-blue-500"/>
+                  <Icon name="CornerDownLeft" size={12} className="text-slate-300 group-hover:text-blue-400"/>
                 </button>
               ))}
             </div>
@@ -599,9 +599,6 @@ function CommandPalette({ open, onClose, onJump }) {
   );
 }
 
-/* ══════════════════════════════════════════
-   MONITORING HOME
-══════════════════════════════════════════ */
 function KpiCard({ label, value, trend, icon, tone }) {
   const tc = {emerald:"text-emerald-500 bg-emerald-50",blue:"text-blue-500 bg-blue-50",slate:"text-slate-500 bg-slate-100",rose:"text-rose-500 bg-rose-50"}[tone];
   const up = trend&&trend.startsWith("+")&&!trend.startsWith("+0");
@@ -766,9 +763,7 @@ function ManualTab({ sel }) {
       </div>
     </div>
   );
-}
-
-function MonitoringHome({ onNavigate }) {
+}({ onNavigate }) {
   const [focusRobot, setFocusRobot] = useState(null);
   const [statusFilter, setStatusFilter] = useState(new Set());
   const [fleetFilter, setFleetFilter] = useState(new Set());
