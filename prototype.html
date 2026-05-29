@@ -763,7 +763,9 @@ function ManualTab({ sel }) {
       </div>
     </div>
   );
-}({ onNavigate }) {
+}
+
+function MonitoringHome({ onNavigate }) {
   const [focusRobot, setFocusRobot] = useState(null);
   const [statusFilter, setStatusFilter] = useState(new Set());
   const [fleetFilter, setFleetFilter] = useState(new Set());
