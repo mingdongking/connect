@@ -1876,7 +1876,7 @@ function MonitoringHome({ onNavigate }) {
           {/* Tab header */}
           <div className="h-11 px-3 border-b border-slate-200 flex items-center gap-1 shrink-0">
             <button onClick={()=>setCmdTab("command")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="command"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Terminal" size={13}/> Command</button>
-            <button onClick={()=>setCmdTab("props")} className={"relative h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="props"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Info" size={13}/> Properties{(mapRobots.some(r=>r.st==="down")||pendingManual.length>0)&&<span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse"/>}</button>
+            <button onClick={()=>setCmdTab("props")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="props"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Info" size={13}/> Properties</button>
             <button onClick={()=>setPanelOpen(false)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500"><Icon name="X" size={13}/></button>
           </div>
           {/* Tab body */}
@@ -2084,6 +2084,37 @@ function MonitoringHome({ onNavigate }) {
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {/* ── 선택된 대상 표시 (간략 요약) ── */}
+                {!focusCart&&(sel||selectedNodeId||selectedEdgeId)&&(
+                  <div className="rounded-lg border bg-white p-2.5 flex items-center gap-2.5"
+                    style={{borderColor: sel ? (fleets.find(f=>f.id===sel.fleet)?.color+"60"||"#e2e8f0") : selectedNodeId ? "#bfdbfe" : "#e9d5ff"}}>
+                    {sel ? (<>
+                      <div className="w-8 h-8 rounded-lg grid place-items-center text-white shrink-0" style={{background:fleets.find(f=>f.id===sel.fleet)?.color||"#64748b"}}>
+                        <Icon name={sel.id.startsWith("Part")?"Cog":"Bot"} size={14}/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] font-bold text-slate-900">{sel.id}</span>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{background:statusMap[sel.st]?.bg,color:statusMap[sel.st]?.fg}}>{statusMap[sel.st]?.label}</span>
+                        </div>
+                        <div className="text-[10.5px] text-slate-500 tnum">{fleets.find(f=>f.id===sel.fleet)?.name} {"·"} 배터리 {sel.battery}%</div>
+                      </div>
+                    </>) : selectedNodeId ? (<>
+                      <div className="w-8 h-8 rounded-lg bg-blue-600 grid place-items-center text-white shrink-0"><Icon name="MapPin" size={14}/></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-bold text-slate-900">{mapNodes.find(n=>n.id===selectedNodeId)?.label}</div>
+                        <div className="text-[10.5px] text-slate-500 tnum">Node {selectedNodeId}</div>
+                      </div>
+                    </>) : (<>
+                      <div className="w-8 h-8 rounded-lg bg-purple-600 grid place-items-center text-white shrink-0"><Icon name="ArrowRight" size={14}/></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-bold text-slate-900">{selectedEdgeId}</div>
+                        <div className="text-[10.5px] text-slate-500">엣지 선택됨</div>
+                      </div>
+                    </>)}
+                    <button onClick={()=>{setFocusRobot(null);setSelectedNodeId(null);setSelectedEdgeId(null);}} className="w-6 h-6 grid place-items-center rounded hover:bg-slate-100 text-slate-400 shrink-0"><Icon name="X" size={11}/></button>
+                  </div>
+                )}
                 {/* ── 오류 로봇 조치 (down 상태 로봇 선택 시 우선 표시) ── */}
                 {sel&&sel.st==="down"&&(()=>{
                   const stoppedOrder=initOrders.find(o=>o.robotId===sel.id&&o.status==="running");
@@ -2501,28 +2532,6 @@ function MonitoringHome({ onNavigate }) {
                           </div>
                         </div>
                       )}
-
-                      {/* 이용 이력 */}
-                      <div className="rounded-xl border border-slate-200 overflow-hidden">
-                        <button onClick={()=>setCartHistoryOpen(o=>!o)}
-                          className="w-full px-2.5 py-2 bg-slate-50 flex items-center justify-between hover:bg-slate-100 transition">
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">이용 이력</div>
-                          <Icon name={cartHistoryOpen?"ChevronUp":"ChevronDown"} size={12} className="text-slate-400"/>
-                        </button>
-                        {cartHistoryOpen&&(
-                          <div className="divide-y divide-slate-100">
-                            {cart.history.map((h,i)=>(
-                              <div key={i} className="px-2.5 py-2 flex items-start gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 mt-1.5"/>
-                                <div>
-                                  <div className="text-[11.5px] text-slate-700">{h.msg}</div>
-                                  <div className="text-[10px] text-slate-400 tnum mt-0.5">{h.ts}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
                     </div>
                   );
                 })()}
@@ -2620,52 +2629,6 @@ function MonitoringHome({ onNavigate }) {
                 })()}
 
 
-                {/* ── 선택된 대상 표시 ── */}
-                {!focusCart&&(sel||selectedNodeId||selectedEdgeId) ? (
-                  <div className="rounded-lg border bg-white p-2.5 flex items-center gap-2.5"
-                    style={{borderColor: sel ? (fleets.find(f=>f.id===sel.fleet)?.color+"60"||"#e2e8f0") : selectedNodeId ? "#bfdbfe" : "#e9d5ff"}}>
-                    {sel ? (<>
-                      <div className="w-8 h-8 rounded-lg grid place-items-center text-white shrink-0" style={{background:fleets.find(f=>f.id===sel.fleet)?.color||"#64748b"}}>
-                        <Icon name={sel.id.startsWith("Part")?"Cog":"Bot"} size={14}/>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[13px] font-bold text-slate-900">{sel.id}</span>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{background:statusMap[sel.st]?.bg,color:statusMap[sel.st]?.fg}}>{statusMap[sel.st]?.label}</span>
-                        </div>
-                        <div className="text-[10.5px] text-slate-500 tnum">{fleets.find(f=>f.id===sel.fleet)?.name} {"·"} 배터리 {sel.battery}%</div>
-                      </div>
-                    </>) : selectedNodeId ? (<>
-                      <div className="w-8 h-8 rounded-lg bg-blue-600 grid place-items-center text-white shrink-0"><Icon name="MapPin" size={14}/></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-bold text-slate-900">{mapNodes.find(n=>n.id===selectedNodeId)?.label}</div>
-                        <div className="text-[10.5px] text-slate-500 tnum">Node {selectedNodeId}</div>
-                      </div>
-                    </>) : (<>
-                      <div className="w-8 h-8 rounded-lg bg-purple-600 grid place-items-center text-white shrink-0"><Icon name="ArrowRight" size={14}/></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-bold text-slate-900">{selectedEdgeId}</div>
-                        <div className="text-[10.5px] text-slate-500">엣지 선택됨</div>
-                      </div>
-                    </>)}
-                    {(((sel?1:0)+(selectedNodeId?1:0)+(selectedEdgeId?1:0))>1)&&(
-                      <button onClick={()=>setMultiDetailOpen(o=>!o)} title={multiDetailOpen?"상세 접기":"상세 펼치기"}
-                        className="w-6 h-6 grid place-items-center rounded hover:bg-slate-100 text-slate-400 shrink-0"><Icon name={multiDetailOpen?"ChevronUp":"ChevronDown"} size={13}/></button>
-                    )}
-                    <button onClick={()=>{setFocusRobot(null);setSelectedNodeId(null);setSelectedEdgeId(null);}} className="w-6 h-6 grid place-items-center rounded hover:bg-slate-100 text-slate-400 shrink-0"><Icon name="X" size={11}/></button>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-slate-200 p-2.5 flex items-center gap-2 text-[11.5px] text-slate-400">
-                    <Icon name="MousePointerClick" size={13}/>
-                    맵에서 로봇 / 노드 / 엣지 / Cart를 클릭하세요
-                  </div>
-                )}
-                {(((sel?1:0)+(selectedNodeId?1:0)+(selectedEdgeId?1:0))>1)&&!multiDetailOpen&&(
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] text-slate-500 flex items-center gap-1.5">
-                    <Icon name="Layers" size={12} className="shrink-0"/>
-                    <span><span className="font-semibold text-slate-700">{(sel?1:0)+(selectedNodeId?1:0)+(selectedEdgeId?1:0)}개</span> 항목 선택됨 · 상세는 펼치기 아이콘을 누르세요</span>
-                  </div>
-                )}
                 {/* ── 노드 Properties ── */}
                 {selectedNodeId && (((sel?1:0)+(selectedNodeId?1:0)+(selectedEdgeId?1:0))<=1||multiDetailOpen) && (() => {
                   const node = mapNodes.find(n=>n.id===selectedNodeId);
@@ -2857,30 +2820,6 @@ function MonitoringHome({ onNavigate }) {
                     <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">맵에서 노드{"·"}엣지{"·"}로봇을<br/>클릭하면 속성이 표시됩니다.</div>
                   </div>
                 ) : (<>
-                  {/* 오류 정보 (down 상태일 때만) */}
-                  {sel.st==="down"&&(
-                    <div className="rounded-md border-2 border-rose-300 bg-rose-50 overflow-hidden">
-                      <div className="px-2.5 py-2 bg-rose-100 border-b border-rose-200 flex items-center gap-1.5">
-                        <Icon name="AlertOctagon" size={13} className="text-rose-600 shrink-0"/>
-                        <div className="text-[12px] font-bold text-rose-800">오류 감지</div>
-                        <span className="ml-auto text-[10px] font-semibold text-rose-500 tnum">13:40:12</span>
-                      </div>
-                      <div className="p-2.5 space-y-2">
-                        <div>
-                          <div className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-1">Error Code</div>
-                          <div className="font-mono text-[12.5px] font-bold text-rose-700 bg-rose-100 px-2 py-1 rounded">OBS_402</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-1">원인</div>
-                          <div className="text-[12px] text-rose-800">장애물 감지 — 경로 재계산 실패</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-1">마지막 위치</div>
-                          <div className="text-[11.5px] text-rose-700 tnum font-medium">X{sel.x} · Y{sel.y}</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   {/* 현재 위치 (3-1) */}
                   {(()=>{
                     const nn=mapNodes.reduce((b,n)=>{const d=Math.hypot(n.x-sel.x,n.y-sel.y);return(!b||d<b.d)?{n:n,d:d}:b;},null);
@@ -2900,8 +2839,8 @@ function MonitoringHome({ onNavigate }) {
                       </div>
                     );
                   })()}
-                  {/* 오더 현황 (3-2: 에러 조치 스타일) */}
-                  {(()=>{
+                  {/* 작업 현황 (정상 로봇만 표시 — down 로봇은 오류 조치의 중단 오더와 중복) */}
+                  {sel.st!=="down"&&(()=>{
                     const runOrder=initOrders.find(o=>o.robotId===sel.id&&o.status==="running");
                     const runRecipe=runOrder?recipes.find(r=>r.id===runOrder.recipeId):null;
                     const otherOrders=initOrders.filter(o=>o.robotId===sel.id&&o.status!=="running").slice(0,4);
