@@ -803,6 +803,8 @@ function MonitoringHome({ onNavigate }) {
   const [manualCompletedOrders, setManualCompletedOrders] = useState(new Set());
   const [propOrderOpen, setPropOrderOpen] = useState(false);
   const [paramOpen, setParamOpen] = useState(false);
+  const [cartNotHereOpen, setCartNotHereOpen] = useState(false);
+  const [cartReportedMissing, setCartReportedMissing] = useState(new Set());
   const [multiDetailOpen, setMultiDetailOpen] = useState(false);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
   const [dispatchTasks, setDispatchTasks] = useState(true);
@@ -1125,6 +1127,25 @@ function MonitoringHome({ onNavigate }) {
         </div>{/* /flex-col gap-3 */}
       </div>
 
+      {/* 툴카트 위치 확인 팝업 */}
+      {cartNotHereOpen&&(
+        <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setCartNotHereOpen(false)}>
+          <div className="w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 text-center">
+              <div className="w-11 h-11 mx-auto rounded-full bg-amber-50 grid place-items-center mb-3">
+                <Icon name="MapPin" size={20} className="text-amber-500"/>
+              </div>
+              <div className="text-[14px] font-semibold text-slate-900">이 위치에 tool cart가 없나요?</div>
+            </div>
+            <div className="grid grid-cols-2 border-t border-slate-100">
+              <button onClick={()=>setCartNotHereOpen(false)}
+                className="h-11 text-[13px] font-medium text-slate-500 hover:bg-slate-50 transition border-r border-slate-100">아니오</button>
+              <button onClick={()=>{if(focusCart) setCartReportedMissing(prev=>new Set([...prev,focusCart]));setCartNotHereOpen(false);}}
+                className="h-11 text-[13px] font-semibold text-amber-600 hover:bg-amber-50 transition">네</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Map full width */}
       {mapFullscreen&&!editMode&&<div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={()=>{setMapFullscreen(false);setEditMode(false);}}/>}
       <div className={mapFullscreen
@@ -1760,6 +1781,7 @@ function MonitoringHome({ onNavigate }) {
               const CART_LABELS={idle:"대기",resv:"예약",trns:"이송",waiting:"수령대기",inuse:"사용중",inuser:"반납중",notuse:"사용불가"};
               const color=CART_COLORS[cart.status]||"#94a3b8";
               const isFocused=focusCart===cart.id;
+              const isDisabled=cartReportedMissing.has(cart.id);
               const relRobot=cart.robotId?mapRobots.find(r=>r.id===cart.robotId):null;
               const isAttached=cart.status==="trns"&&relRobot&&relRobot.st!=="down";
               const isError=cart.status==="trns"&&relRobot?.st==="down";
@@ -1779,13 +1801,14 @@ function MonitoringHome({ onNavigate }) {
                   style={{left:displayX,top:displayY,zIndex:5}}>
                   {isFocused&&<div className="absolute rounded-full border-2 border-dashed" style={{borderColor:color,left:-16,top:-16,width:32,height:32}}/>}
                   <div className={"w-8 h-8 rounded-lg grid place-items-center border-2 shadow-sm "+(isFocused?"ring-2 scale-110":"")}
-                    style={{background:isError?"#fef2f2":color+"22",borderColor:isError?"#dc2626":color}}>
-                    <Icon name="ShoppingCart" size={13} style={{color:isError?"#dc2626":color}}/>
+                    style={{background:isDisabled?"#f1f5f9":isError?"#fef2f2":color+"22",borderColor:isDisabled?"#cbd5e1":isError?"#dc2626":color,opacity:isDisabled?0.6:1,filter:isDisabled?"grayscale(1)":"none"}}>
+                    <Icon name="ShoppingCart" size={13} style={{color:isDisabled?"#94a3b8":isError?"#dc2626":color}}/>
                   </div>
-                  {isError&&<div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold">!</div>}
+                  {isDisabled&&<div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-400 rounded-full flex items-center justify-center text-white"><Icon name="Ban" size={9}/></div>}
+                  {isError&&!isDisabled&&<div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold">!</div>}
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 text-center whitespace-nowrap">
-                    <div className="text-[9px] font-bold" style={{color}}>{cart.id}</div>
-                    <div className="text-[7.5px]" style={{color,opacity:0.8}}>{CART_LABELS[cart.status]}</div>
+                    <div className="text-[9px] font-bold" style={{color:isDisabled?"#94a3b8":color}}>{cart.id}</div>
+                    <div className="text-[7.5px]" style={{color:isDisabled?"#94a3b8":color,opacity:0.8}}>{isDisabled?"비활성":CART_LABELS[cart.status]}</div>
                   </div>
                 </div>
               );
@@ -2459,7 +2482,19 @@ function MonitoringHome({ onNavigate }) {
                         const cnn=mapNodes.reduce((b,n)=>{const d=Math.hypot(n.x-cart.x,n.y-cart.y);return(!b||d<b.d)?{n:n,d:d}:b;},null);
                         return(
                           <div className="rounded-xl border border-slate-200 p-2.5">
-                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">현재 위치</div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">현재 위치</div>
+                              {cartReportedMissing.has(cart.id) ? (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md border border-rose-300 bg-rose-50 text-rose-700 flex items-center gap-1">
+                                  <Icon name="Ban" size={10}/> 비활성화됨
+                                </span>
+                              ) : (
+                                <button onClick={()=>setCartNotHereOpen(true)}
+                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition flex items-center gap-1">
+                                  <Icon name="MapPin" size={10}/> 이 위치에 없어요!
+                                </button>
+                              )}
+                            </div>
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                               <div>
                                 <div className="text-[10px] text-slate-500">좌표 (X, Y)</div>
