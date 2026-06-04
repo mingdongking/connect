@@ -802,6 +802,7 @@ function MonitoringHome({ onNavigate }) {
   const [pendingManual, setPendingManual] = useState([]);
   const [manualCompletedOrders, setManualCompletedOrders] = useState(new Set());
   const [propOrderOpen, setPropOrderOpen] = useState(false);
+  const [paramOpen, setParamOpen] = useState(false);
   const [multiDetailOpen, setMultiDetailOpen] = useState(false);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
   const [dispatchTasks, setDispatchTasks] = useState(true);
@@ -1573,6 +1574,8 @@ function MonitoringHome({ onNavigate }) {
                     onClick={()=>{
                       setSelectedEdgeId(isSel?null:e.id);
                       setSelectedNodeId(null);
+                      setFocusRobot(null);
+                      setFocusCart(null);
                       setPanelOpen(true); setCmdTab("props");
                     }}
                     onDoubleClick={()=>{
@@ -1581,6 +1584,8 @@ function MonitoringHome({ onNavigate }) {
                       setEditTab("edge");
                       setSelectedEdgeId(e.id);
                       setSelectedNodeId(null);
+                      setFocusRobot(null);
+                      setFocusCart(null);
                       setPanelOpen(true);
                       setCmdTab("props");
                     }}>
@@ -1622,6 +1627,8 @@ function MonitoringHome({ onNavigate }) {
                   onClick={()=>{
                     setSelectedNodeId(isSelNode ? null : node.id);
                     setSelectedEdgeId(null);
+                    setFocusRobot(null);
+                    setFocusCart(null);
                     setMoveTarget(node.id);
                     setPanelOpen(true);
                     setCmdTab(isSelNode ? cmdTab : "props");
@@ -1632,6 +1639,8 @@ function MonitoringHome({ onNavigate }) {
                     setEditTab("node");
                     setSelectedNodeId(node.id);
                     setSelectedEdgeId(null);
+                    setFocusRobot(null);
+                    setFocusCart(null);
                     setPanelOpen(true);
                     setCmdTab("props");
                   }}>
@@ -1682,14 +1691,18 @@ function MonitoringHome({ onNavigate }) {
                     // 결합 아이콘 클릭 → Properties 탭, 로봇+카트 동시 표시
                     setFocusRobot(r.id);
                     setFocusCart(attachedCart.id);
+                    setSelectedNodeId(null);
+                    setSelectedEdgeId(null);
                     setPanelOpen(true);
                     setCmdTab("props");
                   } else {
                     const newFocus = focusRobot===r.id ? null : r.id;
                     setFocusRobot(newFocus);
                     setFocusCart(null);
+                    setSelectedNodeId(null);
+                    setSelectedEdgeId(null);
                     setPanelOpen(true);
-                    setCmdTab("command");
+                    setCmdTab(r.st==="down"?"props":"command");
                     if(newFocus){onCmdFleetChange(r.fleet);setManualRobot(r.id);}
                   }
                 }}
@@ -1767,7 +1780,7 @@ function MonitoringHome({ onNavigate }) {
               const displayY=isError&&relRobot?relRobot.y-10:cart.y;
               return(
                 <div key={cart.id}
-                  onClick={()=>{setFocusCart(cart.id);setFocusRobot(null);setPanelOpen(true);setCmdTab("command");setCartHistoryOpen(false);}}
+                  onClick={()=>{setFocusCart(cart.id);setFocusRobot(null);setSelectedNodeId(null);setSelectedEdgeId(null);setPanelOpen(true);setCmdTab("props");setCartHistoryOpen(false);}}
                   className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none"
                   style={{left:displayX,top:displayY,zIndex:5}}>
                   {isFocused&&<div className="absolute rounded-full border-2 border-dashed" style={{borderColor:color,left:-16,top:-16,width:32,height:32}}/>}
@@ -1863,159 +1876,214 @@ function MonitoringHome({ onNavigate }) {
           {/* Tab header */}
           <div className="h-11 px-3 border-b border-slate-200 flex items-center gap-1 shrink-0">
             <button onClick={()=>setCmdTab("command")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="command"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Terminal" size={13}/> Command</button>
-            <button onClick={()=>setCmdTab("props")} className={"h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="props"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Info" size={13}/> Properties</button>
+            <button onClick={()=>setCmdTab("props")} className={"relative h-8 px-3 rounded text-[12.5px] font-medium flex items-center gap-1.5 "+(cmdTab==="props"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}><Icon name="Info" size={13}/> Properties{(mapRobots.some(r=>r.st==="down")||pendingManual.length>0)&&<span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse"/>}</button>
             <button onClick={()=>setPanelOpen(false)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500"><Icon name="X" size={13}/></button>
           </div>
           {/* Tab body */}
           <div className="flex-1 overflow-y-auto">
             {cmdTab==="command" ? (
               <div className="p-3 space-y-2.5">
-                {/* ── Cart Properties (단독 선택 시) ── */}
-                {focusCart&&!focusRobot&&(()=>{
-                  const cart=carts.find(c=>c.id===focusCart);
-                  if(!cart)return null;
-                  const CART_COLORS={idle:"#94a3b8",resv:"#3b82f6",trns:"#10b981",waiting:"#f59e0b",inuse:"#22c55e",inuser:"#8b5cf6",notuse:"#475569"};
-                  const CART_LABELS={idle:"대기",resv:"예약중",trns:"이송중",waiting:"수령 대기",inuse:"사용중",inuser:"반납중",notuse:"사용불가"};
-                  const color=CART_COLORS[cart.status]||"#94a3b8";
-                  const relOrder=initOrders.find(o=>o.id===cart.orderId);
-                  const relRecipe=relOrder?recipes.find(r=>r.id===relOrder.recipeId):null;
-                  const relRobot=cart.robotId?mapRobots.find(r=>r.id===cart.robotId):null;
-                  const isErrorCart=cart.status==="trns"&&relRobot?.st==="down";
-                  const orderCancelled=relRobot?cancelledErrorRobots.has(relRobot.id):false;
-                  const destNode=mapNodes.find(n=>n.id===cart.destNodeId);
-                  return(
-                    <div className="space-y-2">
-                      {/* 헤더 카드 */}
-                      <div className="rounded-xl border overflow-hidden" style={{borderColor:color+"55"}}>
-                        <div className="px-3 py-2.5 flex items-center gap-2.5" style={{background:color+"15"}}>
-                          <div className="w-9 h-9 rounded-lg grid place-items-center shrink-0" style={{background:color+"22",border:`1.5px solid ${color}55`}}>
-                            <Icon name="ShoppingCart" size={16} style={{color}}/>
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-[13px] font-bold text-slate-900">{cart.id}</div>
-                            <div className="text-[11px] font-semibold mt-px" style={{color}}>{CART_LABELS[cart.status]}</div>
-                          </div>
-                          {isErrorCart&&(
-                            <span className="text-[10px] font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
-                              <Icon name="AlertTriangle" size={9}/>에러
-                            </span>
-                          )}
-                          <button onClick={()=>setFocusCart(null)} className="w-6 h-6 grid place-items-center rounded hover:bg-black/10 text-slate-500 shrink-0">
-                            <Icon name="X" size={12}/>
-                          </button>
-                        </div>
-                        <div className="px-3 py-2 divide-y divide-slate-100">
-                          {[
-                            ["위치", isErrorCart?"에러 발생 위치":(destNode?.label||cart.destNodeId||"대기장소")],
-                            ["연결 로봇", relRobot?`${relRobot.id}${relRobot.st==="down"?" (⚠ 오류)":""}`:"-"],
-                            ["목적지", destNode?.label||cart.destNodeId||"-"],
-                          ].map(([l,v])=>(
-                            <div key={l} className="flex justify-between items-center py-1.5">
-                              <span className="text-[10.5px] text-slate-400">{l}</span>
-                              <span className={"text-[11.5px] font-semibold "+(l==="연결 로봇"&&relRobot?.st==="down"?"text-rose-600":"text-slate-700")}>{v}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
 
-                      {/* 현재 위치 (3-3) */}
-                      {(()=>{
-                        const cnn=mapNodes.reduce((b,n)=>{const d=Math.hypot(n.x-cart.x,n.y-cart.y);return(!b||d<b.d)?{n:n,d:d}:b;},null);
-                        return(
-                          <div className="rounded-xl border border-slate-200 p-2.5">
-                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">현재 위치</div>
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                              <div>
-                                <div className="text-[10px] text-slate-500">좌표 (X, Y)</div>
-                                <div className="text-[12px] font-semibold text-slate-900 tnum">{Math.round(cart.x)}, {Math.round(cart.y)}</div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-slate-500">근처 노드</div>
-                                <div className="text-[12px] font-semibold text-slate-900 truncate">{cnn?(cnn.n.label+" ("+cnn.n.id+")"):"-"}</div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                {/* 선택 초기화 버튼 */}
+                <button
+                  onClick={()=>{
+                    // 맵 선택 초기화
+                    setFocusRobot(null);
+                    setSelectedNodeId(null);
+                    setSelectedEdgeId(null);
+                    setMoveTarget("");
+                    // Command 패널 초기화
+                    setCmdFleet(fleets[0].id);
+                    setManualRobot("");
+                    setManualRecipe("");
+                    setManualPriority("normal");
+                    setCmdPickNode("");
+                    setCmdDropNode("");
+                    setCmdCartId("");
+                    setCmdPassId("");
+                    setCmdUserId("");
+                    setStopMode("정상 종료");
+                  }}
+                  className="w-full h-8 rounded-md border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-[12px] font-medium flex items-center justify-center gap-1.5 transition">
+                  <Icon name="RotateCcw" size={12}/> 선택 초기화
+                </button>
 
-                      {/* 연결 오더 */}
-                      {relOrder&&(
-                        <div className="rounded-xl border border-slate-200 overflow-hidden">
-                          <div className="px-2.5 py-2 bg-slate-50 border-b border-slate-100">
-                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">연결 오더</div>
-                          </div>
-                          <div className="p-2.5 space-y-2">
-                            <div className="flex items-start gap-2">
-                              <Icon name="ClipboardList" size={12} className="text-slate-400 shrink-0 mt-0.5"/>
-                              <div>
-                                <div className="text-[12px] font-semibold text-slate-800">{relRecipe?.name||relOrder.recipeId}</div>
-                                <div className="text-[10.5px] text-slate-500 tnum">{relOrder.id}</div>
-                              </div>
-                            </div>
-                            {isErrorCart&&!orderCancelled&&(
-                              <div className="flex items-start gap-1.5 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
-                                <Icon name="AlertTriangle" size={11} className="text-rose-500 shrink-0 mt-0.5"/>
-                                <div className="text-[11px] text-rose-700 leading-relaxed">
-                                  이송 중 에러발생.<br/>
-                                  조치 후 <span className="font-semibold">{relRobot?.id}</span>에 할당되어 있는 Order를 우선 취소해주세요.
-                                </div>
-                              </div>
-                            )}
-                            {isErrorCart&&orderCancelled&&(
-                              <div className="flex items-start gap-1.5 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
-                                <Icon name="AlertTriangle" size={11} className="text-rose-500 shrink-0 mt-0.5"/>
-                                <div className="text-[11px] text-rose-700 leading-relaxed">
-                                  이송 중 에러 발생.<br/>
-                                  <span className="font-semibold">오퍼레이터 직접 배송 후<br/>Manual Complete</span> 처리하세요.
-                                </div>
-                              </div>
-                            )}
-                            {(isErrorCart||cart.status==="trns")&&(
-                              <button disabled={isErrorCart&&!orderCancelled} onClick={()=>{
-                                if(isErrorCart&&!orderCancelled) return;
-                                setCarts(cs=>cs.map(c=>c.id===cart.id
-                                  ?{...c,status:"waiting",robotId:null,history:[{ts:"지금",msg:"Manual Complete — 오퍼레이터 직접 배송 완료"},...c.history]}
-                                  :c));
-                                if(relOrder) setPendingManual(prev=>prev.filter(p=>p.orderId!==relOrder.id));
-                                if(cart&&cart.orderId) setPendingManual(prev=>prev.filter(p=>p.orderId!==cart.orderId));
-                                if(relOrder) setManualCompletedOrders(prev=>new Set([...prev,relOrder.id]));
-                                if(cart&&cart.orderId) setManualCompletedOrders(prev=>new Set([...prev,cart.orderId]));
-                                setFocusCart(null);
-                              }}
-                              className={"w-full h-8 rounded-lg text-white text-[12px] font-bold flex items-center justify-center gap-1.5 transition "+(isErrorCart&&!orderCancelled?"bg-slate-300 cursor-not-allowed":"bg-emerald-600 hover:bg-emerald-700")}>
-                                <Icon name="CheckCircle2" size={12}/>
-                                Manual Complete
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                {/* Fleet 선택 드롭다운 */}
+                <div className="relative">
+                  <select value={cmdFleet} onChange={e=>onCmdFleetChange(e.target.value)}
+                    className="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-200 bg-white text-[13px] font-semibold text-slate-800 outline-none appearance-none focus:border-blue-400 transition"
+                    style={{borderLeftWidth:3, borderLeftColor: fleets.find(f=>f.id===cmdFleet)?.color||"#94a3b8"}}>
+                    {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                  <Icon name="ChevronDown" size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                </div>
 
-                      {/* 이용 이력 */}
-                      <div className="rounded-xl border border-slate-200 overflow-hidden">
-                        <button onClick={()=>setCartHistoryOpen(o=>!o)}
-                          className="w-full px-2.5 py-2 bg-slate-50 flex items-center justify-between hover:bg-slate-100 transition">
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">이용 이력</div>
-                          <Icon name={cartHistoryOpen?"ChevronUp":"ChevronDown"} size={12} className="text-slate-400"/>
-                        </button>
-                        {cartHistoryOpen&&(
-                          <div className="divide-y divide-slate-100">
-                            {cart.history.map((h,i)=>(
-                              <div key={i} className="px-2.5 py-2 flex items-start gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 mt-1.5"/>
-                                <div>
-                                  <div className="text-[11.5px] text-slate-700">{h.msg}</div>
-                                  <div className="text-[10px] text-slate-400 tnum mt-0.5">{h.ts}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                {/* 작업 요청하기 */}
+                <CmdSection icon="Send" tone="blue" title="작업 요청하기" subtitle="선택된 Fleet 로봇에 작업을 요청합니다">
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
+                    <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
+                      <option value="normal">일반</option>
+                      <option value="urgent">긴급</option>
+                    </CmdSelectField>
+                  </div>
+
+                  {/* Semi-x 전용: 템플릿 선택 */}
+                  {cmdFleet==="semi"&&(
+                    <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
+                      <option value="">템플릿 선택</option>
+                      {recipes.filter(r=>r.fleet==="semi"&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}{"·"}{recipeDuration(r)}분</option>)}
+                    </CmdSelectField>
+                  )}
+
+                  {/* Delivery-Tool */}
+                  {cmdFleet==="amr"&&(<>
+                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                      <CmdSelectField label="Pick" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                      <CmdSelectField label="Drop" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
                     </div>
-                  );
-                })()}
+                    <div className="mt-1.5">
+                      <CmdSelectField label="Cart" value={cmdCartId} onChange={e=>setCmdCartId(e.target.value)}>
+                        <option value="">Tool Cart 선택</option>
+                        {["TC-001·CPT","TC-002·CTR","TC-003·CBT","TC-004·CLV","TC-005·CPS"].map(c=><option key={c} value={c}>{c}</option>)}
+                      </CmdSelectField>
+                    </div>
+                  </>)}
 
+                  {/* Ride */}
+                  {cmdFleet==="agv"&&(<>
+                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                      <CmdSelectField label="승차" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                      <CmdSelectField label="하차" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                    </div>
+                    <input value={cmdPassId} onChange={e=>setCmdPassId(e.target.value)} placeholder="승객 ID (사번)"
+                      className="w-full h-7 px-2.5 mt-1.5 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
+                  </>)}
+
+                  {/* Delivery-Parts */}
+                  {cmdFleet==="arm"&&(<>
+                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                      <CmdSelectField label="Pick" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                      <CmdSelectField label="Drop" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
+                        <option value="">위치 선택</option>
+                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                      </CmdSelectField>
+                    </div>
+                    <input value={cmdUserId} onChange={e=>setCmdUserId(e.target.value)} placeholder="사용자 ID"
+                      className="w-full h-7 px-2.5 mt-1.5 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
+                  </>)}
+
+                  {(()=>{
+                    const isDelivery = ["amr","agv","arm"].includes(cmdFleet);
+                    const canDispatch = isDelivery ? (cmdPickNode&&cmdDropNode) : manualRecipe;
+                    return (
+                      <button onClick={()=>{
+                        if(!canDispatch) return;
+                        const robot = robots.find(r=>r.id===manualRobot);
+                        const recipe = recipes.find(r=>r.id===manualRecipe);
+                        const recipeName = isDelivery
+                          ? (cmdFleet==="amr"?"Delivery-Tool 기본 템플릿":cmdFleet==="agv"?"Ride 기본 템플릿":"Delivery-Parts 기본 템플릿")
+                          : recipe?.name||manualRecipe;
+                        if(robot?.st==="run"&&robot?.recipe){
+                          onNavigate("popup",{popup:{type:"cmd-queue",data:{newRecipe:recipeName}}});
+                        }
+                      }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(canDispatch?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
+                        <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 작업 요청하기":"작업 요청하기"}
+                      </button>
+                    );
+                  })()}
+                </CmdSection>
+
+                <CmdSection icon="Square" tone="rose" title="작업 중단하기" subtitle="진행 중인 작업을 중단합니다">
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
+                  </div>
+                  {/* 현재 수행 중 작업 표시 */}
+                  {(()=>{
+                    const selRobot = mapRobots.find(r=>r.id===manualRobot);
+                    if(!selRobot||selRobot.st!=="run") return (
+                      <div className="mb-2 px-2.5 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <Icon name="Info" size={11}/> 가동 중인 로봇을 선택하세요
+                      </div>
+                    );
+                    return (
+                      <div className="mb-2 px-2.5 py-2 rounded-lg bg-rose-50 border border-rose-200">
+                        <div className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-1">현재 수행 중</div>
+                        <div className="flex items-center gap-1.5">
+                          <Icon name="Activity" size={12} className="text-rose-500 shrink-0"/>
+                          <span className="text-[12px] font-semibold text-rose-900 truncate">{selRobot.recipe||selRobot.task||"—"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-[10.5px] text-rose-600">
+                          <span className="tnum">Task: {selRobot.task}</span>
+                          <span className="ml-auto tnum">진행률 {selRobot.progress}%</span>
+                        </div>
+                        <div className="mt-1.5 h-1 bg-rose-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-rose-500 rounded-full" style={{width:selRobot.progress+"%"}}/>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <button className="w-full h-8 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition">
+                    <Icon name="Square" size={12}/> 즉시 종료
+                  </button>
+                </CmdSection>
+
+                <CmdSection icon="Navigation" tone="indigo" title="노드 이동하기" subtitle="대상 스테이션으로 이동">
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
+                  </div>
+                  <div className="relative">
+                    <select value={moveTarget} onChange={e=>setMoveTarget(e.target.value)}
+                      className={"w-full h-8 rounded-md border bg-white text-[12px] outline-none appearance-none pr-7 focus:border-blue-400 "+(moveTarget?"pl-2.5 border-blue-400 text-blue-700 font-medium":"pl-2.5 border-slate-200 text-slate-800")}>
+                      <option value="">목적지 선택</option>
+                      {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+                    </select>
+                    <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                  </div>
+                  {moveTarget&&<div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-blue-600 bg-blue-50 rounded px-2 py-1"><Icon name="MapPin" size={10}/><span>선택됨: <strong>{mapNodes.find(n=>n.id===moveTarget)?.label}</strong></span></div>}
+                  <button className="w-full h-8 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Navigation" size={12}/> 이동 시작</button>
+                </CmdSection>
+
+                <CmdSection icon="BatteryCharging" tone="emerald" title="충전하기" subtitle="충전 스테이션으로 복귀">
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                    </CmdSelectField>
+                  </div>
+                  <CmdSelectField label="충전소" value="auto" onChange={()=>{}}>
+                    <option value="auto">자동 선택 (최단경로)</option>
+                    {stations.filter(s=>s.type==="charge").map(s=><option key={s.code} value={s.code}>{s.name}</option>)}
+                  </CmdSelectField>
+                  {sel&&<div className="mt-2 flex items-center gap-2 text-[10.5px] text-slate-500"><span>{sel.id} 배터리</span><div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:sel.battery+"%",background:sel.battery>50?"#10b981":sel.battery>25?"#f59e0b":"#e11d48"}}/></div><span className="tnum font-medium text-slate-700">{sel.battery}%</span></div>}
+                  <button className="w-full h-8 mt-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="BatteryCharging" size={12}/> 충전 시작</button>
+                </CmdSection>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
                 {/* ── 오류 로봇 조치 (down 상태 로봇 선택 시 우선 표시) ── */}
                 {sel&&sel.st==="down"&&(()=>{
                   const stoppedOrder=initOrders.find(o=>o.robotId===sel.id&&o.status==="running");
@@ -2276,7 +2344,7 @@ function MonitoringHome({ onNavigate }) {
                                           화물이 적재된 상태입니다.<br/>
                                           <span className="font-semibold">작업자가 cart를 목적지까지 직접 이동</span> 후 아래 방법으로 처리하세요.<br/>
                                           <span className="font-semibold text-emerald-700">방법①</span> 작업 현황 → 목록 확인하기에서 해당 작업을 Manual Complete 하세요.<br/>
-                                          <span className="font-semibold text-emerald-700">방법②</span> 직접 배송해야 할 Cart를 맵에서 클릭하여, Command 영역에서 Manual Complete 하세요.
+                                          <span className="font-semibold text-emerald-700">방법②</span> 직접 배송해야 할 Cart를 맵에서 클릭하여, Properties 영역에서 Manual Complete 하세요.
                                         </div>
                                       </div>
                                       <button onClick={()=>{
@@ -2296,7 +2364,6 @@ function MonitoringHome({ onNavigate }) {
                                         setErrorStep(2);
                                         setFocusRobot(null);
                                         setFocusCart(null);
-                                        setCmdTab("command");
                                       }}
                                         className="w-full h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-bold flex items-center justify-center gap-1.5 transition">
                                         <Icon name="ClipboardList" size={12}/>
@@ -2314,206 +2381,152 @@ function MonitoringHome({ onNavigate }) {
                   );
                 })()}
 
-                {/* 선택 초기화 버튼 */}
-                <button
-                  onClick={()=>{
-                    // 맵 선택 초기화
-                    setFocusRobot(null);
-                    setSelectedNodeId(null);
-                    setSelectedEdgeId(null);
-                    setMoveTarget("");
-                    // Command 패널 초기화
-                    setCmdFleet(fleets[0].id);
-                    setManualRobot("");
-                    setManualRecipe("");
-                    setManualPriority("normal");
-                    setCmdPickNode("");
-                    setCmdDropNode("");
-                    setCmdCartId("");
-                    setCmdPassId("");
-                    setCmdUserId("");
-                    setStopMode("정상 종료");
-                  }}
-                  className="w-full h-8 rounded-md border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-[12px] font-medium flex items-center justify-center gap-1.5 transition">
-                  <Icon name="RotateCcw" size={12}/> 선택 초기화
-                </button>
-
-                {/* Fleet 선택 드롭다운 */}
-                <div className="relative">
-                  <select value={cmdFleet} onChange={e=>onCmdFleetChange(e.target.value)}
-                    className="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-200 bg-white text-[13px] font-semibold text-slate-800 outline-none appearance-none focus:border-blue-400 transition"
-                    style={{borderLeftWidth:3, borderLeftColor: fleets.find(f=>f.id===cmdFleet)?.color||"#94a3b8"}}>
-                    {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
-                  <Icon name="ChevronDown" size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                </div>
-
-                {/* 작업 요청하기 */}
-                <CmdSection icon="Send" tone="blue" title="작업 요청하기" subtitle="선택된 Fleet 로봇에 작업을 요청합니다">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
-                    </CmdSelectField>
-                    <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
-                      <option value="normal">일반</option>
-                      <option value="urgent">긴급</option>
-                    </CmdSelectField>
-                  </div>
-
-                  {/* Semi-x 전용: 템플릿 선택 */}
-                  {cmdFleet==="semi"&&(
-                    <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
-                      <option value="">템플릿 선택</option>
-                      {recipes.filter(r=>r.fleet==="semi"&&r.status==="published"&&!r.locked).map(r=><option key={r.id} value={r.id}>{r.name}{"·"}{recipeDuration(r)}분</option>)}
-                    </CmdSelectField>
-                  )}
-
-                  {/* Delivery-Tool */}
-                  {cmdFleet==="amr"&&(<>
-                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                      <CmdSelectField label="Pick" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
-                        <option value="">위치 선택</option>
-                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                      <CmdSelectField label="Drop" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
-                        <option value="">위치 선택</option>
-                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                    </div>
-                    <div className="mt-1.5">
-                      <CmdSelectField label="Cart" value={cmdCartId} onChange={e=>setCmdCartId(e.target.value)}>
-                        <option value="">Tool Cart 선택</option>
-                        {["TC-001·CPT","TC-002·CTR","TC-003·CBT","TC-004·CLV","TC-005·CPS"].map(c=><option key={c} value={c}>{c}</option>)}
-                      </CmdSelectField>
-                    </div>
-                  </>)}
-
-                  {/* Ride */}
-                  {cmdFleet==="agv"&&(<>
-                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                      <CmdSelectField label="승차" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
-                        <option value="">위치 선택</option>
-                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                      <CmdSelectField label="하차" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
-                        <option value="">위치 선택</option>
-                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                    </div>
-                    <input value={cmdPassId} onChange={e=>setCmdPassId(e.target.value)} placeholder="승객 ID (사번)"
-                      className="w-full h-7 px-2.5 mt-1.5 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
-                  </>)}
-
-                  {/* Delivery-Parts */}
-                  {cmdFleet==="arm"&&(<>
-                    <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                      <CmdSelectField label="Pick" value={cmdPickNode} onChange={e=>setCmdPickNode(e.target.value)}>
-                        <option value="">위치 선택</option>
-                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                      <CmdSelectField label="Drop" value={cmdDropNode} onChange={e=>setCmdDropNode(e.target.value)}>
-                        <option value="">위치 선택</option>
-                        {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                      </CmdSelectField>
-                    </div>
-                    <input value={cmdUserId} onChange={e=>setCmdUserId(e.target.value)} placeholder="사용자 ID"
-                      className="w-full h-7 px-2.5 mt-1.5 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
-                  </>)}
-
-                  {(()=>{
-                    const isDelivery = ["amr","agv","arm"].includes(cmdFleet);
-                    const canDispatch = isDelivery ? (cmdPickNode&&cmdDropNode) : manualRecipe;
-                    return (
-                      <button onClick={()=>{
-                        if(!canDispatch) return;
-                        const robot = robots.find(r=>r.id===manualRobot);
-                        const recipe = recipes.find(r=>r.id===manualRecipe);
-                        const recipeName = isDelivery
-                          ? (cmdFleet==="amr"?"Delivery-Tool 기본 템플릿":cmdFleet==="agv"?"Ride 기본 템플릿":"Delivery-Parts 기본 템플릿")
-                          : recipe?.name||manualRecipe;
-                        if(robot?.st==="run"&&robot?.recipe){
-                          onNavigate("popup",{popup:{type:"cmd-queue",data:{newRecipe:recipeName}}});
-                        }
-                      }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(canDispatch?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
-                        <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 작업 요청하기":"작업 요청하기"}
-                      </button>
-                    );
-                  })()}
-                </CmdSection>
-
-                <CmdSection icon="Square" tone="rose" title="작업 중단하기" subtitle="진행 중인 작업을 중단합니다">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
-                    </CmdSelectField>
-                  </div>
-                  {/* 현재 수행 중 작업 표시 */}
-                  {(()=>{
-                    const selRobot = mapRobots.find(r=>r.id===manualRobot);
-                    if(!selRobot||selRobot.st!=="run") return (
-                      <div className="mb-2 px-2.5 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-[11px] text-slate-400 flex items-center gap-1.5">
-                        <Icon name="Info" size={11}/> 가동 중인 로봇을 선택하세요
-                      </div>
-                    );
-                    return (
-                      <div className="mb-2 px-2.5 py-2 rounded-lg bg-rose-50 border border-rose-200">
-                        <div className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide mb-1">현재 수행 중</div>
-                        <div className="flex items-center gap-1.5">
-                          <Icon name="Activity" size={12} className="text-rose-500 shrink-0"/>
-                          <span className="text-[12px] font-semibold text-rose-900 truncate">{selRobot.recipe||selRobot.task||"—"}</span>
+                {/* ── Cart Properties (단독 선택 시) ── */}
+                {focusCart&&!focusRobot&&(()=>{
+                  const cart=carts.find(c=>c.id===focusCart);
+                  if(!cart)return null;
+                  const CART_COLORS={idle:"#94a3b8",resv:"#3b82f6",trns:"#10b981",waiting:"#f59e0b",inuse:"#22c55e",inuser:"#8b5cf6",notuse:"#475569"};
+                  const CART_LABELS={idle:"대기",resv:"예약중",trns:"이송중",waiting:"수령 대기",inuse:"사용중",inuser:"반납중",notuse:"사용불가"};
+                  const color=CART_COLORS[cart.status]||"#94a3b8";
+                  const relOrder=initOrders.find(o=>o.id===cart.orderId);
+                  const relRecipe=relOrder?recipes.find(r=>r.id===relOrder.recipeId):null;
+                  const relRobot=cart.robotId?mapRobots.find(r=>r.id===cart.robotId):null;
+                  const isErrorCart=cart.status==="trns"&&relRobot?.st==="down";
+                  const orderCancelled=relRobot?cancelledErrorRobots.has(relRobot.id):false;
+                  const destNode=mapNodes.find(n=>n.id===cart.destNodeId);
+                  return(
+                    <div className="space-y-2">
+                      {/* 헤더 카드 */}
+                      <div className="rounded-xl border overflow-hidden" style={{borderColor:color+"55"}}>
+                        <div className="px-3 py-2.5 flex items-center gap-2.5" style={{background:color+"15"}}>
+                          <div className="w-9 h-9 rounded-lg grid place-items-center shrink-0" style={{background:color+"22",border:`1.5px solid ${color}55`}}>
+                            <Icon name="ShoppingCart" size={16} style={{color}}/>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[13px] font-bold text-slate-900">{cart.id}</div>
+                            <div className="text-[11px] font-semibold mt-px" style={{color}}>{CART_LABELS[cart.status]}</div>
+                          </div>
+                          {isErrorCart&&(
+                            <span className="text-[10px] font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
+                              <Icon name="AlertTriangle" size={9}/>에러
+                            </span>
+                          )}
+                          <button onClick={()=>setFocusCart(null)} className="w-6 h-6 grid place-items-center rounded hover:bg-black/10 text-slate-500 shrink-0">
+                            <Icon name="X" size={12}/>
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-[10.5px] text-rose-600">
-                          <span className="tnum">Task: {selRobot.task}</span>
-                          <span className="ml-auto tnum">진행률 {selRobot.progress}%</span>
-                        </div>
-                        <div className="mt-1.5 h-1 bg-rose-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-rose-500 rounded-full" style={{width:selRobot.progress+"%"}}/>
+                        <div className="px-3 py-2 divide-y divide-slate-100">
+                          {[
+                            ["위치", isErrorCart?"에러 발생 위치":(destNode?.label||cart.destNodeId||"대기장소")],
+                            ["연결 로봇", relRobot?`${relRobot.id}${relRobot.st==="down"?" (⚠ 오류)":""}`:"-"],
+                            ["목적지", destNode?.label||cart.destNodeId||"-"],
+                          ].map(([l,v])=>(
+                            <div key={l} className="flex justify-between items-center py-1.5">
+                              <span className="text-[10.5px] text-slate-400">{l}</span>
+                              <span className={"text-[11.5px] font-semibold "+(l==="연결 로봇"&&relRobot?.st==="down"?"text-rose-600":"text-slate-700")}>{v}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })()}
-                  <button className="w-full h-8 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition">
-                    <Icon name="Square" size={12}/> 즉시 종료
-                  </button>
-                </CmdSection>
 
-                <CmdSection icon="Navigation" tone="indigo" title="노드 이동하기" subtitle="대상 스테이션으로 이동">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
-                    </CmdSelectField>
-                  </div>
-                  <div className="relative">
-                    <select value={moveTarget} onChange={e=>setMoveTarget(e.target.value)}
-                      className={"w-full h-8 rounded-md border bg-white text-[12px] outline-none appearance-none pr-7 focus:border-blue-400 "+(moveTarget?"pl-2.5 border-blue-400 text-blue-700 font-medium":"pl-2.5 border-slate-200 text-slate-800")}>
-                      <option value="">목적지 선택</option>
-                      {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
-                    </select>
-                    <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                  </div>
-                  {moveTarget&&<div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-blue-600 bg-blue-50 rounded px-2 py-1"><Icon name="MapPin" size={10}/><span>선택됨: <strong>{mapNodes.find(n=>n.id===moveTarget)?.label}</strong></span></div>}
-                  <button className="w-full h-8 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Navigation" size={12}/> 이동 시작</button>
-                </CmdSection>
+                      {/* 현재 위치 (3-3) */}
+                      {(()=>{
+                        const cnn=mapNodes.reduce((b,n)=>{const d=Math.hypot(n.x-cart.x,n.y-cart.y);return(!b||d<b.d)?{n:n,d:d}:b;},null);
+                        return(
+                          <div className="rounded-xl border border-slate-200 p-2.5">
+                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">현재 위치</div>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                              <div>
+                                <div className="text-[10px] text-slate-500">좌표 (X, Y)</div>
+                                <div className="text-[12px] font-semibold text-slate-900 tnum">{Math.round(cart.x)}, {Math.round(cart.y)}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] text-slate-500">근처 노드</div>
+                                <div className="text-[12px] font-semibold text-slate-900 truncate">{cnn?(cnn.n.label+" ("+cnn.n.id+")"):"-"}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
-                <CmdSection icon="BatteryCharging" tone="emerald" title="충전하기" subtitle="충전 스테이션으로 복귀">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
-                    <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
-                    </CmdSelectField>
-                  </div>
-                  <CmdSelectField label="충전소" value="auto" onChange={()=>{}}>
-                    <option value="auto">자동 선택 (최단경로)</option>
-                    {stations.filter(s=>s.type==="charge").map(s=><option key={s.code} value={s.code}>{s.name}</option>)}
-                  </CmdSelectField>
-                  {sel&&<div className="mt-2 flex items-center gap-2 text-[10.5px] text-slate-500"><span>{sel.id} 배터리</span><div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:sel.battery+"%",background:sel.battery>50?"#10b981":sel.battery>25?"#f59e0b":"#e11d48"}}/></div><span className="tnum font-medium text-slate-700">{sel.battery}%</span></div>}
-                  <button className="w-full h-8 mt-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="BatteryCharging" size={12}/> 충전 시작</button>
-                </CmdSection>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                      {/* 연결 오더 */}
+                      {relOrder&&(
+                        <div className="rounded-xl border border-slate-200 overflow-hidden">
+                          <div className="px-2.5 py-2 bg-slate-50 border-b border-slate-100">
+                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">연결 오더</div>
+                          </div>
+                          <div className="p-2.5 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <Icon name="ClipboardList" size={12} className="text-slate-400 shrink-0 mt-0.5"/>
+                              <div>
+                                <div className="text-[12px] font-semibold text-slate-800">{relRecipe?.name||relOrder.recipeId}</div>
+                                <div className="text-[10.5px] text-slate-500 tnum">{relOrder.id}</div>
+                              </div>
+                            </div>
+                            {isErrorCart&&!orderCancelled&&(
+                              <div className="flex items-start gap-1.5 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
+                                <Icon name="AlertTriangle" size={11} className="text-rose-500 shrink-0 mt-0.5"/>
+                                <div className="text-[11px] text-rose-700 leading-relaxed">
+                                  이송 중 에러발생.<br/>
+                                  조치 후 <span className="font-semibold">{relRobot?.id}</span>에 할당되어 있는 Order를 우선 취소해주세요.
+                                </div>
+                              </div>
+                            )}
+                            {isErrorCart&&orderCancelled&&(
+                              <div className="flex items-start gap-1.5 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
+                                <Icon name="AlertTriangle" size={11} className="text-rose-500 shrink-0 mt-0.5"/>
+                                <div className="text-[11px] text-rose-700 leading-relaxed">
+                                  이송 중 에러 발생.<br/>
+                                  <span className="font-semibold">오퍼레이터 직접 배송 후<br/>Manual Complete</span> 처리하세요.
+                                </div>
+                              </div>
+                            )}
+                            {(isErrorCart||cart.status==="trns")&&(
+                              <button disabled={isErrorCart&&!orderCancelled} onClick={()=>{
+                                if(isErrorCart&&!orderCancelled) return;
+                                setCarts(cs=>cs.map(c=>c.id===cart.id
+                                  ?{...c,status:"waiting",robotId:null,history:[{ts:"지금",msg:"Manual Complete — 오퍼레이터 직접 배송 완료"},...c.history]}
+                                  :c));
+                                if(relOrder) setPendingManual(prev=>prev.filter(p=>p.orderId!==relOrder.id));
+                                if(cart&&cart.orderId) setPendingManual(prev=>prev.filter(p=>p.orderId!==cart.orderId));
+                                if(relOrder) setManualCompletedOrders(prev=>new Set([...prev,relOrder.id]));
+                                if(cart&&cart.orderId) setManualCompletedOrders(prev=>new Set([...prev,cart.orderId]));
+                                setFocusCart(null);
+                              }}
+                              className={"w-full h-8 rounded-lg text-white text-[12px] font-bold flex items-center justify-center gap-1.5 transition "+(isErrorCart&&!orderCancelled?"bg-slate-300 cursor-not-allowed":"bg-emerald-600 hover:bg-emerald-700")}>
+                                <Icon name="CheckCircle2" size={12}/>
+                                Manual Complete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 이용 이력 */}
+                      <div className="rounded-xl border border-slate-200 overflow-hidden">
+                        <button onClick={()=>setCartHistoryOpen(o=>!o)}
+                          className="w-full px-2.5 py-2 bg-slate-50 flex items-center justify-between hover:bg-slate-100 transition">
+                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">이용 이력</div>
+                          <Icon name={cartHistoryOpen?"ChevronUp":"ChevronDown"} size={12} className="text-slate-400"/>
+                        </button>
+                        {cartHistoryOpen&&(
+                          <div className="divide-y divide-slate-100">
+                            {cart.history.map((h,i)=>(
+                              <div key={i} className="px-2.5 py-2 flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 mt-1.5"/>
+                                <div>
+                                  <div className="text-[11.5px] text-slate-700">{h.msg}</div>
+                                  <div className="text-[10px] text-slate-400 tnum mt-0.5">{h.ts}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
 
                 {/* ── 결합 Properties (이송중 로봇+Cart 동시 선택) ── */}
                 {focusRobot&&focusCart&&(()=>{
@@ -2844,15 +2857,6 @@ function MonitoringHome({ onNavigate }) {
                     <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">맵에서 노드{"·"}엣지{"·"}로봇을<br/>클릭하면 속성이 표시됩니다.</div>
                   </div>
                 ) : (<>
-                  <div className="rounded-md border border-slate-200 p-2.5">
-                    <div className="text-[10.5px] font-medium text-slate-400 uppercase tracking-wider mb-1.5">Specification</div>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                      {[["모델",sel.id.startsWith("Tool")?"MiR250":sel.id.startsWith("AGV")?"RXC-3000":"UR10e"],["Fleet",fleets.find(f=>f.id===sel.fleet)?.name],["펌웨어","v3.14.2"],["IP","10.42.1."+(40+parseInt(sel.id.slice(-2)||0))],["배터리",sel.battery+"%"],["가동시간","14h 22m"]].map(([l,v])=>(
-                        <div key={l}><div className="text-[10px] text-slate-500">{l}</div><div className="text-[12px] font-medium text-slate-900 truncate tnum">{v}</div></div>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* 오류 정보 (down 상태일 때만) */}
                   {sel.st==="down"&&(
                     <div className="rounded-md border-2 border-rose-300 bg-rose-50 overflow-hidden">
@@ -2904,7 +2908,7 @@ function MonitoringHome({ onNavigate }) {
                     const reqArr=["USR-019","USR-042","USR-007"];
                     return(
                       <div className="rounded-md border border-slate-200 overflow-hidden">
-                        <div className="px-2.5 py-2 border-b border-slate-200"><div className="text-[12px] font-semibold text-slate-900">오더 현황</div></div>
+                        <div className="px-2.5 py-2 border-b border-slate-200"><div className="text-[12px] font-semibold text-slate-900">작업 현황</div></div>
                         {runOrder?(
                           <div className="p-2.5 border-b border-slate-100">
                             <div className="flex items-center gap-2">
@@ -3008,58 +3012,70 @@ function MonitoringHome({ onNavigate }) {
                     );
                   })()}
 
-                  {/* Commission 설정 */}
+                  {/* Commission / Parameter 설정 (병합, 접이식) */}
                   <div className="rounded-md border border-slate-200 overflow-hidden">
-                    <div className="px-2.5 py-2 bg-slate-50 border-b border-slate-200">
-                      <div className="text-[12px] font-semibold text-slate-800">Commission 설정</div>
-                      <div className="text-[10.5px] text-amber-600 mt-0.5 flex items-start gap-1 leading-snug">
-                        <Icon name="AlertTriangle" size={10} className="shrink-0 mt-px"/>
-                        수동 Order·노드 이동 시 Decommission으로 변경하세요.
-                      </div>
-                    </div>
-                    <div className="p-2.5 flex items-center gap-2">
-                      {[{id:"commission",label:"Commission",icon:"CheckCircle2",cl:"text-emerald-700 bg-emerald-50 border-emerald-400"},
-                        {id:"decommission",label:"Decommission",icon:"XCircle",cl:"text-rose-700 bg-rose-50 border-rose-400"}].map(o=>(
-                        <button key={o.id} onClick={()=>setCommission(o.id)}
-                          className={"flex-1 h-9 rounded-lg border-2 text-[11.5px] font-semibold flex items-center justify-center gap-1.5 transition "+(commission===o.id?o.cl:"border-slate-200 bg-white text-slate-500 hover:border-slate-300")}>
-                          <Icon name={o.icon} size={12}/>{o.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Parameter 설정 */}
-                  <div className="rounded-md border border-slate-200 p-2.5 space-y-3">
-                    <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Parameter 설정</div>
-                    <div className="rounded-md border border-slate-200 px-2.5 divide-y divide-slate-100">
-                      {[["Dispatch Tasks",dispatchTasks,setDispatchTasks],["Direct Tasks",directTasks,setDirectTasks],["Idle Behavior",idleBehavior,setIdleBehavior]].map(([label,val,set])=>(
-                        <div key={label} className="flex items-center justify-between py-2.5">
-                          <span className="text-[12px] text-slate-800">{label}</span>
-                          <button onClick={()=>set(!val)}
-                            className={"w-9 h-5 rounded-full relative transition-colors shrink-0 "+(val?"bg-blue-500":"bg-slate-300")}>
-                            <div className={"absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all "+(val?"left-4":"left-0.5")}/>
+                    <button onClick={()=>setParamOpen(o=>!o)}
+                      className="w-full px-2.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2 hover:bg-slate-100 transition">
+                      <span className="text-[12px] font-semibold text-slate-800">Commission 설정</span>
+                      <span className={"ml-auto text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 "+(commission==="commission"?"text-emerald-700 bg-emerald-50":"text-rose-700 bg-rose-50")}>
+                        <Icon name={commission==="commission"?"CheckCircle2":"XCircle"} size={11}/>
+                        {commission==="commission"?"Commission":"Decommission"}
+                      </span>
+                      <Icon name={paramOpen?"ChevronUp":"ChevronDown"} size={14} className="text-slate-400 shrink-0"/>
+                    </button>
+                    {paramOpen&&(
+                      <div className="p-2.5 space-y-3">
+                        {/* Commission / Decommission 선택 */}
+                        <div>
+                          <div className="text-[10.5px] text-amber-600 mb-1.5 flex items-start gap-1 leading-snug">
+                            <Icon name="AlertTriangle" size={10} className="shrink-0 mt-px"/>
+                            수동 Order·노드 이동 시 Decommission으로 변경하세요.
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {[{id:"commission",label:"Commission",icon:"CheckCircle2",cl:"text-emerald-700 bg-emerald-50 border-emerald-400"},
+                              {id:"decommission",label:"Decommission",icon:"XCircle",cl:"text-rose-700 bg-rose-50 border-rose-400"}].map(o=>(
+                              <button key={o.id} onClick={()=>setCommission(o.id)}
+                                className={"flex-1 h-9 rounded-lg border-2 text-[11.5px] font-semibold flex items-center justify-center gap-1.5 transition "+(commission===o.id?o.cl:"border-slate-200 bg-white text-slate-500 hover:border-slate-300")}>
+                                <Icon name={o.icon} size={12}/>{o.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Parameter 설정 */}
+                        <div className="pt-1 border-t border-slate-100 space-y-3">
+                          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Parameter 설정</div>
+                          <div className="rounded-md border border-slate-200 px-2.5 divide-y divide-slate-100">
+                            {[["Dispatch Tasks",dispatchTasks,setDispatchTasks],["Direct Tasks",directTasks,setDirectTasks],["Idle Behavior",idleBehavior,setIdleBehavior]].map(([label,val,set])=>(
+                              <div key={label} className="flex items-center justify-between py-2.5">
+                                <span className="text-[12px] text-slate-800">{label}</span>
+                                <button onClick={()=>set(!val)}
+                                  className={"w-9 h-5 rounded-full relative transition-colors shrink-0 "+(val?"bg-blue-500":"bg-slate-300")}>
+                                  <div className={"absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all "+(val?"left-4":"left-0.5")}/>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {[["Pending Dispatch Tasks Policy",pendingDispatch,setPendingDispatch,["Reassign","Complete","Cancel"]],
+                            ["Pending Direct Tasks Policy",pendingDirect,setPendingDirect,["Complete","Cancel"]]].map(([label,val,set,opts])=>(
+                            <div key={label} className="space-y-1.5">
+                              <div className="text-[11px] font-medium text-slate-500">{label}</div>
+                              <div className="relative">
+                                <select value={val} onChange={e=>set(e.target.value)}
+                                  className="h-8 w-full pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] text-slate-800 outline-none focus:border-blue-400 appearance-none cursor-pointer">
+                                  {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                                </select>
+                                <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={paramApply}
+                            className={"w-full h-9 rounded-md text-[12px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-all "+(paramSaved?"bg-emerald-500 text-white":"bg-amber-500 hover:bg-amber-600 text-white")}>
+                            <Icon name={paramSaved?"Check":"SlidersHorizontal"} size={13}/>
+                            {paramSaved?"적용 완료!":"설정 적용"}
                           </button>
                         </div>
-                      ))}
-                    </div>
-                    {[["Pending Dispatch Tasks Policy",pendingDispatch,setPendingDispatch,["Reassign","Complete","Cancel"]],
-                      ["Pending Direct Tasks Policy",pendingDirect,setPendingDirect,["Complete","Cancel"]]].map(([label,val,set,opts])=>(
-                      <div key={label} className="space-y-1.5">
-                        <div className="text-[11px] font-medium text-slate-500">{label}</div>
-                        <div className="relative">
-                          <select value={val} onChange={e=>set(e.target.value)}
-                            className="h-8 w-full pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] text-slate-800 outline-none focus:border-blue-400 appearance-none cursor-pointer">
-                            {opts.map(o=><option key={o} value={o}>{o}</option>)}
-                          </select>
-                          <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                        </div>
                       </div>
-                    ))}
-                    <button onClick={paramApply}
-                      className={"w-full h-9 rounded-md text-[12px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-all "+(paramSaved?"bg-emerald-500 text-white":"bg-amber-500 hover:bg-amber-600 text-white")}>
-                      <Icon name={paramSaved?"Check":"SlidersHorizontal"} size={13}/>
-                      {paramSaved?"적용 완료!":"설정 적용"}
-                    </button>
+                    )}
                   </div>
                 </>))}
               </div>
