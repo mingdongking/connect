@@ -1115,12 +1115,6 @@ function MonitoringHome({ onNavigate }) {
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          <div onDoubleClick={()=>onNavigate("analytics")}
-            className="cursor-pointer hover:shadow-md transition-all group relative"
-            title="더블클릭 → 통계/분석">
-            <KpiCard label="금일 처리량" value={initOrders.filter(o=>o.status==="done").length+"건"} trend="+12%" icon="TrendingUp" tone="emerald"/>
-            <div className="absolute bottom-2 right-2.5 text-[9.5px] text-slate-300 opacity-0 group-hover:opacity-100 transition flex items-center gap-0.5"><Icon name="MousePointerClick" size={9}/> 더블클릭</div>
-          </div>
           <div onDoubleClick={()=>onNavigate("logs",{logsCat3:"Error"})}
             className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex-1 cursor-pointer hover:border-rose-300 hover:shadow-md transition-all group relative"
             title="더블클릭 → 로그 조회 (Error)">
