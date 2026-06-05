@@ -41,7 +41,7 @@ function render(){
   for(var i=0;i<rows.length;i++){var o=rows[i];var rc=rowClass(o);
         var canCancel=o.status==='running'||o.status==='queued';
     var cancelBtn=canCancel?'<td><button class="cancel-btn" data-oid="'+o.id+'">취소</button></td>':'<td></td>';
-    var dblAttr=rc==='hl-crit'?' ondblclick="openModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 조치"':(rc==='hl-manual'&&o.statusLabel!=='재할당 필요')?' ondblclick="openManualModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 Manual Complete"':'';
+    var dblAttr=rc==='hl-crit'?' ondblclick="openModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 조치"':o.statusLabel==='재할당 필요'?' ondblclick="openModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 재할당"':rc==='hl-manual'?' ondblclick="openManualModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 Manual Complete"':'';
     html+='<tr class="'+rc+'"'+dblAttr+'>'+
     '<td><span class="mono chip" style="background:#eef2ff;color:#4338ca">'+o.id+'</span></td>'+
     '<td><span class="chip" style="background:'+o.fleetColor+'22;color:'+o.fleetColor+'">'+o.fleetName+'</span></td>'+
@@ -140,7 +140,7 @@ function cancelOrder(e,orderId){
 function openModal(orderId){
   var o=null;for(var i=0;i<D.length;i++){if(D[i].id===orderId){o=D[i];break;}}
   if(!o)return;
-  var step=0,selAction='',confirmPending=false,confirmTimer=null;
+  var step=(o.statusLabel==='재할당 필요')?1:0,selAction='',confirmPending=false,confirmTimer=null;
   var availRobots=[];
   D.forEach(function(x){if(x.fleetName===o.fleetName&&x.robotSt==='idle'&&x.robotId!==o.robotId&&availRobots.indexOf(x.robotId)<0)availRobots.push(x.robotId);});
 
