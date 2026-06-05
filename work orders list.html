@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>작업 현황 목록</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#f8fafc;color:#1e293b;font-size:13px}.hdr{padding:12px 20px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.06)}.badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}.tb2{padding:8px 20px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:57px;z-index:19}.srch{height:30px;padding:0 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155;outline:none;min-width:170px}.srch:focus{border-color:#93c5fd}select{height:30px;padding:0 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155;cursor:pointer;outline:none;min-width:100px}.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#eff6ff;color:#1d4ed8;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer}.tag:hover{background:#dbeafe}.tags{display:flex;flex-wrap:wrap;gap:4px;flex:1}.wrap{padding:16px 20px}table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07)}th{padding:9px 11px;font-size:11px;font-weight:600;color:#64748b;text-align:left;white-space:nowrap;background:#f8fafc;border-bottom:2px solid #e2e8f0;cursor:pointer;user-select:none}th:hover{background:#f1f5f9;color:#334155}th.asc:after{content:" ▲";font-size:9px}th.desc:after{content:" ▼";font-size:9px}td{padding:8px 11px;font-size:12px;color:#334155;white-space:nowrap;border-bottom:1px solid #f1f5f9}tr:hover td{background:#f8fafc}tr.hl-crit td{background:#fff1f2}tr.hl-crit:hover td{background:#ffe4e6}tr.hl-fail td{background:#fff8f0}tr.hl-fail:hover td{background:#fff1e0}
+tr.hl-manual td{background:#f0fdf4}tr.hl-manual:hover td{background:#dcfce7}
+tr.hl-manual{cursor:pointer}tr.hl-crit{cursor:pointer}.chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}.mono{font-family:monospace}.cancel-btn{height:24px;padding:0 10px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;color:#64748b;cursor:pointer}.cancel-btn:hover{border-color:#fca5a5;color:#dc2626}
+.manual-btn{height:24px;padding:0 10px;background:#059669;border:none;border-radius:6px;font-size:11px;color:#fff;cursor:pointer;font-weight:600}.manual-btn:hover{background:#047857}.nodata{text-align:center;padding:40px;color:#94a3b8}.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:center;justify-content:center}.modal{background:#fff;border-radius:16px;width:440px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden}.modal-hdr{padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px}.modal-body{padding:20px}.modal-foot{padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;gap:8px;justify-content:flex-end}.radio-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:.15s;margin-bottom:8px}.radio-item:hover{border-color:#93c5fd;background:#f0f7ff}.radio-item.sel{border-color:#2563eb;background:#eff6ff}.radio-item input{accent-color:#2563eb;width:16px;height:16px}.btn-pri{height:36px;padding:0 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}.btn-pri:hover{background:#1d4ed8}.btn-pri:disabled{opacity:.4;cursor:not-allowed}.btn-sec{height:36px;padding:0 16px;background:#fff;color:#475569;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer}.btn-sec:hover{background:#f1f5f9}</style></head><body>
+<div class="hdr"><span style="font-size:15px;font-weight:700">작업 현황 목록</span><span style="font-size:11px;color:#94a3b8;margin-left:4px">금일 기준</span><div style="margin-left:auto;display:flex;gap:6px" id="hdr-badges"></div></div>
+<div class="tb2"><input id="srch" class="srch" placeholder="작업 / Fleet / Robot ID 검색..." oninput="onSearch()"/><label style="font-size:11px;font-weight:600;color:#64748b">Fleet</label><select id="flt" multiple size="1"><option value="">전체</option></select><label style="font-size:11px;font-weight:600;color:#64748b">로봇</label><select id="rbt" multiple size="1"><option value="">전체</option></select><label style="font-size:11px;font-weight:600;color:#64748b">로봇상태</label><select id="rst" multiple size="1"><option value="">전체</option></select><label style="font-size:11px;font-weight:600;color:#64748b">작업상태</label><select id="ost" multiple size="1"><option value="">전체</option></select><button onclick="clearAll()" style="margin-left:8px;height:30px;padding:0 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#64748b;cursor:pointer">초기화</button><div class="tags" id="tags" style="margin-left:auto"></div></div>
+<div class="wrap"><table><thead><tr><th onclick="srt('id')" id="h-id">작업 ID</th><th onclick="srt('fleetName')" id="h-fleetName">Fleet</th><th onclick="srt('robotId')" id="h-robotId">Robot ID</th><th onclick="srt('robotSt')" id="h-robotSt">로봇 상태</th><th onclick="srt('recipeName')" id="h-recipeName">작업명</th><th onclick="srt('cartId')" id="h-cartId">운반체 ID</th><th onclick="srt('status')" id="h-status">작업 상태</th><th onclick="srt('end')" id="h-end" class="desc">종료</th><th onclick="srt('requester')" id="h-requester">요청자</th><th>작업 Manual Cancel</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div id="modal-root"></div>
+<script>
+var D=[{"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": null, "id": "ord-003", "robotId": "Tool001", "robotSt": "run", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "running", "start": 485, "requester": "USR-001"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": "대기", "id": "ord-009", "robotId": "Tool004", "robotSt": "charge", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "공툴 회수", "status": "queued", "start": 520, "requester": "USR-017"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": null, "id": "ord-011", "robotId": "Ride001", "robotSt": "run", "fleetName": "Ride", "fleetColor": "#0ea5e9", "recipeName": "AGV 라인 보충", "status": "running", "start": 542, "requester": "USR-042"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": 472, "statusLabel": null, "id": "ord-001", "robotId": "Tool002", "robotSt": "run", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "done", "start": 440, "requester": "USR-008"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": 492, "statusLabel": null, "id": "ord-005", "robotId": "x001", "robotSt": "run", "fleetName": "SEMI-x", "fleetColor": "#16a34a", "recipeName": "SEMI 검사 이송", "status": "done", "start": 465, "requester": "USR-025"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": 518, "statusLabel": null, "id": "ord-014", "robotId": "Part001", "robotSt": "manual", "fleetName": "Delivery-Parts", "fleetColor": "#7c3aed", "recipeName": "부품 조립 배송", "status": "done", "start": 490, "requester": "USR-033"}, {"stoppedAction": "", "isEarly": false, "cartId": "CART-003", "needsManualComplete": true, "end": null, "statusLabel": "Manual Complete 필요", "id": "ord-018", "robotId": "Tool005", "robotSt": "cancelled", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "running", "start": 560, "requester": "USR-019"}, {"stoppedAction": "", "isEarly": false, "cartId": "CART-002", "needsManualComplete": false, "end": null, "statusLabel": "Manual Complete", "id": "ord-016", "robotId": "Tool003", "robotSt": "cancelled", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "running", "start": 548, "requester": "USR-011"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": "재할당", "id": "ord-007", "robotId": "Tool006", "robotSt": "cancelled", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "running", "start": 535, "requester": "USR-002"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": "시작", "id": "ord-007", "robotId": "Tool003", "robotSt": "idle", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "running", "start": 535, "requester": "USR-002"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": "오더 취소", "id": "ord-012", "robotId": "Ride001", "robotSt": "cancelled", "fleetName": "Ride", "fleetColor": "#0ea5e9", "recipeName": "AGV 라인 보충", "status": "running", "start": 510, "requester": "USR-007"}, {"stoppedAction": "", "isEarly": false, "cartId": "CART-004", "needsManualComplete": false, "end": null, "statusLabel": "Manual Cancel", "id": "ord-020", "robotId": "Tool006", "robotSt": "cancelled", "fleetName": "Delivery-Tool", "fleetColor": "#2563eb", "recipeName": "Delivery-Tool 운반 작업", "status": "running", "start": 570, "requester": "USR-025"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": 581, "statusLabel": "작업 실패 (가용 로봇 없음)", "id": "ord-019", "robotId": "Ride002", "robotSt": "cancelled", "fleetName": "Ride", "fleetColor": "#0ea5e9", "recipeName": "AGV 라인 보충", "status": "error", "start": 555, "requester": "USR-019"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": "대기", "id": "ord-021", "robotId": "x002", "robotSt": "idle", "fleetName": "SEMI-x", "fleetColor": "#16a34a", "recipeName": "SEMI 검사 이송", "status": "queued", "start": 590, "requester": "USR-033"}, {"stoppedAction": "", "isEarly": false, "cartId": null, "needsManualComplete": false, "end": null, "statusLabel": null, "id": "ord-022", "robotId": "PM001", "robotSt": "run", "fleetName": "PM Bot", "fleetColor": "#f97316", "recipeName": "PM 점검 순회", "status": "running", "start": 598, "requester": "USR-008"}];
+var sc='end',sd='desc',ff=[],rf=[],rsf=[],osf=[],srchQ='';
+D.sort(function(a,b){return(b.end||0)-(a.end||0);});
+var uniqF=[];D.forEach(function(o){if(o.fleetName&&uniqF.indexOf(o.fleetName)<0)uniqF.push(o.fleetName);});
+var fltEl=document.getElementById('flt');
+uniqF.forEach(function(f){var op=document.createElement('option');op.value=f;op.textContent=f;fltEl.appendChild(op);});
+var rstEl=document.getElementById('rst'),ostEl=document.getElementById('ost');var uniqRs=[],uniqOs=[];D.forEach(function(o){var rl=rstLabel(o.robotSt);if(rl&&uniqRs.indexOf(rl)<0)uniqRs.push(rl);var ol=sl(o);if(ol&&uniqOs.indexOf(ol)<0)uniqOs.push(ol);});uniqRs.forEach(function(v){var op=document.createElement('option');op.value=v;op.textContent=v;rstEl.appendChild(op);});uniqOs.forEach(function(v){var op=document.createElement('option');op.value=v;op.textContent=v;ostEl.appendChild(op);});
+var cnt={running:0,queued:0,done:0,error:0};
+D.forEach(function(o){if(cnt[o.status]!==undefined)cnt[o.status]++;});
+var bdg=document.getElementById('hdr-badges');
+bdg.innerHTML='<span class="badge" style="background:#eff6ff;color:#1d4ed8">진행중 '+cnt.running+'</span><span class="badge" style="background:#fffbeb;color:#92400e">대기 '+cnt.queued+'</span><span class="badge" style="background:#ecfdf5;color:#065f46">완료 '+cnt.done+'</span><span class="badge" style="background:#fef2f2;color:#991b1b">실패 '+cnt.error+'</span>';
+function ft(m){if(m==null)return'-';var h=Math.floor(m/60),mn=m%60;return(h<10?'0':'')+h+':'+(mn<10?'0':'')+mn;}
+function rstStyle(s){if(s==='run')return 'color:#1d4ed8;background:#eff6ff';if(s==='charge')return 'color:#7c3aed;background:#f5f3ff';if(s==='down'||s==='error')return 'color:#dc2626;background:#fef2f2';if(s==='cancelled')return 'color:#b45309;background:#fffbeb';return 'color:#475569;background:#f1f5f9';}
+function rstLabel(s){if(s==='run')return '운행중';if(s==='idle')return '대기';if(s==='charge')return '충전중';if(s==='down'||s==='error')return '오류';if(s==='cancelled')return '오더 취소';return s||'--';}
+function ss(o){if(typeof o==='object'){if(o.statusLabel){if(o.statusLabel.indexOf('작업 실패')===0)return 'color:#dc2626;background:#fef2f2';if(o.statusLabel==='Manual Cancel'||o.statusLabel==='오더 취소')return 'color:#dc2626;background:#fef2f2';if(o.statusLabel==='Manual Complete 필요')return 'color:#b45309;background:#fffbeb';if(o.statusLabel==='Manual Complete')return 'color:#065f46;background:#ecfdf5';if(o.statusLabel==='재할당')return 'color:#b45309;background:#fffbeb';if(o.statusLabel==='시작')return 'color:#1d4ed8;background:#eff6ff';return 'color:#7c3aed;background:#f5f3ff';}return ss(o.status);}var s=o;if(s==='running')return 'color:#1d4ed8;background:#eff6ff';if(s==='done')return 'color:#065f46;background:#ecfdf5';if(s==='queued')return 'color:#92400e;background:#fffbeb';if(s==='error')return 'color:#991b1b;background:#fef2f2';return 'color:#475569;background:#f1f5f9';}
+function sl(o){if(typeof o==='object'){if(o.statusLabel)return o.statusLabel;return sl(o.status);}var s=o;if(s==='running')return '진행중';if(s==='done')return '완료';if(s==='queued')return '대기';if(s==='error')return '실패';return '-';}
+function rowClass(o){if(o.needsManualComplete||o.statusLabel==='Manual Complete 필요')return 'hl-manual';if(o.status==='running'&&(o.robotSt==='down'||o.robotSt==='error'))return 'hl-crit';if(o.status==='error')return 'hl-fail';return '';}
+function onSearch(){srchQ=document.getElementById('srch').value.toLowerCase();render();}
+function render(){
+  var rows=[];
+  for(var i=0;i<D.length;i++){var o=D[i];
+    if(srchQ&&o.fleetName.toLowerCase().indexOf(srchQ)<0&&o.robotId.toLowerCase().indexOf(srchQ)<0&&(o.id||'').toLowerCase().indexOf(srchQ)<0)continue;
+    if(ff.length){var ok=false;for(var j=0;j<ff.length;j++){if(ff[j]===o.fleetName)ok=true;}if(!ok)continue;}
+    if(rf.length){var ok=false;for(var j=0;j<rf.length;j++){if(rf[j]===o.robotId)ok=true;}if(!ok)continue;}
+    if(rsf.length){var ok=false;for(var j=0;j<rsf.length;j++){if(rsf[j]===rstLabel(o.robotSt))ok=true;}if(!ok)continue;}
+    if(osf.length){var ok=false;for(var j=0;j<osf.length;j++){if(osf[j]===sl(o))ok=true;}if(!ok)continue;}
+    rows.push(o);
+  }
+  var tb=document.getElementById('tb');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="10" class="nodata">조건에 맞는 데이터가 없습니다.</td></tr>';updateTags();return;}
+  var html='';
+  for(var i=0;i<rows.length;i++){var o=rows[i];var rc=rowClass(o);
+        var canCancel=o.status==='running'||o.status==='queued';
+    var cancelBtn=canCancel?'<td><button class="cancel-btn" data-oid="'+o.id+'">취소</button></td>':'<td></td>';
+    var dblAttr=rc==='hl-crit'?' ondblclick="openModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 조치"':rc==='hl-manual'?' ondblclick="openManualModal(this.dataset.oid)" data-oid="'+o.id+'" title="더블클릭하여 Manual Complete"':'';
+    html+='<tr class="'+rc+'"'+dblAttr+'>'+
+    '<td><span class="mono chip" style="background:#eef2ff;color:#4338ca">'+o.id+'</span></td>'+
+    '<td><span class="chip" style="background:'+o.fleetColor+'22;color:'+o.fleetColor+'">'+o.fleetName+'</span></td>'+
+    '<td><span class="mono chip" style="background:#f1f5f9;color:#334155">'+o.robotId+'</span></td>'+
+    '<td><span class="chip" style="'+rstStyle(o.robotSt)+'">'+rstLabel(o.robotSt)+'</span></td>'+
+    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">'+o.recipeName+'</td>'+'<td>'+(o.cartId?'<span class="mono chip" style="background:#fff7ed;color:#d97706;font-size:11px;padding:2px 6px;border-radius:4px">'+o.cartId+'</span>':'-')+'</td>'+
+    '<td><span class="chip" style="'+ss(o)+'">'+sl(o)+'</span></td>'+
+    '<td class="mono">'+ft(o.end)+'</td>'+
+    '<td class="mono" style="color:#64748b">'+o.requester+'</td>'+cancelBtn+'</tr>';
+  }
+  tb.innerHTML=html;updateTags();
+  var btns=tb.querySelectorAll('.cancel-btn');
+  for(var ci=0;ci<btns.length;ci++){
+    btns[ci].addEventListener('click',function(e){
+      e.stopPropagation();cancelOrder(e,this.dataset.oid);
+    });
+  }
+}
+function srt(col){
+  if(sc===col)sd=sd==='asc'?'desc':'asc';else{sc=col;sd=(col==='end'||col==='start')?'desc':'asc';}
+  D.sort(function(a,b){var av=a[col]!=null?a[col]:-1,bv=b[col]!=null?b[col]:-1;if(typeof av==='string'){av=av.toLowerCase();bv=(b[col]||'').toLowerCase();}return sd==='asc'?(av>bv?1:av<bv?-1:0):(av<bv?1:av>bv?-1:0);});
+  document.querySelectorAll('th').forEach(function(t){t.className='';});
+  var el=document.getElementById('h-'+col);if(el)el.className=sd;render();
+}
+function updateTags(){
+  var t=document.getElementById('tags'),h='';
+  ff.forEach(function(f){h+='<span class="tag" onclick="rmF(this.dataset.v)" data-v="'+f+'">'+f+' x</span>';});
+  rf.forEach(function(r){h+='<span class="tag" onclick="rmR(this.dataset.v)" data-v="'+r+'">'+r+' x</span>';});
+  rsf.forEach(function(r){h+='<span class="tag" style="background:#f5f3ff;color:#7c3aed" onclick="rmRS(this.dataset.v)" data-v="'+r+'">'+r+' x</span>';});
+  osf.forEach(function(r){h+='<span class="tag" style="background:#ecfdf5;color:#065f46" onclick="rmOS(this.dataset.v)" data-v="'+r+'">'+r+' x</span>';});
+  t.innerHTML=h;
+}
+function rmF(f){ff=ff.filter(function(x){return x!==f;});rebuildRobotOpts();syncSel();render();}
+function rmR(r){rf=rf.filter(function(x){return x!==r;});syncSel();render();}
+function rmRS(r){rsf=rsf.filter(function(x){return x!==r;});syncSel();render();}
+function rmOS(r){osf=osf.filter(function(x){return x!==r;});syncSel();render();}
+function clearAll(){ff=[];rf=[];rsf=[];osf=[];srchQ='';document.getElementById('srch').value='';rebuildRobotOpts();syncSel();render();}
+function rebuildRobotOpts(){
+  var sel=document.getElementById('rbt'),prev=rf.slice();
+  while(sel.firstChild)sel.removeChild(sel.firstChild);
+  var a=document.createElement('option');a.value='';a.textContent='전체';sel.appendChild(a);
+  var robots=[];
+  D.forEach(function(o){if(!ff.length||ff.indexOf(o.fleetName)>=0){if(robots.indexOf(o.robotId)<0)robots.push(o.robotId);}});
+  robots.sort().forEach(function(r){var op=document.createElement('option');op.value=r;op.textContent=r;sel.appendChild(op);});
+  rf=prev.filter(function(r){return robots.indexOf(r)>=0;});
+}
+function syncSel(){
+  function sy(id,arr){var opts=document.getElementById(id).options;for(var i=0;i<opts.length;i++)opts[i].selected=arr.indexOf(opts[i].value)>=0;}
+  sy('flt',ff);sy('rbt',rf);sy('rst',rsf);sy('ost',osf);
+}
+document.getElementById('flt').onchange=function(){ff=Array.from(this.options).filter(function(o){return o.selected&&o.value;}).map(function(o){return o.value;});rebuildRobotOpts();render();};
+document.getElementById('rbt').onchange=function(){rf=Array.from(this.options).filter(function(o){return o.selected&&o.value;}).map(function(o){return o.value;});render();};
+document.getElementById('rst').onchange=function(){rsf=Array.from(this.options).filter(function(o){return o.selected&&o.value;}).map(function(o){return o.value;});render();};
+document.getElementById('ost').onchange=function(){osf=Array.from(this.options).filter(function(o){return o.selected&&o.value;}).map(function(o){return o.value;});render();};
+function cancelOrder(e,orderId){
+  e.stopPropagation();
+  var o=null;for(var i=0;i<D.length;i++){if(D[i].id===orderId){o=D[i];break;}}
+  if(!o)return;
+  var mr=document.getElementById('modal-root');
+  function doDismiss(){mr.innerHTML='';}
+  function doConfirm(){
+    D.forEach(function(x){if(x.id===orderId){x.status='error';x.statusLabel='Manual Cancel';}});
+    doDismiss();render();
+  }
+  mr.innerHTML=
+    '<div class="modal-bg"><div class="modal" onclick="event.stopPropagation()">'
+    +'<div class="modal-hdr">'
+    +'<div style="width:36px;height:36px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128465;</div>'
+    +'<div><div style="font-size:14px;font-weight:700;color:#1e293b">오더를 취소하시겠습니까?</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+o.recipeName+' &middot; '+o.id+'</div></div></div>'
+    +'<div class="modal-body">'
+    +'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +'<div><div style="font-size:10px;color:#94a3b8">작업명</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+o.recipeName+'</div></div>'
+    +'<div><div style="font-size:10px;color:#94a3b8">Robot</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+o.robotId+'</div></div>'
+    +'<div><div style="font-size:10px;color:#94a3b8">요청자</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+o.requester+'</div></div>'
+    +'<div><div style="font-size:10px;color:#94a3b8">작업상태</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+sl(o)+'</div></div>'
+    +'</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:12px;color:#dc2626">'
+    +'<span style="font-size:15px">&#9888;</span>&nbsp;취소된 오더는 복구할 수 없습니다.</div>'
+    +'</div>'
+    +'<div class="modal-foot" id="cancel-foot">'
+    +'</div>'
+    +'</div></div>';
+  var foot=document.getElementById('cancel-foot');
+  var btnClose=document.createElement('button');
+  btnClose.className='btn-sec';btnClose.textContent='닫기';
+  btnClose.onclick=doDismiss;
+  var btnConfirm=document.createElement('button');
+  btnConfirm.style.cssText='height:36px;padding:0 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer';
+  btnConfirm.textContent='정말 취소합니다';
+  btnConfirm.onclick=doConfirm;
+  foot.appendChild(btnClose);foot.appendChild(btnConfirm);
+  mr.querySelector('.modal-bg').onclick=doDismiss;
+}
+function openModal(orderId){
+  var o=null;for(var i=0;i<D.length;i++){if(D[i].id===orderId){o=D[i];break;}}
+  if(!o)return;
+  var step=0,selAction='',confirmPending=false,confirmTimer=null;
+  var availRobots=[];
+  D.forEach(function(x){if(x.fleetName===o.fleetName&&x.robotSt==='idle'&&x.robotId!==o.robotId&&availRobots.indexOf(x.robotId)<0)availRobots.push(x.robotId);});
+
+  function draw(){
+    var mr=document.getElementById('modal-root');
+    var topMsg='<div style="font-size:12.5px;color:#92400e;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;margin-bottom:12px">작업 상태를 조치 현황에 따라 변경해주세요!</div>';
+    var subTitle=o.recipeName+' &middot; '+o.robotId+(o.stoppedAction?' &middot; '+o.stoppedAction+' 중 중단':'');
+    var body='',foot='';
+
+    if(step>=2){
+      var msg=o.isEarly?(selAction==='auto'?'시스템 자동 재할당 요청됨':'로봇 '+selAction+' 재할당 완료'):'작업자 Manual Complete 처리됨';
+      body='<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:8px">'
+        +'<span style="color:#065f46;font-size:20px">&#10003;</span>'
+        +'<div><div style="font-size:13px;font-weight:700;color:#065f46">조치 완료</div>'
+        +'<div style="font-size:11px;color:#059669;margin-top:2px">'+msg+'</div></div></div>';
+      foot='<div class="modal-foot"><button class="btn-sec" onclick="closeModal()">닫기</button></div>';
+    } else {
+      // Step 1
+      var s1color=step>=1?'#a7f3d0':'#e2e8f0';
+      var s1bg=step>=1?'#ecfdf5':'#f8fafc';
+      var s1numColor=step>=1?'#fff':'#64748b';
+      var s1numBg=step>=1?'#10b981':'transparent';
+      var s1numBorder=step>=1?'#10b981':'#94a3b8';
+      var s1num=step>=1?'&#10003;':'1';
+      var s1textColor=step>=1?'#065f46':'#1e293b';
+      var s1btn='';
+      if(step<1){
+        if(confirmPending){
+          s1btn='<button onclick="doStep1()" style="height:28px;padding:0 10px;background:#991b1b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">&#9888; 정말 취소할까요?</button>';
+        } else {
+          s1btn='<button onclick="tryStep1()" style="height:28px;padding:0 12px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">실행</button>';
+        }
+      }
+      var s1='<div style="border:1px solid '+s1color+';border-radius:8px;overflow:hidden;margin-bottom:8px">'
+        +'<div style="padding:10px 12px;background:'+s1bg+';display:flex;align-items:center;gap:8px">'
+        +'<div style="width:20px;height:20px;border-radius:50%;border:2px solid '+s1numBorder+';background:'+s1numBg+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:'+s1numColor+';flex-shrink:0">'+s1num+'</div>'
+        +'<div style="flex:1"><div style="font-size:12px;font-weight:600;color:'+s1textColor+'">에러 로봇 오더 취소</div>'
+        +'<div style="font-size:10.5px;color:#64748b">'+o.robotId+'에서 오더 할당 해제</div></div>'
+        +s1btn+'</div></div>';
+
+      // Step 2
+      var s2opacity=step<1?'0.4':'1';
+      var s2pointer=step<1?'none':'auto';
+      var s2title=o.isEarly?'새 로봇 재할당':'Manual Complete';
+      var s2inner='';
+      if(step<1){
+        s2inner='<div style="font-size:11.5px;color:#94a3b8;font-style:italic;padding:4px 0">Step 1 완료 후 활성화됩니다</div>';
+      } else if(o.isEarly){
+        var autoSel=selAction==='auto';
+        var manSel=selAction.indexOf('robot:')===0||selAction==='manual';
+        var robotVal=selAction.indexOf('robot:')===0?selAction.slice(6):'';
+        var canDo=selAction==='auto'||(selAction.indexOf('robot:')===0&&robotVal);
+        s2inner=
+          '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:2px solid '+(autoSel?'#3b82f6':'#e2e8f0')+';border-radius:8px;cursor:pointer;margin-bottom:6px;background:'+(autoSel?'#eff6ff':'#fff')+'">'
+          +'<input type="radio" name="act2" value="auto" '+(autoSel?'checked':'')+' onchange="pickAct(\'auto\')">'
+          +'<div><div style="font-size:12px;font-weight:600;color:#1e293b">자동 재할당</div><div style="font-size:10.5px;color:#64748b">시스템이 가용 로봇 자동 선택 (처음부터)</div></div></label>'
+          +'<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:2px solid '+(manSel?'#3b82f6':'#e2e8f0')+';border-radius:8px;cursor:pointer;margin-bottom:6px;background:'+(manSel?'#eff6ff':'#fff')+'">'
+          +'<input type="radio" name="act2" value="manual" '+(manSel?'checked':'')+' onchange="pickAct(\'manual\')">'
+          +'<div><div style="font-size:12px;font-weight:600;color:#1e293b">로봇 지정 재할당</div><div style="font-size:10.5px;color:#64748b">직접 로봇을 선택 (처음부터)</div></div></label>'
+          +(manSel?'<select onchange="pickRobot(this.value)" style="width:100%;height:32px;border:1px solid #93c5fd;border-radius:6px;font-size:12px;padding:0 8px;margin-bottom:8px"><option value="">로봇 선택...</option>'
+            +availRobots.map(function(r){return '<option value="'+r+'" '+(robotVal===r?'selected':'')+'>'+r+'</option>';}).join('')
+            +'</select>'+(availRobots.length===0?'<div style="font-size:10.5px;color:#d97706;margin-bottom:8px">&#9888; 가용 로봇 없음</div>':''):'')
+          +'<button onclick="doStep2()" '+(canDo?'':'disabled')+' style="width:100%;height:34px;background:'+(canDo?'#2563eb':'#e2e8f0')+';color:'+(canDo?'#fff':'#94a3b8')+';border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:'+(canDo?'pointer':'not-allowed')+'">재할당 완료</button>';
+      } else {
+        s2inner='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#92400e">'
+          +'&#9888; 화물이 적재된 상태입니다.<br><strong>작업자가 cart를 목적지까지 직접 이동</strong> 후 완료 처리하세요.</div>'
+          +'<button onclick="doStep2()" style="width:100%;height:34px;background:#059669;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Manual Complete</button>';
+      }
+      var s2='<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;opacity:'+s2opacity+';pointer-events:'+s2pointer+'">'
+        +'<div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:8px">'
+        +'<div style="width:20px;height:20px;border-radius:50%;border:2px solid #94a3b8;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#64748b;flex-shrink:0">2</div>'
+        +'<div style="font-size:12px;font-weight:600;color:#1e293b">'+s2title+'</div></div>'
+        +'<div style="padding:10px">'+s2inner+'</div></div>';
+
+      body=topMsg+s1+s2;
+      foot='<div class="modal-foot"><button class="btn-sec" onclick="closeModal()">닫기</button></div>';
+    }
+
+    mr.innerHTML=
+      '<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">'
+      +'<div class="modal-hdr">'
+      +'<div style="width:36px;height:36px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#9888;</div>'
+      +'<div><div style="font-size:14px;font-weight:700;color:#dc2626">작업 조치</div>'
+      +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+subTitle+'</div></div></div>'
+      +'<div class="modal-body">'+body+'</div>'
+      +foot
+      +'</div></div>';
+  }
+
+  window.tryStep1=function(){confirmPending=true;draw();confirmTimer=setTimeout(function(){confirmPending=false;draw();},3000);};
+  window.doStep1=function(){clearTimeout(confirmTimer);confirmPending=false;step=1;D.forEach(function(x){if(x.id===orderId&&x.robotId===o.robotId){x.robotSt='cancelled';if(!o.isEarly){x.statusLabel='오더 취소';}}});draw();render();};
+  window.pickAct=function(v){selAction=v;draw();};
+  window.pickRobot=function(v){selAction=v?'robot:'+v:'manual';draw();};
+  window.doStep2=function(){
+    if(o.isEarly){
+      var newRobot=selAction==='auto'?(availRobots[0]||'자동 선택'):((selAction.indexOf('robot:')===0&&selAction.slice(6))?selAction.slice(6):(availRobots[0]||'자동 선택'));
+      var newRow={};for(var k in o){newRow[k]=o[k];}
+      newRow.robotId=newRobot;newRow.robotSt='run';newRow.status='running';newRow.statusLabel='시작';newRow.needsManualComplete=false;
+      var origIdx=-1;
+      for(var i=0;i<D.length;i++){if(D[i].id===orderId&&D[i].robotId===o.robotId&&D[i].statusLabel!=='시작'){D[i].robotSt='cancelled';D[i].statusLabel='재할당';origIdx=i;break;}}
+      if(origIdx>=0){D.splice(origIdx+1,0,newRow);}else{D.push(newRow);}
+    } else {
+      D.forEach(function(x){if(x.id===orderId){x.robotSt='cancelled';x.status='done';x.statusLabel='Manual Complete';x.needsManualComplete=false;}});
+    }
+    step=2;draw();render();
+  };
+  window.closeModal=function(){document.getElementById('modal-root').innerHTML='';};
+  draw();
+}
+function openManualModal(orderId){
+  var o=D.filter(function(x){return x.id===orderId;})[0];if(!o)return;
+  var mr=document.getElementById('modal-root');
+  function draw(done){
+    mr.innerHTML=
+      '<div class="modal-bg" onclick="closeMModal()"><div class="modal" onclick="event.stopPropagation()">'+
+      '<div class="modal-hdr">'+
+      '<div style="width:36px;height:36px;background:#ecfdf5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#9989;</div>'+
+      '<div><div style="font-size:14px;font-weight:700;color:#065f46">Manual Complete</div>'+
+      '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+o.recipeName+' &middot; '+o.id+'</div></div></div>'+
+      '<div class="modal-body">'+
+      (done?
+        '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:8px">'+
+        '<span style="color:#065f46;font-size:20px">&#10003;</span>'+
+        '<div style="font-size:13px;font-weight:700;color:#065f46">완료 처리됐습니다</div></div>':
+        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#166534">'+
+        '작업자가 <strong>'+( o.cartId||'Cart')+'</strong>를 목적지까지 직접 배송한 후<br/>아래 버튼을 눌러주세요.</div>'+
+        '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<div><div style="font-size:10px;color:#94a3b8">작업명</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+o.recipeName+'</div></div>'+
+        '<div><div style="font-size:10px;color:#94a3b8">Robot</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+o.robotId+'</div></div>'+
+        '<div><div style="font-size:10px;color:#94a3b8">운반체</div><div style="font-size:12px;font-weight:600;color:#059669">'+(o.cartId||'-')+'</div></div>'+
+        '<div><div style="font-size:10px;color:#94a3b8">요청자</div><div style="font-size:12px;font-weight:600;color:#1e293b">'+o.requester+'</div></div>'+
+        '</div>'
+      )+'</div>'+
+      '<div class="modal-foot">'+
+      '<button class="btn-sec" onclick="closeMModal()">'+(done?'닫기':'취소')+'</button>'+
+      (done?'':'<button class="btn-pri" style="background:#059669" onclick="confirmMC()">Manual Complete</button>')+
+      '</div></div></div>';
+  }
+  draw(false);
+  window.closeMModal=function(){mr.innerHTML='';};
+  window.confirmMC=function(){
+    D.forEach(function(x){if(x.id===orderId){x.status='done';x.statusLabel='Manual Complete';x.needsManualComplete=false;}});
+    draw(true);render();
+  };
+}
+render();
+</script></body></html>
