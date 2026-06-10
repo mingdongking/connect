@@ -314,23 +314,23 @@ let recipes = [
 const recipeDuration = r => r.steps.reduce((s,st)=>s+st.duration,0);
 const recipeMaxSlots = r => r.steps ? Math.max(1,...r.steps.map(s=>s.slots?s.slots.length:1)) : 1;
 const initOrders = [
-  {id:"ord-001",robotId:"Tool001",recipeId:"rcp-01",start:8*60+15, status:"done"},
-  {id:"ord-002",robotId:"Tool001",recipeId:"rcp-02",start:9*60+30, status:"done"},
+  {id:"ord-001",robotId:"Tool001",recipeId:"rcp-01",start:8*60+15, status:"done", end:8*60+52},
+  {id:"ord-002",robotId:"Tool001",recipeId:"rcp-02",start:9*60+30, status:"done", end:10*60+8},
   {id:"ord-003",robotId:"Tool001",recipeId:"rcp-01",start:11*60+10,status:"running"},
-  {id:"ord-004",robotId:"Tool002",recipeId:"rcp-02",start:8*60,    status:"done"},
+  {id:"ord-004",robotId:"Tool002",recipeId:"rcp-02",start:8*60,    status:"done", end:8*60+40},
   {id:"ord-005",robotId:"Tool002",recipeId:"rcp-05",start:10*60+25,status:"queued"},
   {id:"ord-006",robotId:"Tool002",recipeId:"rcp-01",start:12*60+40,status:"queued"},
-  {id:"ord-007",robotId:"Tool003",recipeId:"rcp-03",start:9*60+5,  status:"done"},
+  {id:"ord-007",robotId:"Tool003",recipeId:"rcp-03",start:9*60+5,  status:"done", end:9*60+44},
   {id:"ord-008",robotId:"Tool003",recipeId:"rcp-01",start:11*60+30,status:"queued"},
   {id:"ord-009",robotId:"Tool004",recipeId:"rcp-03",start:7*60+45, status:"running"},
-  {id:"ord-010",robotId:"Ride001",recipeId:"rcp-05",start:9*60,    status:"done"},
+  {id:"ord-010",robotId:"Ride001",recipeId:"rcp-05",start:9*60,    status:"done", end:9*60+33},
   {id:"ord-011",robotId:"Ride001",recipeId:"rcp-05",start:10*60+50,status:"running"},
   {id:"ord-012",robotId:"Tool005",recipeId:"rcp-05",start:8*60+20, status:"error"},
-  {id:"ord-013",robotId:"Part001",recipeId:"rcp-04",start:8*60+30, status:"done"},
+  {id:"ord-013",robotId:"Part001",recipeId:"rcp-04",start:8*60+30, status:"done", end:9*60+6},
   {id:"ord-014",robotId:"Part001",recipeId:"rcp-04",start:10*60,   status:"running"},
-  {id:"ord-015",robotId:"Part002",recipeId:"rcp-04",start:9*60+15, status:"done"},
+  {id:"ord-015",robotId:"Part002",recipeId:"rcp-04",start:9*60+15, status:"done", end:9*60+50},
   {id:"ord-016",robotId:"PM001",  recipeId:"rcp-s01",start:8*60,   status:"running"},
-  {id:"ord-017",robotId:"PM002",  recipeId:"rcp-s01",start:10*60,  status:"done"},
+  {id:"ord-017",robotId:"PM002",  recipeId:"rcp-s01",start:10*60,  status:"done", end:10*60+35},
   // 1-5 테스트: 작업상태=running + 로봇상태=down(오류) → 적색 하이라이트 + 더블클릭 팝업
   {id:"ord-018",robotId:"Tool005",recipeId:"rcp-transport",start:10*60+30,status:"running"},
   {id:"ord-019",robotId:"Ride002",recipeId:"rcp-transport",start:9*60+15, status:"running"},
@@ -3669,34 +3669,36 @@ const ERR_PALETTE = ["#f59e0b","#0ea5e9","#7c3aed","#16a34a","#0891b2","#db2777"
 // Fleet별 에러: 평면 코드 목록 (코드 접두어로 자동 그룹핑됨 — 수동 분류 불필요)
 const ERROR_LOG = {
   amr: [
-    {code:"OBS_401", label:"전방 장애물 감지", count:3},
-    {code:"OBS_403", label:"측면 장애물 감지", count:1},
-    {code:"PATH_502",label:"경로 재계산 실패", count:3},
-    {code:"LOC_210", label:"위치 인식 실패", count:1},
-    {code:"COMM_300",label:"통신 끊김", count:2},
-    {code:"BAT_110", label:"배터리 부족", count:1},
-    {code:"SENS_220",label:"라이다 센서 오류", count:1},
+    {code:"OBS_401", label:"전방 장애물 감지",   robotId:"Tool005", time:"09:22", orderId:"ord-012"},
+    {code:"OBS_403", label:"측면 장애물 감지",   robotId:"Tool001", time:"10:05", orderId:"ord-003"},
+    {code:"PATH_502",label:"경로 재계산 실패",   robotId:"Tool003", time:"09:08", orderId:"ord-007"},
+    {code:"LOC_210", label:"위치 인식 실패",     robotId:"Tool004", time:"07:50", orderId:"ord-009"},
+    {code:"COMM_300",label:"통신 끊김",          robotId:"Tool002", time:"08:40", orderId:null},
+    {code:"BAT_110", label:"배터리 부족",        robotId:"Tool006", time:"11:15", orderId:null},
+    {code:"SENS_220",label:"라이다 센서 오류",   robotId:"Tool001", time:"12:30", orderId:null},
   ],
   agv: [
-    {code:"OBS_401", label:"전방 장애물 감지", count:5},
-    {code:"PATH_502",label:"경로 재계산 실패", count:3},
-    {code:"EMS_001", label:"EMS 호출", count:3},
-    {code:"STOP_002",label:"비상정지", count:1},
-    {code:"COMM_300",label:"통신 끊김", count:2},
-    {code:"MOT_140", label:"구동부 과열", count:1},
+    {code:"OBS_401", label:"전방 장애물 감지",   robotId:"Ride001", time:"09:02", orderId:"ord-011"},
+    {code:"PATH_502",label:"경로 재계산 실패",   robotId:"Ride002", time:"09:15", orderId:"ord-019"},
+    {code:"EMS_001", label:"EMS 호출",           robotId:"Ride002", time:"09:41", orderId:"ord-019"},
+    {code:"STOP_002",label:"비상정지",           robotId:"Ride001", time:"10:50", orderId:"ord-011"},
+    {code:"COMM_300",label:"통신 끊김",          robotId:"Ride001", time:"08:20", orderId:null},
+    {code:"MOT_140", label:"구동부 과열",        robotId:"Ride002", time:"11:05", orderId:null},
   ],
   arm: [
-    {code:"GRIP_401",label:"그립 실패", count:3},
-    {code:"SENS_220",label:"센서 오류", count:2},
-    {code:"MOT_140", label:"관절 모터 오류", count:1},
+    {code:"GRIP_401",label:"그립 실패",          robotId:"Part001", time:"10:00", orderId:"ord-014"},
+    {code:"GRIP_401",label:"그립 실패",          robotId:"Part002", time:"09:15", orderId:"ord-015"},
+    {code:"SENS_220",label:"센서 오류",          robotId:"Part001", time:"08:30", orderId:"ord-013"},
+    {code:"MOT_140", label:"관절 모터 오류",     robotId:"Part002", time:"11:40", orderId:null},
   ],
   semi: [
-    {code:"COMM_300",label:"통신 끊김", count:2},
-    {code:"SENS_220",label:"센서 오류", count:1},
-    {code:"LOC_210", label:"위치 인식 실패", count:1},
+    {code:"COMM_300",label:"통신 끊김",          robotId:"x001", time:"08:12", orderId:null},
+    {code:"COMM_300",label:"통신 끊김",          robotId:"x002", time:"09:50", orderId:null},
+    {code:"SENS_220",label:"센서 오류",          robotId:"x001", time:"10:20", orderId:null},
+    {code:"LOC_210", label:"위치 인식 실패",     robotId:"x002", time:"11:00", orderId:null},
   ],
   pm: [
-    {code:"SENS_220",label:"센서 오류", count:1},
+    {code:"SENS_220",label:"센서 오류",          robotId:"PM001", time:"08:00", orderId:"ord-016"},
   ],
 };
 
@@ -4234,8 +4236,8 @@ function AnalyticsView() {
         const f=fleets.find(fl=>fl.id===fleetDetail.fId);
         const fName=f?.name||fleetDetail.fId;
         if(fleetDetail.type==="errors"){
-          const errs=[...(ERROR_LOG[fleetDetail.fId]||[])].sort((a,b)=>b.count-a.count);
-          const errSumF=errs.reduce((s,e)=>s+e.count,0);
+          const errs=[...(ERROR_LOG[fleetDetail.fId]||[])].sort((a,b)=>b.time.localeCompare(a.time));
+          const errSumF=errs.length;
           return(
             <div className="bg-white border border-rose-200 rounded-xl shadow-sm overflow-hidden mb-4">
               <div className="h-11 px-4 border-b border-rose-100 bg-rose-50/50 flex items-center gap-2">
@@ -4249,18 +4251,24 @@ function AnalyticsView() {
                   ? <div className="py-5 text-center text-[12px] text-slate-400">에러 항목이 없습니다.</div>
                   : <table className="w-full text-[12.5px]">
                       <thead><tr className="text-left text-slate-400 border-b border-slate-100">
-                        <th className="font-medium py-2 px-2 w-[120px]">에러 코드</th>
+                        <th className="font-medium py-2 px-2 w-[110px]">에러 코드</th>
                         <th className="font-medium py-2">내용</th>
-                        <th className="font-medium py-2 text-right pr-2 w-[80px]">건수</th>
+                        <th className="font-medium py-2 w-[100px]">에러 로봇</th>
+                        <th className="font-medium py-2 w-[80px]">발생 시각</th>
+                        <th className="font-medium py-2 pr-2 w-[100px]">오더 ID</th>
                       </tr></thead>
                       <tbody>
-                        {errs.map(e=>{
+                        {errs.map((e,ei)=>{
                           const crit=CRITICAL_PREFIX.includes(e.code.split("_")[0]);
                           return(
-                            <tr key={e.code} className="border-b border-slate-50">
+                            <tr key={e.code+ei} className="border-b border-slate-50">
                               <td className="py-2 px-2"><span className="tnum text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">{crit&&<span className="w-1.5 h-1.5 rounded-full bg-rose-500"/>}{e.code}</span></td>
                               <td className="py-2 text-slate-600">{e.label}</td>
-                              <td className="py-2 text-right pr-2"><span className="tnum font-semibold text-slate-900">{e.count}</span><span className="text-[10px] text-slate-400 ml-0.5">건</span></td>
+                              <td className="py-2 tnum text-slate-700">{e.robotId}</td>
+                              <td className="py-2 tnum text-slate-500">{e.time}</td>
+                              <td className="py-2 pr-2">{e.orderId
+                                ? <span className="tnum text-blue-600 font-medium">{e.orderId}</span>
+                                : <span className="text-slate-300 text-[11px]">작업 외</span>}</td>
                             </tr>
                           );
                         })}
@@ -4291,7 +4299,8 @@ function AnalyticsView() {
                         <th className="font-medium py-2 px-2 w-[110px]">작업 ID</th>
                         <th className="font-medium py-2 w-[100px]">로봇</th>
                         <th className="font-medium py-2">레시피</th>
-                        <th className="font-medium py-2 w-[80px]">시작</th>
+                        <th className="font-medium py-2 w-[70px]">시작</th>
+                        <th className="font-medium py-2 w-[70px]">완료</th>
                         <th className="font-medium py-2 text-right pr-2 w-[80px]">상태</th>
                       </tr></thead>
                       <tbody>
@@ -4303,6 +4312,7 @@ function AnalyticsView() {
                               <td className="py-2 tnum text-slate-600">{o.robotId}</td>
                               <td className="py-2 text-slate-600 truncate">{rc?.name||"—"}</td>
                               <td className="py-2 tnum text-slate-500">{fmtT(o.start)}</td>
+                              <td className="py-2 tnum text-slate-500">{o.end!=null?fmtT(o.end):<span className="text-slate-300">—</span>}</td>
                               <td className="py-2 text-right pr-2"><span className={"inline-block px-1.5 py-0.5 rounded text-[11px] font-medium "+(stStyle[o.status]||"text-slate-600 bg-slate-100")}>{stLabel[o.status]||o.status}</span></td>
                             </tr>
                           );
