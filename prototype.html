@@ -4251,10 +4251,10 @@ function AnalyticsView() {
                   ? <div className="py-5 text-center text-[12px] text-slate-400">에러 항목이 없습니다.</div>
                   : <table className="w-full text-[12.5px]">
                       <thead><tr className="text-left text-slate-400 border-b border-slate-100">
-                        <th className="font-medium py-2 px-2 w-[110px]">에러 코드</th>
-                        <th className="font-medium py-2">내용</th>
+                        <th className="font-medium py-2 px-2 w-[80px]">발생 시각</th>
                         <th className="font-medium py-2 w-[100px]">에러 로봇</th>
-                        <th className="font-medium py-2 w-[80px]">발생 시각</th>
+                        <th className="font-medium py-2 w-[110px]">에러 코드</th>
+                        <th className="font-medium py-2">내용</th>
                         <th className="font-medium py-2 pr-2 w-[100px]">오더 ID</th>
                       </tr></thead>
                       <tbody>
@@ -4262,10 +4262,10 @@ function AnalyticsView() {
                           const crit=CRITICAL_PREFIX.includes(e.code.split("_")[0]);
                           return(
                             <tr key={e.code+ei} className="border-b border-slate-50">
-                              <td className="py-2 px-2"><span className="tnum text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">{crit&&<span className="w-1.5 h-1.5 rounded-full bg-rose-500"/>}{e.code}</span></td>
-                              <td className="py-2 text-slate-600">{e.label}</td>
+                              <td className="py-2 px-2 tnum text-slate-500">{e.time}</td>
                               <td className="py-2 tnum text-slate-700">{e.robotId}</td>
-                              <td className="py-2 tnum text-slate-500">{e.time}</td>
+                              <td className="py-2"><span className="tnum text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">{crit&&<span className="w-1.5 h-1.5 rounded-full bg-rose-500"/>}{e.code}</span></td>
+                              <td className="py-2 text-slate-600">{e.label}</td>
                               <td className="py-2 pr-2">{e.orderId
                                 ? <span className="tnum text-blue-600 font-medium">{e.orderId}</span>
                                 : <span className="text-slate-300 text-[11px]">작업 외</span>}</td>
@@ -4298,10 +4298,10 @@ function AnalyticsView() {
                       <thead><tr className="text-left text-slate-400 border-b border-slate-100">
                         <th className="font-medium py-2 px-2 w-[110px]">작업 ID</th>
                         <th className="font-medium py-2 w-[100px]">로봇</th>
-                        <th className="font-medium py-2">레시피</th>
                         <th className="font-medium py-2 w-[70px]">시작</th>
                         <th className="font-medium py-2 w-[70px]">완료</th>
-                        <th className="font-medium py-2 text-right pr-2 w-[80px]">상태</th>
+                        <th className="font-medium py-2 w-[80px]">상태</th>
+                        <th className="font-medium py-2 pr-2">레시피</th>
                       </tr></thead>
                       <tbody>
                         {orders.map(o=>{
@@ -4310,10 +4310,10 @@ function AnalyticsView() {
                             <tr key={o.id} className="border-b border-slate-50">
                               <td className="py-2 px-2 tnum text-slate-700 font-medium">{o.id}</td>
                               <td className="py-2 tnum text-slate-600">{o.robotId}</td>
-                              <td className="py-2 text-slate-600 truncate">{rc?.name||"—"}</td>
                               <td className="py-2 tnum text-slate-500">{fmtT(o.start)}</td>
                               <td className="py-2 tnum text-slate-500">{o.end!=null?fmtT(o.end):<span className="text-slate-300">—</span>}</td>
-                              <td className="py-2 text-right pr-2"><span className={"inline-block px-1.5 py-0.5 rounded text-[11px] font-medium "+(stStyle[o.status]||"text-slate-600 bg-slate-100")}>{stLabel[o.status]||o.status}</span></td>
+                              <td className="py-2"><span className={"inline-block px-1.5 py-0.5 rounded text-[11px] font-medium "+(stStyle[o.status]||"text-slate-600 bg-slate-100")}>{stLabel[o.status]||o.status}</span></td>
+                              <td className="py-2 pr-2 text-slate-600 truncate">{rc?.name||"—"}</td>
                             </tr>
                           );
                         })}
