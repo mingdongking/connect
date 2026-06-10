@@ -750,9 +750,45 @@ function ManualTab({ sel }) {
   );
 }
 
+function KpiFleetFilter({ selected, setSelected }) {
+  const [open,setOpen]=React.useState(false);
+  const allOn = selected.size===fleets.length;
+  const label = allOn ? "전체 Fleet"
+    : selected.size===0 ? "선택 안함"
+    : selected.size===1 ? (fleets.find(f=>selected.has(f.id))?.name||"1개")
+    : selected.size+"개 Fleet";
+  const toggle=(id)=>{const n=new Set(selected); n.has(id)?n.delete(id):n.add(id); setSelected(n);};
+  const toggleAll=()=>{ setSelected(allOn?new Set():new Set(fleets.map(f=>f.id))); };
+  return(
+    <div className="relative" onClick={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()}>
+      <button onClick={()=>setOpen(o=>!o)}
+        className="flex items-center gap-1 text-[10.5px] text-slate-600 border border-slate-200 rounded-md pl-2 pr-1.5 py-0.5 hover:border-slate-300 bg-white">
+        {label}<Icon name="ChevronDown" size={11} className="text-slate-400"/>
+      </button>
+      {open&&<>
+        <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
+        <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 w-44">
+          <button onClick={toggleAll} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] hover:bg-slate-50">
+            <span className={"w-3.5 h-3.5 rounded border flex items-center justify-center "+(allOn?"bg-blue-600 border-blue-600":"border-slate-300")}>{allOn&&<Icon name="Check" size={10} className="text-white"/>}</span>
+            <span className="font-medium text-slate-700">전체</span>
+          </button>
+          <div className="h-px bg-slate-100 my-1"/>
+          {fleets.map(f=>{const on=selected.has(f.id);return(
+            <button key={f.id} onClick={()=>toggle(f.id)} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] hover:bg-slate-50">
+              <span className={"w-3.5 h-3.5 rounded border flex items-center justify-center "+(on?"border-transparent":"border-slate-300")} style={on?{background:f.color}:{}}>{on&&<Icon name="Check" size={10} className="text-white"/>}</span>
+              <span className="text-slate-700 truncate">{f.name}</span>
+            </button>
+          );})}
+        </div>
+      </>}
+    </div>
+  );
+}
+
 function MonitoringHome({ onNavigate }) {
   const [focusRobot, setFocusRobot] = useState(null);
-  const [kpiFleet, setKpiFleet] = useState("all"); // 로봇 운영현황 카드 Fleet 필터
+  const [kpiFleet, setKpiFleet] = useState(()=>new Set(fleets.map(f=>f.id))); // 로봇 운영현황 Fleet 필터
+  const [kpiTaskFleet, setKpiTaskFleet] = useState(()=>new Set(fleets.map(f=>f.id))); // 작업현황 Fleet 필터
   const [statusFilter, setStatusFilter] = useState(new Set());
   const [fleetFilter, setFleetFilter] = useState(new Set());
   const [floorId, setFloorId] = useState(floors[0].id);
@@ -945,7 +981,7 @@ function MonitoringHome({ onNavigate }) {
   const visible = mapRobots.filter(r=>(statusFilter.size===0||statusFilter.has(r.st))&&(fleetFilter.size===0||fleetFilter.has(r.fleet)));
   const counts = Object.fromEntries(statuses.map(s=>[s.id,mapRobots.filter(r=>r.st===s.id).length]));
   // KPI 카드: Fleet 필터 적용된 로봇/집계
-  const kpiRobots = kpiFleet==="all" ? mapRobots : mapRobots.filter(r=>r.fleet===kpiFleet);
+  const kpiRobots = mapRobots.filter(r=>kpiFleet.has(r.fleet));
   const kpiCounts = Object.fromEntries(statuses.map(s=>[s.id,kpiRobots.filter(r=>r.st===s.id).length]));
   const sel = focusRobot ? mapRobots.find(r=>r.id===focusRobot) : null;
 
@@ -969,13 +1005,7 @@ function MonitoringHome({ onNavigate }) {
           title="더블클릭 → 통계/분석">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11.5px] text-slate-500">로봇 운영 현황</span>
-            <select value={kpiFleet} onClick={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()}
-              onChange={e=>setKpiFleet(e.target.value)}
-              className="text-[10.5px] text-slate-600 border border-slate-200 rounded-md pl-1.5 pr-4 py-0.5 outline-none cursor-pointer bg-white hover:border-slate-300 appearance-none bg-[length:10px] bg-[right_4px_center] bg-no-repeat"
-              style={{backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")"}}>
-              <option value="all">전체 Fleet</option>
-              {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
+            <KpiFleetFilter selected={kpiFleet} setSelected={setKpiFleet}/>
           </div>
           <div className="flex items-baseline gap-4 mb-2">
             <div><div className="flex items-baseline gap-1"><span className="text-[22px] font-semibold tnum" style={{color:"#047857"}}>{kpiCounts.run}</span><span className="text-[11px] text-slate-500">/ {kpiRobots.length}</span></div><div className="text-[10px] mt-px" style={{color:"#047857"}}>● 가동</div></div>
@@ -995,13 +1025,16 @@ function MonitoringHome({ onNavigate }) {
           title="더블클릭 → 통계/분석">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[11.5px] text-slate-500">작업 현황</span>
+            <KpiFleetFilter selected={kpiTaskFleet} setSelected={setKpiTaskFleet}/>
           </div>
           <div className="flex items-baseline gap-3 mb-2">
             {(()=>{
-              const running=initOrders.filter(o=>o.status==="running").length;
-              const queued=initOrders.filter(o=>o.status==="queued").length;
-              const error=initOrders.filter(o=>o.status==="error").length;
-              const done=initOrders.filter(o=>o.status==="done").length;
+              const inFleet=o=>{const rb=mapRobots.find(r=>r.id===o.robotId);return rb&&kpiTaskFleet.has(rb.fleet);};
+              const fo=initOrders.filter(inFleet);
+              const running=fo.filter(o=>o.status==="running").length;
+              const queued=fo.filter(o=>o.status==="queued").length;
+              const error=fo.filter(o=>o.status==="error").length;
+              const done=fo.filter(o=>o.status==="done").length;
               const completePct=done+error>0?Math.round(done/(done+error+running+queued)*100):0;
               return(<>
                 <div><span className="text-[22px] font-semibold text-blue-700 tnum">{running}</span><div className="text-[10.5px] text-blue-700 mt-px">● 진행 중</div></div>
@@ -1016,9 +1049,9 @@ function MonitoringHome({ onNavigate }) {
           <div className="flex items-center gap-2 text-[10.5px] mt-2">
             <span className="text-slate-500">금일 완료</span>
             <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full" style={{width:(()=>{const d=initOrders.filter(o=>o.status==="done").length,t=initOrders.length;return t?Math.round(d/t*100):0;})()+'%'}}/>
+              <div className="h-full bg-emerald-500 rounded-full" style={{width:(()=>{const fo=initOrders.filter(o=>{const rb=mapRobots.find(r=>r.id===o.robotId);return rb&&kpiTaskFleet.has(rb.fleet);});const d=fo.filter(o=>o.status==="done").length,t=fo.length;return t?Math.round(d/t*100):0;})()+'%'}}/>
             </div>
-            <span className="font-semibold tnum text-slate-900">{initOrders.filter(o=>o.status==="done").length}/{initOrders.length}</span>
+            <span className="font-semibold tnum text-slate-900">{(()=>{const fo=initOrders.filter(o=>{const rb=mapRobots.find(r=>r.id===o.robotId);return rb&&kpiTaskFleet.has(rb.fleet);});return fo.filter(o=>o.status==="done").length+"/"+fo.length;})()}</span>
           </div>
           {/* 하단 버튼 행 */}
           <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-100">
@@ -7897,6 +7930,15 @@ function LogsView({ initCat3, onMounted }) {
 
   function toggle(setter, val){ setter(prev=>{ const n=new Set(prev); n.has(val)?n.delete(val):n.add(val); return n.size>0?n:prev; }); }
 
+  // 대분류: 단일 선택 → 중분류 전체 선택 + 소분류 유효성 보정
+  function selectCat1(k){
+    setCat1(new Set([k]));
+    const subs=Object.keys(HIERARCHY[k]?.sub||{});
+    setCat2(new Set(subs));
+    const sub3s=[...new Set(subs.flatMap(c2=>HIERARCHY[k]?.sub?.[c2]?.sub3||[]))];
+    setCat3(prev=>sub3s.includes(prev)?prev:(sub3s[0]||""));
+  }
+
   const sub2Options = [...cat1].flatMap(c1=>Object.keys(HIERARCHY[c1]?.sub||{}));
   const sub3Options = [...new Set([...cat1].flatMap(c1=>[...cat2].flatMap(c2=>HIERARCHY[c1]?.sub?.[c2]?.sub3||[])))];
 
@@ -7969,7 +8011,7 @@ function LogsView({ initCat3, onMounted }) {
               <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">대분류</span>
               <div className="flex items-center gap-2">
                 {Object.keys(HIERARCHY).map(k=>(
-                  <button key={k} onClick={()=>toggle(setCat1,k)}
+                  <button key={k} onClick={()=>selectCat1(k)}
                     className={"h-8 px-4 rounded-lg text-[12.5px] font-semibold border-2 flex items-center gap-2 transition "+(cat1.has(k)?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600 hover:border-slate-300")}>
                     <Icon name={HIERARCHY[k].icon} size={12}/>
                     {k}
@@ -7983,6 +8025,13 @@ function LogsView({ initCat3, onMounted }) {
             <div className="flex items-start gap-4 px-4 py-3">
               <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0 mt-1.5">중분류</span>
               <div className="flex flex-wrap gap-2">
+                {(()=>{const allOn=sub2Options.length>0&&sub2Options.every(k=>cat2.has(k));return(
+                  <button onClick={()=>setCat2(allOn?new Set([sub2Options[0]]):new Set(sub2Options))}
+                    className={"h-8 px-3.5 rounded-lg text-[12px] font-semibold border-2 transition flex items-center gap-1.5 "+(allOn?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600 hover:border-slate-300")}>
+                    {allOn&&<Icon name="Check" size={11} className="text-blue-500"/>}
+                    전체
+                  </button>
+                );})()}
                 {sub2Options.map(k=>{
                   const on=cat2.has(k);
                   return(
