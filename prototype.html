@@ -752,6 +752,7 @@ function ManualTab({ sel }) {
 
 function MonitoringHome({ onNavigate }) {
   const [focusRobot, setFocusRobot] = useState(null);
+  const [kpiFleet, setKpiFleet] = useState("all"); // 로봇 운영현황 카드 Fleet 필터
   const [statusFilter, setStatusFilter] = useState(new Set());
   const [fleetFilter, setFleetFilter] = useState(new Set());
   const [floorId, setFloorId] = useState(floors[0].id);
@@ -943,6 +944,9 @@ function MonitoringHome({ onNavigate }) {
   const toggle = (set,key,set2)=>{const n=new Set(set);n.has(key)?n.delete(key):n.add(key);set2(n);};
   const visible = mapRobots.filter(r=>(statusFilter.size===0||statusFilter.has(r.st))&&(fleetFilter.size===0||fleetFilter.has(r.fleet)));
   const counts = Object.fromEntries(statuses.map(s=>[s.id,mapRobots.filter(r=>r.st===s.id).length]));
+  // KPI 카드: Fleet 필터 적용된 로봇/집계
+  const kpiRobots = kpiFleet==="all" ? mapRobots : mapRobots.filter(r=>r.fleet===kpiFleet);
+  const kpiCounts = Object.fromEntries(statuses.map(s=>[s.id,kpiRobots.filter(r=>r.st===s.id).length]));
   const sel = focusRobot ? mapRobots.find(r=>r.id===focusRobot) : null;
 
   // 선택 로봇 변경 시 조치 state 초기화
@@ -958,33 +962,29 @@ function MonitoringHome({ onNavigate }) {
       {/* Scrollable content */}
       <div className="h-full overflow-auto p-5" style={{paddingRight: panelOpen ? 336 : 20, transition:"padding-right 0.25s cubic-bezier(0.4,0,0.2,1)"}}>
       {/* KPI */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
-        {/* 로봇 운영 현황 */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {/* 로봇 운영 현황 (Fleet 필터 통합) */}
         <div onDoubleClick={()=>onNavigate("analytics")}
           className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group relative"
           title="더블클릭 → 통계/분석">
-          <div className="flex items-center justify-between mb-1"><span className="text-[11.5px] text-slate-500">로봇 운영 현황</span><span className="text-[10.5px] text-slate-400 tnum">총 {mapRobots.length}대</span></div>
-          <div className="flex items-baseline gap-4 mb-2">
-            <div><div className="flex items-baseline gap-1"><span className="text-[22px] font-semibold tnum" style={{color:"#047857"}}>{counts.run}</span><span className="text-[11px] text-slate-500">/ {mapRobots.length}</span></div><div className="text-[10px] mt-px" style={{color:"#047857"}}>● 가동</div></div>
-            <div className="h-9 w-px bg-slate-200"/>
-            <div><div className="flex items-baseline gap-1"><span className="text-[22px] font-semibold tnum" style={{color:"#be123c"}}>{counts.down||0}</span><span className="text-[11px] text-slate-500">대</span></div><div className="text-[10px] mt-px" style={{color:"#be123c"}}>● 오류</div></div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11.5px] text-slate-500">로봇 운영 현황</span>
+            <select value={kpiFleet} onClick={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()}
+              onChange={e=>setKpiFleet(e.target.value)}
+              className="text-[10.5px] text-slate-600 border border-slate-200 rounded-md pl-1.5 pr-4 py-0.5 outline-none cursor-pointer bg-white hover:border-slate-300 appearance-none bg-[length:10px] bg-[right_4px_center] bg-no-repeat"
+              style={{backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")"}}>
+              <option value="all">전체 Fleet</option>
+              {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
           </div>
-          <div className="flex h-1.5 rounded-full overflow-hidden bg-slate-100 mb-2">{statuses.map(s=>{const c=counts[s.id]||0;if(!c)return null;return <div key={s.id} style={{width:(c/mapRobots.length*100)+"%",background:s.color}}/>;})}</div>
-          <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-[10.5px]">{statuses.map(s=><div key={s.id} className="flex items-center gap-1"><span className="text-slate-600">{s.short}</span><span className="ml-auto font-semibold tnum text-slate-900">{counts[s.id]||0}</span></div>)}</div>
-          <div className="absolute bottom-2 right-2.5 text-[9.5px] text-slate-300 opacity-0 group-hover:opacity-100 transition flex items-center gap-0.5"><Icon name="MousePointerClick" size={9}/> 더블클릭</div>
-        </div>
-
-        {/* Fleet 운영 현황 */}
-        <div onDoubleClick={()=>onNavigate("analytics")}
-          className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group relative"
-          title="더블클릭 → 통계/분석">
-          <div className="text-[11.5px] text-slate-500 mb-2">Fleet 운영 현황</div>
-          {fleets.map(f=>{const fr=mapRobots.filter(r=>r.fleet===f.id),run=fr.filter(r=>r.st==="run").length,pct=fr.length?Math.round(run/fr.length*100):0;return(
-            <div key={f.id} className="mb-2">
-              <div className="flex items-center gap-2 text-[11.5px] mb-1"><span className="text-slate-700">{f.name}</span><span className="ml-auto tnum font-medium text-slate-900">{run}/{fr.length}</span></div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:pct+"%",background:f.color}}/></div>
-            </div>
-          );})}
+          <div className="flex items-baseline gap-4 mb-2">
+            <div><div className="flex items-baseline gap-1"><span className="text-[22px] font-semibold tnum" style={{color:"#047857"}}>{kpiCounts.run}</span><span className="text-[11px] text-slate-500">/ {kpiRobots.length}</span></div><div className="text-[10px] mt-px" style={{color:"#047857"}}>● 가동</div></div>
+            <div className="h-9 w-px bg-slate-200"/>
+            <div><div className="flex items-baseline gap-1"><span className="text-[22px] font-semibold tnum" style={{color:"#be123c"}}>{kpiCounts.down||0}</span><span className="text-[11px] text-slate-500">대</span></div><div className="text-[10px] mt-px" style={{color:"#be123c"}}>● 오류</div></div>
+            <div className="ml-auto text-right"><span className="text-[16px] font-semibold tnum text-slate-900">{kpiRobots.length?Math.round((kpiCounts.run||0)/kpiRobots.length*100):0}%</span><div className="text-[10px] text-slate-400 mt-px">가동률</div></div>
+          </div>
+          <div className="flex h-1.5 rounded-full overflow-hidden bg-slate-100 mb-2">{statuses.map(s=>{const c=kpiCounts[s.id]||0;if(!c)return null;return <div key={s.id} style={{width:(c/Math.max(kpiRobots.length,1)*100)+"%",background:s.color}}/>;})}</div>
+          <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-[10.5px]">{statuses.map(s=><div key={s.id} className="flex items-center gap-1"><span className="text-slate-600">{s.short}</span><span className="ml-auto font-semibold tnum text-slate-900">{kpiCounts[s.id]||0}</span></div>)}</div>
           <div className="absolute bottom-2 right-2.5 text-[9.5px] text-slate-300 opacity-0 group-hover:opacity-100 transition flex items-center gap-0.5"><Icon name="MousePointerClick" size={9}/> 더블클릭</div>
         </div>
 
