@@ -218,8 +218,6 @@ const statusMap = Object.fromEntries(statuses.map(s=>[s.id,s]));
 const floors = [
   { id:"p3-3f", label:"P3 라인 3층", robots:8 },
   { id:"p3-7f", label:"P3 라인 7층", robots:4 },
-  { id:"p4-7f", label:"P4 라인 7층", robots:6 },
-  { id:"p5-3f", label:"P5 라인 3층", robots:5 },
 ];
 const actionTypes = [
   { id:"ASSIGN",   label:"배정",     icon:"ClipboardCheck",  color:"#64748b", defaultDuration:3,  fleets:["amr","agv","arm","semi","pm"] },
@@ -445,12 +443,8 @@ function Sidebar({ active, onChange }) {
   return (
     <aside className="w-56 shrink-0 h-full border-r border-slate-200 bg-white flex flex-col">
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-slate-200">
-        <div className="w-7 h-7 rounded-md bg-blue-600 grid place-items-center text-white">
-          <Icon name="Boxes" size={16} strokeWidth={2}/>
-        </div>
         <div className="leading-tight">
           <div className="text-[13px] font-semibold text-slate-900">Connect</div>
-          <div className="text-[10.5px] text-slate-500">Orchestrator {"·"} v2.4</div>
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto p-2">
@@ -496,14 +490,6 @@ function Sidebar({ active, onChange }) {
           );
         })}
       </nav>
-      <div className="px-2 pb-2">
-        <button onClick={()=>onChange("map-editor")}
-          className={"w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium transition-colors "+(active==="map-editor"?"bg-blue-50 text-blue-700":"text-slate-700 hover:bg-slate-100")}>
-          <Icon name="Map" size={16} strokeWidth={active==="map-editor"?2:1.75} className={active==="map-editor"?"text-blue-600":"text-slate-500"}/>
-          <span>Map Editor</span>
-          {active==="map-editor"&&<span className="ml-auto w-1 h-4 rounded-full bg-blue-600"/>}
-        </button>
-      </div>
       <div className="p-3 border-t border-slate-200">
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
           <div className="flex items-center gap-2 text-[11.5px] text-slate-500">
@@ -3672,15 +3658,56 @@ const ERROR_STATS = {
   arm:  {total:6, today:1,critical:0},
   semi: {total:4, today:1,critical:0},
 };
+// 에러 접두어 라벨(선택) — 없으면 접두어 원문 표시. 새 접두어가 와도 그대로 동작
+const PREFIX_LABEL = {
+  OBS:"장애물", PATH:"경로", LOC:"측위", COMM:"통신", BAT:"배터리",
+  EMS:"비상정지(EMS)", STOP:"안전정지", GRIP:"그립", SENS:"센서", MOT:"모터",
+};
+const CRITICAL_PREFIX = ["EMS","STOP"];
+const TOP_N_PREFIX = 5;
+const ERR_PALETTE = ["#f59e0b","#0ea5e9","#7c3aed","#16a34a","#0891b2","#db2777","#ca8a04"];
+// Fleet별 에러: 평면 코드 목록 (코드 접두어로 자동 그룹핑됨 — 수동 분류 불필요)
+const ERROR_LOG = {
+  amr: [
+    {code:"OBS_401", label:"전방 장애물 감지", count:3},
+    {code:"OBS_403", label:"측면 장애물 감지", count:1},
+    {code:"PATH_502",label:"경로 재계산 실패", count:3},
+    {code:"LOC_210", label:"위치 인식 실패", count:1},
+    {code:"COMM_300",label:"통신 끊김", count:2},
+    {code:"BAT_110", label:"배터리 부족", count:1},
+    {code:"SENS_220",label:"라이다 센서 오류", count:1},
+  ],
+  agv: [
+    {code:"OBS_401", label:"전방 장애물 감지", count:5},
+    {code:"PATH_502",label:"경로 재계산 실패", count:3},
+    {code:"EMS_001", label:"EMS 호출", count:3},
+    {code:"STOP_002",label:"비상정지", count:1},
+    {code:"COMM_300",label:"통신 끊김", count:2},
+    {code:"MOT_140", label:"구동부 과열", count:1},
+  ],
+  arm: [
+    {code:"GRIP_401",label:"그립 실패", count:3},
+    {code:"SENS_220",label:"센서 오류", count:2},
+    {code:"MOT_140", label:"관절 모터 오류", count:1},
+  ],
+  semi: [
+    {code:"COMM_300",label:"통신 끊김", count:2},
+    {code:"SENS_220",label:"센서 오류", count:1},
+    {code:"LOC_210", label:"위치 인식 실패", count:1},
+  ],
+  pm: [
+    {code:"SENS_220",label:"센서 오류", count:1},
+  ],
+};
 
 function sumHourly(fleetIds){ return Array.from({length:24},(_,i)=>fleetIds.reduce((s,f)=>s+(HOURLY[f]?.[i]||0),0)); }
 function sumTask(fleetIds){ return fleetIds.reduce((acc,f)=>{const d=TASK_STATS[f]||{};Object.keys(d).forEach(k=>acc[k]=(acc[k]||0)+d[k]);return acc;},{success:0,failed:0,running:0,queued:0}); }
 function sumErr(fleetIds){ return fleetIds.reduce((acc,f)=>{const d=ERROR_STATS[f]||{};return{total:acc.total+d.total,today:acc.today+d.today,critical:acc.critical+d.critical};},{total:0,today:0,critical:0}); }
 
 // 영역 차트 (시간대별 처리량)
-function AreaChart({ series, hours }) {
+function AreaChart({ series, hours, compare }) {
   const W=620,H=180,pl=28,pr=12,pt=10,pb=22;
-  const maxV=Math.max(1,...series.flatMap(s=>s.values));
+  const maxV=Math.max(1,...series.flatMap(s=>s.values),...(compare||[]));
   const N=24;
   const X=i=>pl+(i/(N-1))*(W-pl-pr);
   const Y=v=>pt+(1-v/maxV)*(H-pt-pb);
@@ -3722,6 +3749,12 @@ function AreaChart({ series, hours }) {
         {/* 현재 시간선 */}
         <line x1={X(11)} y1={pt} x2={X(11)} y2={H-pb} stroke="#e11d48" strokeWidth="1.5" strokeDasharray="3 2"/>
         <text x={X(11)} y={pt-1} textAnchor="middle" fill="#e11d48" fontSize={7} fontWeight="600">NOW</text>
+        {/* 지난 기간 비교선 (점선) */}
+        {compare&&(()=>{
+          const pts=compare.map((v,i)=>[X(i),Y(v)]);
+          const linePath=pts.map((p,i)=>(i===0?"M":"L")+p[0]+" "+p[1]).join(" ");
+          return <path d={linePath} fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 3" strokeLinecap="round"/>;
+        })()}
         {/* 영역 + 선 */}
         {series.map(s=>{
           const pts=s.values.map((v,i)=>[X(i),Y(v)]);
@@ -3768,6 +3801,18 @@ function AreaChart({ series, hours }) {
                 <span className="font-bold tnum text-emerald-400">{series.reduce((s,sr)=>s+sr.values[tip.hour],0)}건</span>
               </div>
             </>}
+            {compare&&(()=>{
+              const cur=series.find(s=>s.id==="total")?series.find(s=>s.id==="total").values[tip.hour]:series.reduce((a,s)=>a+s.values[tip.hour],0);
+              const prev=compare[tip.hour];
+              const diff=cur-prev;
+              return(<>
+                <div className="h-px bg-slate-700 my-1.5"/>
+                <div className="flex items-center justify-between text-[11.5px]">
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 border-t border-dashed border-slate-400"/><span className="text-slate-400">지난 기간</span></span>
+                  <span className="tnum text-slate-300">{prev}건 <span className={"ml-0.5 font-semibold "+(diff>=0?"text-emerald-400":"text-rose-400")}>{diff>=0?"▲":"▼"}{Math.abs(diff)}</span></span>
+                </div>
+              </>);
+            })()}
           </div>
         );
       })()}
@@ -3776,7 +3821,7 @@ function AreaChart({ series, hours }) {
 }
 
 // 누적 바 차트 (Fleet별 작업 현황)
-function StackedBarChart({ data, legend }) {
+function StackedBarChart({ data, legend, onBarClick, activeFleet }) {
   if(!data||!data.length) return null;
   const W=340,H=200,pl=40,pr=16,pt=10,pb=22;
   const maxV=Math.max(1,...data.map(d=>d.values.reduce((s,v)=>s+v,0)));
@@ -3799,11 +3844,14 @@ function StackedBarChart({ data, legend }) {
         {data.map((d,di)=>{
           const x=pl+di*bw+bw*0.15, bWidth=bw*0.7, total=d.values.reduce((s,v)=>s+v,0);
           const isHov=tip?.di===di;
+          const isActive=activeFleet&&d.fId===activeFleet;
           let cy=H-pb;
           return(
-            <g key={d.label} onMouseMove={e=>onMouseMove(e,di)} style={{cursor:"default"}}>
+            <g key={d.label} onMouseMove={e=>onMouseMove(e,di)} onClick={()=>onBarClick&&onBarClick(d.fId)} style={{cursor:onBarClick?"pointer":"default"}}>
               {/* hover 하이라이트 배경 */}
               {isHov&&<rect x={pl+di*bw} y={pt} width={bw} height={H-pt-pb} fill="#f1f5f9" rx="4"/>}
+              {/* 활성(테이블 필터) 표시 */}
+              {isActive&&<rect x={pl+di*bw+1} y={pt} width={bw-2} height={H-pt-pb} fill="none" stroke="#2563eb" strokeWidth="1.5" strokeDasharray="3 2" rx="4"/>}
               {d.values.map((v,vi)=>{
                 const h=(v/maxV)*(H-pt-pb), y=cy-h;
                 cy=y;
@@ -3963,8 +4011,15 @@ function MiniDonut({ segments }) {
 }
 
 function AnalyticsView() {
-  const [dateFrom,setDateFrom]=useState("2026-05-01");
-  const [dateTo,setDateTo]=useState("2026-05-14");
+  const [dateFrom,setDateFrom]=useState("2026-06-02");
+  const [dateTo,setDateTo]=useState("2026-06-08");
+  const [datePreset,setDatePreset]=useState("7d");
+  const applyPreset=(p)=>{
+    setDatePreset(p);
+    const to="2026-06-08";
+    const from = p==="today" ? "2026-06-08" : p==="7d" ? "2026-06-02" : "2026-05-09";
+    setDateFrom(from); setDateTo(to);
+  };
   const [fleetSel,setFleetSel]=useState(new Set());
   const [chartType,setChartType]=useState("area");
   const [tblFleetF,setTblFleetF]=useState(new Set());
@@ -3984,7 +4039,7 @@ function AnalyticsView() {
   const cards = [
     {label:"평균 가동률",   value:uptimePct+"%",       sub:`${runRobots}/${totalRobots}대 가동 중`,  icon:"Gauge",       tone:"emerald", trend:"+2.4%"},
     {label:"작업 성공률",   value:successPct+"%",      sub:`${taskTotal.success}건 완료`,             icon:"CheckCircle2",tone:"blue",    trend:"+1.1%"},
-    {label:"금일 에러",     value:errTotal.today+"건", sub:`위험 ${errTotal.critical}건 포함`,        icon:"AlertTriangle",tone:"rose",   trend:errTotal.today>3?"+2건":"-1건"},
+    {label:"기간 내 에러",     value:errTotal.total+"건", sub:`위험 ${errTotal.critical}건 포함`,        icon:"AlertTriangle",tone:"rose",   trend:errTotal.today>3?"+2건":"-1건"},
     {label:"누적 처리량",   value:hourlyTotal.reduce((s,v)=>s+v,0)+"건", sub:"선택 기간 합산", icon:"TrendingUp", tone:"slate", trend:"+12%"},
   ];
 
@@ -3998,13 +4053,18 @@ function AnalyticsView() {
   const allSeries = showTotal
     ? [{id:"total",color:"#334155",values:hourlyTotal},...areaSeries]
     : areaSeries;
+  // 지난 기간 비교 (시간대별 합계의 이전 기간 추정치)
+  const [showCompare,setShowCompare]=useState(true);
+  const compareValues = hourlyTotal.map((v,i)=>Math.round(v*(0.80+((i*13)%19)/100)));
+  // Fleet 카드 지표 클릭 → 하단 상세 (에러 항목 / 작업 현황)
+  const [fleetDetail,setFleetDetail]=useState(null); // {fId, type:"errors"|"tasks"} | null
 
   // Stacked bar: Fleet별 [성공,실패,진행,대기]
   const stackColors=["#10b981","#e11d48","#2563eb","#d97706"];
   const stackLegend=[{label:"성공",color:"#10b981"},{label:"실패",color:"#e11d48"},{label:"진행",color:"#2563eb"},{label:"대기",color:"#d97706"}];
   const stackData = selFleets.map(fId=>{
     const f=fleets.find(fl=>fl.id===fId),d=TASK_STATS[fId]||{};
-    return {label:f?.name||fId, colors:stackColors, values:[d.success||0,d.failed||0,d.running||0,d.queued||0]};
+    return {fId, label:f?.name||fId, colors:stackColors, values:[d.success||0,d.failed||0,d.running||0,d.queued||0]};
   });
 
   // 테이블 필터: 글로벌 Fleet + 테이블 전용 Fleet/상태 필터 조합
@@ -4025,12 +4085,21 @@ function AnalyticsView() {
           <p className="text-[11.5px] text-slate-500 mt-0.5">Fleet 운영{"·"}작업{"·"}에러 현황 종합 분석</p>
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
+          {/* 날짜 프리셋 */}
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+            {[{id:"today",label:"오늘"},{id:"7d",label:"최근 7일"},{id:"30d",label:"30일"}].map(p=>(
+              <button key={p.id} onClick={()=>applyPreset(p.id)}
+                className={"h-8 px-2.5 rounded-md text-[12px] font-medium transition "+(datePreset===p.id?"bg-white text-blue-700 shadow-sm":"text-slate-500 hover:text-slate-700")}>
+                {p.label}
+              </button>
+            ))}
+          </div>
           {/* 날짜 범위 */}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-3 h-9">
             <Icon name="CalendarRange" size={13} className="text-slate-400"/>
-            <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} className="text-[12px] text-slate-800 outline-none bg-transparent"/>
+            <input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setDatePreset("");}} className="text-[12px] text-slate-800 outline-none bg-transparent"/>
             <span className="text-slate-300 text-[11px]">{"—"}</span>
-            <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} className="text-[12px] text-slate-800 outline-none bg-transparent"/>
+            <input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setDatePreset("");}} className="text-[12px] text-slate-800 outline-none bg-transparent"/>
           </div>
           {/* Fleet 멀티 드롭다운 */}
           <MultiSelectDropdown
@@ -4063,7 +4132,7 @@ function AnalyticsView() {
       </div>
 
       {/* ── Middle Row ── */}
-      <div className="grid gap-4 mb-4" style={{gridTemplateColumns:"1fr 380px"}}>
+      <div className="grid gap-4 mb-4" style={{gridTemplateColumns:"1.5fr 1fr"}}>
         {/* 시간대별 처리량 */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
@@ -4071,12 +4140,16 @@ function AnalyticsView() {
             <span className="text-[13px] font-semibold text-slate-900">시간대별 처리량</span>
             <span className="text-[11px] text-slate-400">오늘 기준</span>
             <div className="ml-auto flex items-center gap-3 text-[10.5px]">
+              <button onClick={()=>setShowCompare(v=>!v)}
+                className={"flex items-center gap-1 px-1.5 py-0.5 rounded transition "+(showCompare?"bg-slate-100 text-slate-600":"text-slate-400 hover:bg-slate-50")}>
+                <span className="w-2.5 border-t border-dashed border-slate-400"/> vs 지난 기간
+              </button>
               {showTotal&&<span className="flex items-center gap-1"><span className="w-2.5 h-0.5 rounded-full bg-slate-800 inline-block"/><span className="text-slate-500">전체</span></span>}
               {areaSeries.map(s=>{const f=fleets.find(fl=>fl.id===s.id);return <span key={s.id} className="flex items-center gap-1"><span className="w-2.5 h-0.5 rounded-full inline-block" style={{background:s.color}}/><span className="text-slate-500">{f?.name}</span></span>;})}
             </div>
           </div>
           <div className="px-4 pt-3 pb-2">
-            <AreaChart series={allSeries} hours={24}/>
+            <AreaChart series={allSeries} hours={24} compare={showCompare?compareValues:null}/>
           </div>
         </div>
 
@@ -4090,13 +4163,13 @@ function AnalyticsView() {
             </div>
           </div>
           <div className="px-4 pt-3 pb-2">
-            <StackedBarChart data={stackData} legend={stackLegend}/>
+            <StackedBarChart data={stackData} legend={stackLegend} activeFleet={tblFleetF.size===1?[...tblFleetF][0]:null} onBarClick={fId=>setTblFleetF(prev=>(prev.size===1&&prev.has(fId))?new Set():new Set([fId]))}/>
           </div>
         </div>
       </div>
 
       {/* ── 운영 현황 카드 row ── */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-5 gap-3 mb-4">
         {selFleets.map(fId=>{
           const f=fleets.find(fl=>fl.id===fId);
           const fr=robots.filter(r=>r.fleet===fId);
@@ -4104,8 +4177,11 @@ function AnalyticsView() {
           const err=ERROR_STATS[fId]||{total:0,today:0,critical:0};
           const task=TASK_STATS[fId]||{success:0,failed:0,running:0,queued:0};
           const upPct=fr.length?Math.round((counts.run||0)/fr.length*100):0;
+          const isTableFiltered=tblFleetF.size===1&&tblFleetF.has(fId);
           return(
-            <div key={fId} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
+            <div key={fId} onClick={()=>setTblFleetF(prev=>(prev.size===1&&prev.has(fId))?new Set():new Set([fId]))}
+              title="클릭 → 아래 로봇 테이블을 이 Fleet으로 필터"
+              className={"bg-white border rounded-xl p-3.5 shadow-sm cursor-pointer transition-all hover:shadow-md hover:border-blue-300 "+(isTableFiltered?"border-blue-400 ring-2 ring-blue-100":"border-slate-200")}>
               <div className="flex items-center gap-2 mb-3">
                 
                 <span className="text-[13px] font-semibold text-slate-900">{f?.name}</span>
@@ -4133,14 +4209,18 @@ function AnalyticsView() {
                 <div className="flex items-center justify-between text-[10.5px] mb-1"><span className="text-slate-500">가동률</span><span className="font-semibold text-slate-900 tnum">{upPct}%</span></div>
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:upPct+"%",background:f?.color}}/></div>
               </div>
-              {/* 에러·작업 수치 */}
+              {/* 에러·작업 수치 (클릭 → 하단 상세) */}
               <div className="grid grid-cols-2 gap-1.5 mt-2.5">
-                <div className="rounded-lg bg-rose-50 px-2 py-1.5">
-                  <div className="text-[9.5px] text-rose-500 font-medium">금일 에러</div>
-                  <div className="text-[14px] font-bold text-rose-700 tnum">{err.today}<span className="text-[10px] font-normal ml-0.5">건</span></div>
+                <div onClick={(e)=>{e.stopPropagation();setFleetDetail(prev=>(prev&&prev.fId===fId&&prev.type==="errors")?null:{fId,type:"errors"});}}
+                  title="클릭 → 에러 항목 보기"
+                  className={"rounded-lg px-2 py-1.5 cursor-pointer transition hover:ring-2 hover:ring-rose-200 "+(fleetDetail&&fleetDetail.fId===fId&&fleetDetail.type==="errors"?"bg-rose-100 ring-2 ring-rose-300":"bg-rose-50")}>
+                  <div className="text-[9.5px] text-rose-500 font-medium flex items-center gap-0.5">금일 에러 <Icon name="ChevronDown" size={9} className="text-rose-300"/></div>
+                  <div className="text-[14px] font-bold text-rose-700 tnum">{err.today}<span className="text-[9.5px] font-medium text-rose-400 ml-0.5">건</span></div>
                 </div>
-                <div className="rounded-lg bg-emerald-50 px-2 py-1.5">
-                  <div className="text-[9.5px] text-emerald-600 font-medium">성공률</div>
+                <div onClick={(e)=>{e.stopPropagation();setFleetDetail(prev=>(prev&&prev.fId===fId&&prev.type==="tasks")?null:{fId,type:"tasks"});}}
+                  title="클릭 → 작업 현황 보기"
+                  className={"rounded-lg px-2 py-1.5 cursor-pointer transition hover:ring-2 hover:ring-emerald-200 "+(fleetDetail&&fleetDetail.fId===fId&&fleetDetail.type==="tasks"?"bg-emerald-100 ring-2 ring-emerald-300":"bg-emerald-50")}>
+                  <div className="text-[9.5px] text-emerald-600 font-medium flex items-center gap-0.5">성공률 <Icon name="ChevronDown" size={9} className="text-emerald-300"/></div>
                   <div className="text-[14px] font-bold text-emerald-700 tnum">{task.success+task.failed>0?Math.round(task.success/(task.success+task.failed)*100):"-"}<span className="text-[10px] font-normal ml-0.5">%</span></div>
                 </div>
               </div>
@@ -4149,7 +4229,92 @@ function AnalyticsView() {
         })}
       </div>
 
-      {/* ── Bottom Table ── */}
+      {/* ── Fleet 지표 클릭 상세 (에러 항목 / 작업 현황) ── */}
+      {fleetDetail&&(()=>{
+        const f=fleets.find(fl=>fl.id===fleetDetail.fId);
+        const fName=f?.name||fleetDetail.fId;
+        if(fleetDetail.type==="errors"){
+          const errs=[...(ERROR_LOG[fleetDetail.fId]||[])].sort((a,b)=>b.count-a.count);
+          const errSumF=errs.reduce((s,e)=>s+e.count,0);
+          return(
+            <div className="bg-white border border-rose-200 rounded-xl shadow-sm overflow-hidden mb-4">
+              <div className="h-11 px-4 border-b border-rose-100 bg-rose-50/50 flex items-center gap-2">
+                <Icon name="AlertTriangle" size={14} className="text-rose-500"/>
+                <span className="text-[13px] font-semibold text-slate-900">{fName} · 에러 항목</span>
+                <span className="text-[11px] text-slate-400 tnum">총 {errSumF}건</span>
+                <button onClick={()=>setFleetDetail(null)} className="ml-auto text-slate-400 hover:text-slate-600"><Icon name="X" size={15}/></button>
+              </div>
+              <div className="p-4">
+                {errs.length===0
+                  ? <div className="py-5 text-center text-[12px] text-slate-400">에러 항목이 없습니다.</div>
+                  : <table className="w-full text-[12.5px]">
+                      <thead><tr className="text-left text-slate-400 border-b border-slate-100">
+                        <th className="font-medium py-2 px-2 w-[120px]">에러 코드</th>
+                        <th className="font-medium py-2">내용</th>
+                        <th className="font-medium py-2 text-right pr-2 w-[80px]">건수</th>
+                      </tr></thead>
+                      <tbody>
+                        {errs.map(e=>{
+                          const crit=CRITICAL_PREFIX.includes(e.code.split("_")[0]);
+                          return(
+                            <tr key={e.code} className="border-b border-slate-50">
+                              <td className="py-2 px-2"><span className="tnum text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5">{crit&&<span className="w-1.5 h-1.5 rounded-full bg-rose-500"/>}{e.code}</span></td>
+                              <td className="py-2 text-slate-600">{e.label}</td>
+                              <td className="py-2 text-right pr-2"><span className="tnum font-semibold text-slate-900">{e.count}</span><span className="text-[10px] text-slate-400 ml-0.5">건</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>}
+              </div>
+            </div>
+          );
+        } else {
+          const fleetRobotIds=robots.filter(r=>r.fleet===fleetDetail.fId).map(r=>r.id);
+          const orders=initOrders.filter(o=>fleetRobotIds.includes(o.robotId));
+          const stLabel={done:"완료",running:"진행중",queued:"대기",error:"에러"};
+          const stStyle={done:"text-emerald-700 bg-emerald-50",running:"text-blue-700 bg-blue-50",queued:"text-slate-600 bg-slate-100",error:"text-rose-700 bg-rose-50"};
+          const fmtT=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+          return(
+            <div className="bg-white border border-emerald-200 rounded-xl shadow-sm overflow-hidden mb-4">
+              <div className="h-11 px-4 border-b border-emerald-100 bg-emerald-50/50 flex items-center gap-2">
+                <Icon name="ClipboardList" size={14} className="text-emerald-600"/>
+                <span className="text-[13px] font-semibold text-slate-900">{fName} · 작업 현황</span>
+                <span className="text-[11px] text-slate-400 tnum">총 {orders.length}건</span>
+                <button onClick={()=>setFleetDetail(null)} className="ml-auto text-slate-400 hover:text-slate-600"><Icon name="X" size={15}/></button>
+              </div>
+              <div className="p-4">
+                {orders.length===0
+                  ? <div className="py-5 text-center text-[12px] text-slate-400">작업 내역이 없습니다.</div>
+                  : <table className="w-full text-[12.5px]">
+                      <thead><tr className="text-left text-slate-400 border-b border-slate-100">
+                        <th className="font-medium py-2 px-2 w-[110px]">작업 ID</th>
+                        <th className="font-medium py-2 w-[100px]">로봇</th>
+                        <th className="font-medium py-2">레시피</th>
+                        <th className="font-medium py-2 w-[80px]">시작</th>
+                        <th className="font-medium py-2 text-right pr-2 w-[80px]">상태</th>
+                      </tr></thead>
+                      <tbody>
+                        {orders.map(o=>{
+                          const rc=recipes.find(r=>r.id===o.recipeId);
+                          return(
+                            <tr key={o.id} className="border-b border-slate-50">
+                              <td className="py-2 px-2 tnum text-slate-700 font-medium">{o.id}</td>
+                              <td className="py-2 tnum text-slate-600">{o.robotId}</td>
+                              <td className="py-2 text-slate-600 truncate">{rc?.name||"—"}</td>
+                              <td className="py-2 tnum text-slate-500">{fmtT(o.start)}</td>
+                              <td className="py-2 text-right pr-2"><span className={"inline-block px-1.5 py-0.5 rounded text-[11px] font-medium "+(stStyle[o.status]||"text-slate-600 bg-slate-100")}>{stLabel[o.status]||o.status}</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>}
+              </div>
+            </div>
+          );
+        }
+      })()}
+
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         {/* 헤더 + 필터 */}
         <div className="border-b border-slate-200">
@@ -4187,10 +4352,10 @@ function AnalyticsView() {
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
             <th className="font-medium px-4 py-2.5">로봇 ID</th>
             <th className="font-medium py-2.5">Fleet</th>
-            <th className="font-medium py-2.5">상태</th>
-            <th className="font-medium py-2.5 w-[120px]">배터리</th>
-            <th className="font-medium py-2.5">현재 작업</th>
-            <th className="font-medium py-2.5 text-right pr-4">금일 처리</th>
+            <th className="font-medium py-2.5 text-right w-[90px]">처리량</th>
+            <th className="font-medium py-2.5 w-[150px]">성공률</th>
+            <th className="font-medium py-2.5 text-right w-[80px]">에러</th>
+            <th className="font-medium py-2.5 text-right pr-4 w-[110px]">평균 작업시간</th>
           </tr></thead>
           <tbody>
             {tableRobots.length===0&&(
@@ -4201,11 +4366,13 @@ function AnalyticsView() {
             )}
             {tableRobots.map(r=>{
               const sm=statusMap[r.status], fm=fleetMeta(r.fleet);
-              const tasks=initOrders.filter(o=>o.robotId===r.id);
-              const done=tasks.filter(o=>o.status==="done").length;
-              // 현재 실행 중인 오더의 레시피명
-              const runningOrder=tasks.find(o=>o.status==="running");
-              const runningRecipe=runningOrder?recipes.find(rc=>rc.id===runningOrder.recipeId):null;
+              // 로봇별 기간 성과 지표 (id 기반 안정적 생성)
+              const h=[...r.id].reduce((a,c)=>a+c.charCodeAt(0),0);
+              const errors = r.status==="down" ? 3+(h%4) : (h%4);
+              const throughput = 38 + (h%62);
+              const successRate = Math.max(70, 100 - errors*3 - (h%4));
+              const avgMin = (3 + (h%45)/10).toFixed(1);
+              const srColor = successRate>=95?"#10b981":successRate>=85?"#d97706":"#e11d48";
               return(
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
                   <td className="px-4 py-3">
@@ -4221,36 +4388,25 @@ function AnalyticsView() {
                       {fm.name}
                     </span>
                   </td>
-                  <td className="py-3">
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11.5px] font-semibold" style={{background:sm.bg,color:sm.fg}}>
-                      
-                    </span>
+                  <td className="py-3 text-right">
+                    <span className="text-[12.5px] font-semibold text-slate-900 tnum">{throughput}</span>
+                    <span className="text-[10.5px] text-slate-400 ml-0.5">건</span>
                   </td>
                   <td className="py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{width:r.battery+"%",background:r.battery>50?"#10b981":r.battery>25?"#f59e0b":"#e11d48"}}/>
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{width:successRate+"%",background:srColor}}/>
                       </div>
-                      <span className="tnum text-[11.5px] text-slate-700 font-medium">{r.battery}%</span>
+                      <span className="tnum text-[11.5px] font-semibold w-9 text-right" style={{color:srColor}}>{successRate}%</span>
                     </div>
                   </td>
-                  <td className="py-3">
-                    {r.task
-                      ? <div>
-                          {runningRecipe&&(
-                            <div className="text-[12px] font-semibold text-slate-900 leading-tight">{runningRecipe.name}</div>
-                          )}
-                          <div className="flex items-center gap-1 mt-0.5 text-[10.5px] text-slate-400">
-                            <Icon name="Hash" size={9}/>
-                            <span className="tnum">{r.task}</span>
-                          </div>
-                        </div>
-                      : <span className="text-[11.5px] text-slate-400 italic">없음</span>
-                    }
+                  <td className="py-3 text-right">
+                    {errors>0
+                      ? <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-rose-600 tnum"><Icon name="AlertTriangle" size={10}/>{errors}건</span>
+                      : <span className="text-[11.5px] text-slate-300 tnum">0건</span>}
                   </td>
                   <td className="py-3 pr-4 text-right">
-                    <span className="text-[12px] font-semibold text-slate-900 tnum">{done}</span>
-                    <span className="text-[10.5px] text-slate-400 ml-1">/ {tasks.length}건</span>
+                    <span className="text-[12px] text-slate-700 tnum">{avgMin}분</span>
                   </td>
                 </tr>
               );
@@ -8097,14 +8253,6 @@ function PermissionsView() {
         <div>
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">권한 관리</h1>
           <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet 별 사용자 접근 권한을 관리합니다. Admin 이상 권한 소유자만 수정 가능합니다.</p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 shadow-sm">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 grid place-items-center text-white text-[11px] font-semibold">김</div>
-          <div className="leading-tight">
-            <div className="text-[12px] font-semibold text-slate-900">{CURRENT_USER.id}</div>
-            <div className="text-[10px] text-purple-600 font-semibold">{CURRENT_USER.role}</div>
-          </div>
-          <span className={"ml-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full "+ROLE_COLOR[CURRENT_USER.role]}>{CURRENT_USER.role}</span>
         </div>
       </div>
 
