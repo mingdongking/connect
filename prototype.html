@@ -684,7 +684,7 @@ function ManualTab({ sel }) {
             <div className="text-[12px] font-semibold text-slate-800">Commission 설정</div>
             <div className="text-[10.5px] text-amber-600 mt-0.5 flex items-start gap-1 leading-snug">
               <Icon name="AlertTriangle" size={10} className="shrink-0 mt-px"/>
-              AMR 수동 작업, 노드 이동하기 시 설정값을 Decommission으로 변경해야 합니다.
+              로봇 수동 작업, 노드 이동하기 시 설정값을 Decommission으로 변경해야 합니다.
             </div>
           </div>
           <div className="p-2.5 flex items-center gap-2">
@@ -4504,15 +4504,15 @@ const CART_SIZE_OPTS=[{id:"S",label:"소"},{id:"M",label:"중"},{id:"L",label:"�
 const CART_FLOOR_OPTS=["3","7"];
 const CART_PROCESS_OPTS=["ETCH","Clean"];
 const CART_CATEGORY_OPTS=[
-  {id:"CLV", label:"CLV국소배기", fleet:"Tool",  partBase:"국소배기"},
-  {id:"PART",label:"Part",       fleet:"Parts", partBase:"Part"},
+  {id:"CLV", label:"국소배기(CLV)", fleet:"Tool",  partBase:"국소배기"},
+  {id:"PART",label:"부품(Parts)",   fleet:"Parts", partBase:"부품"},
 ];
 const initCarts = [
   {id:"CLV-3E-001", teamDiv:"ETCH 3층 분임조",  partName:"국소배기1", size:"M", floor:"3", process:"ETCH",  category:"CLV",  fleet:"Tool",  inUse:true,  visible:true,  createdAt:"2026-03-02 09:00", activatedAt:"2026-03-02 10:30", initNode:"MN-1"},
   {id:"CLV-7E-001", teamDiv:"ETCH 7층 분임조",  partName:"국소배기2", size:"L", floor:"7", process:"ETCH",  category:"CLV",  fleet:"Tool",  inUse:true,  visible:true,  createdAt:"2026-03-10 14:20", activatedAt:"2026-03-11 08:00", initNode:"MN-3"},
   {id:"CLV-3C-001", teamDiv:"Clean 3층 분임조", partName:"국소배기3", size:"S", floor:"3", process:"Clean", category:"CLV",  fleet:"Tool",  inUse:false, visible:true,  createdAt:"2026-04-01 11:00", activatedAt:"-",               initNode:"MN-2"},
-  {id:"PART-7C-001",teamDiv:"Clean 7층 분임조", partName:"Part1",     size:"M", floor:"7", process:"Clean", category:"PART", fleet:"Parts", inUse:true,  visible:false, createdAt:"2026-04-15 09:30", activatedAt:"2026-04-15 13:00", initNode:"MN-5"},
-  {id:"PART-3E-001",teamDiv:"ETCH 3층 분임조",  partName:"Part2",     size:"S", floor:"3", process:"ETCH",  category:"PART", fleet:"Parts", inUse:false, visible:true,  createdAt:"2026-05-20 16:45", activatedAt:"-",               initNode:"MN-4"},
+  {id:"PART-7C-001",teamDiv:"Clean 7층 분임조", partName:"부품1",     size:"M", floor:"7", process:"Clean", category:"PART", fleet:"Parts", inUse:true,  visible:false, createdAt:"2026-04-15 09:30", activatedAt:"2026-04-15 13:00", initNode:"MN-5"},
+  {id:"PART-3E-001",teamDiv:"ETCH 3층 분임조",  partName:"부품2",     size:"S", floor:"3", process:"ETCH",  category:"PART", fleet:"Parts", inUse:false, visible:true,  createdAt:"2026-05-20 16:45", activatedAt:"-",               initNode:"MN-4"},
 ];
 function nowStamp(){ return "2026-06-08 "+new Date().toTimeString().slice(0,5); }
 
@@ -4524,10 +4524,10 @@ function MgmtToggle({on,onClick,onLabel="사용",offLabel="미사용"}){
     </button>
   );
 }
-function MgmtModal({title,icon,onClose,children,footer}){
+function MgmtModal({title,icon,onClose,children,footer,width}){
   return(
     <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-[420px] max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-xl max-h-[85vh] overflow-auto" style={{width:width||420}} onClick={e=>e.stopPropagation()}>
         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-50 grid place-items-center text-blue-600"><Icon name={icon} size={15}/></div>
           <span className="text-[14px] font-bold text-slate-900">{title}</span>
@@ -4651,6 +4651,7 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
   const [floor,setFloor]=useState("3");
   const [process,setProcess]=useState("ETCH");
   const [category,setCategory]=useState("CLV");
+  const [fleetSel,setFleetSel]=useState("Tool");
   const [inUse,setInUse]=useState("true");
   const [initNode,setInitNode]=useState(mapNodes[0].id);
 
@@ -4665,7 +4666,7 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
     const useNow=inUse==="true";
     onAdd({
       id:previewId, teamDiv:process+" "+floor+"층 분임조", partName:previewPart,
-      size, floor, process, category, fleet:cat.fleet,
+      size, floor, process, category, fleet:fleetSel,
       inUse:useNow, visible:true,
       createdAt:nowStamp(), activatedAt:useNow?nowStamp():"-", initNode,
     });
@@ -4681,7 +4682,7 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
         <Icon name="Tag" size={13} className="text-blue-500"/>
         <span className="text-[12px] text-slate-500">생성될 ID</span>
         <span className="text-[12.5px] font-bold text-slate-900 tnum ml-auto">{previewId}</span>
-        <span className="text-[11px] text-slate-400">· {previewPart} · {cat.fleet}</span>
+        <span className="text-[11px] text-slate-400">· {previewPart} · {fleetSel}</span>
       </div>
       <MgmtField label="카트 Size">
         <select value={size} onChange={e=>setSize(e.target.value)} className={mgmtSelCls}>
@@ -4701,8 +4702,14 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
         </MgmtField>
       </div>
       <MgmtField label="부품 카테고리">
-        <select value={category} onChange={e=>setCategory(e.target.value)} className={mgmtSelCls}>
-          {CART_CATEGORY_OPTS.map(c=><option key={c.id} value={c.id}>{c.label} → Fleet: {c.fleet}</option>)}
+        <select value={category} onChange={e=>{const v=e.target.value;setCategory(v);setFleetSel(CART_CATEGORY_OPTS.find(x=>x.id===v).fleet);}} className={mgmtSelCls}>
+          {CART_CATEGORY_OPTS.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+      </MgmtField>
+      <MgmtField label="Fleet">
+        <select value={fleetSel} onChange={e=>setFleetSel(e.target.value)} className={mgmtSelCls}>
+          <option value="Tool">Tool</option>
+          <option value="Parts">Parts</option>
         </select>
       </MgmtField>
       <div className="grid grid-cols-2 gap-3">
@@ -4742,7 +4749,7 @@ function RobotMgmtView() {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">로봇 관리</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">AMR 등록·편집·삭제 및 사용 여부를 관리합니다.</p>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">로봇 등록·편집·삭제 및 사용 여부를 관리합니다.</p>
         </div>
         <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 등록
@@ -4752,16 +4759,16 @@ function RobotMgmtView() {
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
           <Icon name="Bot" size={14} className="text-slate-500"/>
-          <span className="text-[13px] font-semibold text-slate-900">AMR 목록</span>
+          <span className="text-[13px] font-semibold text-slate-900">로봇 목록</span>
           <span className="text-[11px] text-slate-400 tnum">{filtered.length}대</span>
           <div className="ml-auto relative">
             <Icon name="Search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
-            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="AMR ID 검색" className="h-8 pl-7 pr-2 w-40 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-blue-400"/>
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="로봇 ID 검색" className="h-8 pl-7 pr-2 w-40 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-blue-400"/>
           </div>
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">AMR ID</th>
+            <th className="font-medium px-4 py-2.5">로봇 ID</th>
             <th className="font-medium py-2.5">Fleet 종류</th>
             <th className="font-medium py-2.5">버전</th>
             <th className="font-medium py-2.5">사용여부</th>
@@ -4796,9 +4803,9 @@ function RobotMgmtView() {
         </table>
       </div>
 
-      {addOpen&&<RobotFormModal title="AMR 등록" onClose={()=>setAddOpen(false)} existing={list}
+      {addOpen&&<RobotFormModal title="로봇 등록" onClose={()=>setAddOpen(false)} existing={list}
         onSave={(r)=>{setList(ls=>[...ls,r]);setAddOpen(false);showToast(r.id+" 등록됨");}}/>}
-      {editTarget&&<RobotFormModal title={"AMR 편집 — "+editTarget.id} init={editTarget} lockId onClose={()=>setEditTarget(null)} existing={list}
+      {editTarget&&<RobotFormModal title={"로봇 편집 — "+editTarget.id} init={editTarget} lockId onClose={()=>setEditTarget(null)} existing={list}
         onSave={(r)=>{setList(ls=>ls.map(x=>x.id===r.id?r:x));setEditTarget(null);showToast(r.id+" 수정됨");}}/>}
       {delTarget&&<MgmtDeleteModal label={delTarget.id} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.id!==delTarget.id));showToast(delTarget.id+" 삭제됨");setDelTarget(null);}}/>}
       {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
@@ -4809,8 +4816,14 @@ function RobotMgmtView() {
 function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
   const [id,setId]=useState(init?init.id:"");
   const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
-  const [version,setVersion]=useState(init?init.version:"v1.0");
+  const fleetVerOpts=(fId)=>{
+    const nm=fleets.find(f=>f.id===fId)?.name;
+    const vs=[...new Set(initFleetRegistry.filter(fr=>fr.name===nm).map(fr=>fr.version))];
+    return vs.length?vs:[...new Set(initFleetRegistry.map(fr=>fr.version))];
+  };
+  const [version,setVersion]=useState(init?init.version:fleetVerOpts(fleets[0].id)[0]);
   const [initNode,setInitNode]=useState(init?init.initNode:mapNodes[0].id);
+  const verList=(()=>{const vs=fleetVerOpts(fleet);return (init&&!vs.includes(init.version))?[init.version,...vs]:vs;})();
   const dup=!lockId&&existing.some(r=>r.id===id);
   const valid=id.trim().length>0&&!dup;
   return(
@@ -4820,17 +4833,19 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
         <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,initNode,inUse:init?init.inUse:true})} disabled={!valid}
           className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
       </>}>
-      <MgmtField label="AMR ID">
+      <MgmtField label="로봇 ID">
         <input value={id} onChange={e=>setId(e.target.value)} disabled={lockId} placeholder="예: Tool007" className={mgmtInpCls+(lockId?" bg-slate-50 text-slate-400":"")}/>
         {dup&&<div className="text-[11px] text-rose-500 mt-1">이미 존재하는 ID입니다.</div>}
       </MgmtField>
       <MgmtField label="Fleet 종류">
-        <select value={fleet} onChange={e=>setFleet(e.target.value)} className={mgmtSelCls}>
+        <select value={fleet} onChange={e=>{const v=e.target.value;setFleet(v);setVersion(fleetVerOpts(v)[0]);}} className={mgmtSelCls}>
           {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
       </MgmtField>
-      <MgmtField label="버전">
-        <input value={version} onChange={e=>setVersion(e.target.value)} placeholder="예: v2.4" className={mgmtInpCls}/>
+      <MgmtField label="버전 (Fleet 관리에 등록된 버전)">
+        <select value={version} onChange={e=>setVersion(e.target.value)} className={mgmtSelCls}>
+          {verList.map(v=><option key={v} value={v}>{v}</option>)}
+        </select>
       </MgmtField>
       <MgmtField label="초기 노드 설정">
         <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
@@ -4855,8 +4870,11 @@ function FleetMgmtView() {
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
+  const [actTarget,setActTarget]=useState(null); // Action Type 관리 대상 Fleet
+  const [actVer,setActVer]=useState(0); // actionTypes 변경 시 리렌더용
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
+  const fleetIdOf=name=>fleets.find(f=>f.name===name)?.id;
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
@@ -4884,10 +4902,11 @@ function FleetMgmtView() {
             <th className="font-medium py-2.5 text-right">최대속도</th>
             <th className="font-medium py-2.5 text-right">회전반경</th>
             <th className="font-medium py-2.5 pl-5">제조사</th>
+            <th className="font-medium py-2.5 pl-5">Action Type</th>
             <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
           </tr></thead>
           <tbody>
-            {list.length===0&&<tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
+            {list.length===0&&<tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
             {list.map(f=>(
               <tr key={f.name} className="border-b border-slate-100 hover:bg-slate-50/60">
                 <td className="px-4 py-3"><span className="font-semibold text-slate-900">{f.name}</span></td>
@@ -4896,6 +4915,25 @@ function FleetMgmtView() {
                 <td className="py-3 tnum text-slate-600 text-right">{f.maxSpeed} <span className="text-[10.5px] text-slate-400">m/s</span></td>
                 <td className="py-3 tnum text-slate-600 text-right">{f.turnRadius} <span className="text-[10.5px] text-slate-400">m</span></td>
                 <td className="py-3 pl-5 text-slate-600">{f.maker}</td>
+                <td className="py-3 pl-5">
+                  {(()=>{
+                    const fid=fleetIdOf(f.name);
+                    if(!fid) return <span className="text-[11px] text-slate-300">—</span>;
+                    const acts=actionTypes.filter(a=>a.fleets.includes(fid));
+                    return(
+                      <button onClick={()=>setActTarget(f)} title="클릭 → Action Type 관리"
+                        className="flex items-center gap-1 flex-wrap max-w-[220px] hover:opacity-80 transition text-left">
+                        {acts.slice(0,3).map(a=>(
+                          <span key={a.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-medium" style={{background:a.color+"15",color:a.color}}>
+                            <Icon name={a.icon} size={9}/>{a.id}
+                          </span>
+                        ))}
+                        {acts.length>3&&<span className="text-[10.5px] font-semibold text-slate-400">+{acts.length-3}</span>}
+                        {acts.length===0&&<span className="text-[11px] text-slate-400 underline decoration-dotted">액션 추가</span>}
+                      </button>
+                    );
+                  })()}
+                </td>
                 <td className="py-3 pr-4 text-right">
                   <button onClick={()=>setEditTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
                   <button onClick={()=>setDelTarget(f)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
@@ -4911,6 +4949,7 @@ function FleetMgmtView() {
       {editTarget&&<FleetFormModal title={"Fleet 편집 — "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
         onSave={(f)=>{setList(ls=>ls.map(x=>x.name===f.name?f:x));setEditTarget(null);showToast(f.name+" 수정됨");}}/>}
       {delTarget&&<MgmtDeleteModal label={delTarget.name} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.name!==delTarget.name));showToast(delTarget.name+" 삭제됨");setDelTarget(null);}}/>}
+      {actTarget&&<FleetActionModal fleetRow={actTarget} fleetId={fleetIdOf(actTarget.name)} onClose={()=>setActTarget(null)} bump={()=>setActVer(v=>v+1)} showToast={showToast}/>}
       {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
     </div>
   );
@@ -4961,6 +5000,117 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
       <MgmtField label="제조사">
         <input value={maker} onChange={e=>setMaker(e.target.value)} placeholder="예: OMRON" className={mgmtInpCls}/>
       </MgmtField>
+    </MgmtModal>
+  );
+}
+
+function FleetActionModal({fleetRow, fleetId, onClose, bump, showToast}){
+  const [sel,setSel]=useState("");
+  const [newOpen,setNewOpen]=useState(false);
+  const [nCode,setNCode]=useState("");
+  const [nLabel,setNLabel]=useState("");
+  const [nDur,setNDur]=useState("5");
+
+  const applied=actionTypes.filter(a=>a.fleets.includes(fleetId));
+  const available=actionTypes.filter(a=>!a.fleets.includes(fleetId));
+  const usedCount=(actId)=>recipes.filter(r=>r.fleet===fleetId&&(r.steps||[]).some(s=>s.actionType===actId)).length;
+
+  const addExisting=()=>{
+    if(!sel) return;
+    const a=actionTypes.find(x=>x.id===sel);
+    if(a&&!a.fleets.includes(fleetId)){a.fleets.push(fleetId);bump();showToast(a.id+" 액션이 "+fleetRow.name+"에 추가됨");}
+    setSel("");
+  };
+  const removeAct=(a)=>{
+    a.fleets=a.fleets.filter(x=>x!==fleetId);
+    const idx=actionTypes.indexOf(a);
+    if(idx>=0) actionTypes[idx]={...a};
+    bump();showToast(a.id+" 액션이 "+fleetRow.name+"에서 제거됨");
+  };
+  const codeDup=actionTypes.some(a=>a.id===nCode.trim().toUpperCase());
+  const newValid=nCode.trim().length>0&&!codeDup&&nLabel.trim().length>0&&Number(nDur)>0;
+  const createNew=()=>{
+    if(!newValid) return;
+    actionTypes.push({id:nCode.trim().toUpperCase(),label:nLabel.trim(),icon:"Zap",color:"#2563eb",defaultDuration:Number(nDur),fleets:[fleetId]});
+    bump();showToast(nCode.trim().toUpperCase()+" 액션 생성·적용됨");
+    setNCode("");setNLabel("");setNDur("5");setNewOpen(false);
+  };
+
+  return(
+    <MgmtModal title={"Action Type 관리 — "+fleetRow.name} icon="Zap" width={500} onClose={onClose}
+      footer={<button onClick={onClose} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">완료</button>}>
+
+      {/* 적용된 액션 목록 */}
+      <div>
+        <div className="text-[11px] font-medium text-slate-500 mb-1.5">적용된 Action Type <span className="tnum">({applied.length})</span></div>
+        <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-[260px] overflow-auto">
+          {applied.length===0&&<div className="px-3 py-5 text-center text-[12px] text-slate-400">적용된 액션이 없습니다.</div>}
+          {applied.map(a=>{
+            const used=usedCount(a.id);
+            return(
+              <div key={a.id} className="flex items-center gap-2.5 px-3 py-2">
+                <div className="w-6 h-6 rounded-md grid place-items-center shrink-0" style={{background:a.color+"18",color:a.color}}><Icon name={a.icon} size={12}/></div>
+                <span className="text-[12px] font-semibold text-slate-800 tnum">{a.id}</span>
+                <span className="text-[12px] text-slate-500">{a.label}</span>
+                <span className="text-[10.5px] text-slate-400 tnum ml-auto">{a.defaultDuration}s</span>
+                {used>0&&<span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">템플릿 {used}개 사용 중</span>}
+                <button onClick={()=>used===0&&removeAct(a)} disabled={used>0}
+                  title={used>0?"이 Fleet의 작업 템플릿에서 사용 중이라 제거할 수 없습니다":"제거"}
+                  className={"w-6 h-6 rounded grid place-items-center "+(used>0?"text-slate-200 cursor-not-allowed":"text-slate-400 hover:bg-rose-50 hover:text-rose-600")}>
+                  <Icon name="X" size={12}/>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 라이브러리에서 추가 */}
+      <div>
+        <div className="text-[11px] font-medium text-slate-500 mb-1.5">라이브러리에서 추가</div>
+        <div className="flex gap-2">
+          <select value={sel} onChange={e=>setSel(e.target.value)} className={mgmtSelCls+" flex-1"}>
+            <option value="">액션 선택...</option>
+            {available.map(a=><option key={a.id} value={a.id}>{a.id} · {a.label} ({a.defaultDuration}s)</option>)}
+          </select>
+          <button onClick={addExisting} disabled={!sel}
+            className={"h-9 px-3.5 rounded-lg text-[12.5px] font-bold shrink-0 "+(sel?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>추가</button>
+        </div>
+        {available.length===0&&<div className="text-[11px] text-slate-400 mt-1">모든 라이브러리 액션이 이미 적용되어 있습니다.</div>}
+      </div>
+
+      {/* 새 Action Type 만들기 */}
+      <div className="border border-slate-200 rounded-lg overflow-hidden">
+        <button onClick={()=>setNewOpen(o=>!o)} className="w-full px-3 py-2 flex items-center gap-2 bg-slate-50 hover:bg-slate-100 transition">
+          <Icon name="Plus" size={13} className="text-blue-600"/>
+          <span className="text-[12px] font-semibold text-slate-700">새 Action Type 만들기</span>
+          <Icon name={newOpen?"ChevronUp":"ChevronDown"} size={13} className="text-slate-400 ml-auto"/>
+        </button>
+        {newOpen&&(
+          <div className="p-3 space-y-2.5 border-t border-slate-200">
+            <div className="grid grid-cols-2 gap-2">
+              <MgmtField label="액션 코드 (영문)">
+                <input value={nCode} onChange={e=>setNCode(e.target.value.toUpperCase().replace(/[^A-Z_]/g,""))} placeholder="예: ROTATE" className={mgmtInpCls}/>
+                {codeDup&&<div className="text-[10.5px] text-rose-500 mt-1">이미 존재하는 코드입니다.</div>}
+              </MgmtField>
+              <MgmtField label="라벨 (한글)">
+                <input value={nLabel} onChange={e=>setNLabel(e.target.value)} placeholder="예: 회전" className={mgmtInpCls}/>
+              </MgmtField>
+            </div>
+            <MgmtField label="기본 소요시간 (초)">
+              <input value={nDur} onChange={e=>setNDur(e.target.value.replace(/[^0-9]/g,""))} className={mgmtInpCls}/>
+            </MgmtField>
+            <button onClick={createNew} disabled={!newValid}
+              className={"w-full h-9 rounded-lg text-[12.5px] font-bold "+(newValid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>
+              생성하고 {fleetRow.name}에 적용
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="text-[11px] text-slate-400 leading-relaxed">
+        여기서 적용한 Action Type은 작업 관리 {">"} 템플릿 편집기에서 이 Fleet의 step 선택지로 바로 반영됩니다.
+      </div>
     </MgmtModal>
   );
 }
