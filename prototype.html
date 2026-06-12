@@ -337,7 +337,7 @@ const initOrders = [
   // Transfer 중 에러 테스트: Ride003 progress=68% → TRANSFER 스텝에서 중단
   {id:"ord-020",robotId:"Tool006",recipeId:"rcp-transport",start:9*60+50, status:"running"},
 ];
-// Tool Cart 맵 데이터
+// Tool Cart 지도 데이터
 const mapCarts = [
   {id:"CART-001", x:160, y:150, status:"idle",    orderId:null,      robotId:null,      destNodeId:null,   history:[
     {ts:"09:10", msg:"대기장소 복귀 완료"},
@@ -416,7 +416,7 @@ const NAV = [
       { id:"basis-fleet",  label:"Fleet 관리",      icon:"Boxes" },
       { id:"basis-robot",  label:"로봇 관리",       icon:"Bot" },
       { id:"basis-cart",   label:"Tool cart 관리",  icon:"ShoppingCart" },
-      { id:"basis-map",    label:"맵 관리",          icon:"Map" },
+      { id:"basis-map",    label:"지도 관리",          icon:"Map" },
       { id:"basis-infra",  label:"인프라 관리",      icon:"Server" },
       { id:"basis-alarm",  label:"알람 관리",        icon:"Bell" },
     ]
@@ -670,7 +670,7 @@ function ManualTab({ sel }) {
     </div>
   );
 
-  // 맵에서 로봇 선택 시 자동 동기화
+  // 지도에서 로봇 선택 시 자동 동기화
   useEffect(()=>{
     if(sel){ setLocalFleet(sel.fleet); setLocalRobot(sel.id); }
   },[sel?.id]);
@@ -1198,7 +1198,7 @@ function MonitoringHome({ onNavigate }) {
           <div className="w-60 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden z-10" onClick={e=>e.stopPropagation()}>
             <div className="h-12 px-3 border-b border-slate-200 flex items-center gap-2 shrink-0">
               <div className="w-6 h-6 rounded bg-blue-50 grid place-items-center shrink-0"><Icon name="Pencil" size={13} className="text-blue-600"/></div>
-              <span className="text-[13px] font-semibold text-slate-900 shrink-0">맵 편집</span>
+              <span className="text-[13px] font-semibold text-slate-900 shrink-0">지도 편집</span>
               <div className="ml-auto flex items-center gap-1.5">
                 {(()=>{
                   const zonesChanged = JSON.stringify(editZones) !== JSON.stringify(savedZones);
@@ -1489,7 +1489,7 @@ function MonitoringHome({ onNavigate }) {
                 {layerOpen&&<>
                   <div className="fixed inset-0 z-10" onClick={()=>setLayerOpen(false)}/>
                   <div className="absolute z-20 top-full mt-1 right-0 w-[180px] bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 overflow-hidden">
-                    <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">맵 레이어</div>
+                    <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">지도 레이어</div>
                     {[
                       {id:"robot", label:"로봇",       icon:"Bot",          color:"#2563eb"},
                       {id:"cart",  label:"Tool Cart", icon:"ShoppingCart", color:"#10b981"},
@@ -1945,7 +1945,7 @@ function MonitoringHome({ onNavigate }) {
                 {/* 선택 초기화 버튼 */}
                 <button
                   onClick={()=>{
-                    // 맵 선택 초기화
+                    // 지도 선택 초기화
                     setFocusRobot(null);
                     setSelectedNodeId(null);
                     setSelectedEdgeId(null);
@@ -2473,7 +2473,7 @@ function MonitoringHome({ onNavigate }) {
                                           화물이 적재된 상태입니다.<br/>
                                           <span className="font-semibold">작업자가 cart를 목적지까지 직접 이동</span> 후 아래 방법으로 처리하세요.<br/>
                                           <span className="font-semibold text-emerald-700">방법①</span> 작업 현황 → 목록 확인하기에서 해당 작업을 Manual Complete 하세요.<br/>
-                                          <span className="font-semibold text-emerald-700">방법②</span> 직접 배송해야 할 Cart를 맵에서 클릭하여, Properties 영역에서 Manual Complete 하세요.
+                                          <span className="font-semibold text-emerald-700">방법②</span> 직접 배송해야 할 Cart를 지도에서 클릭하여, Properties 영역에서 Manual Complete 하세요.
                                         </div>
                                       </div>
                                       <button onClick={()=>{
@@ -2901,7 +2901,7 @@ function MonitoringHome({ onNavigate }) {
                       </div>
 
                       {/* 노드 유형 + 특성 {"—"} 편집 모드 외 호버 시 tooltip */}
-                      <div title={!editMode?"맵 편집에서 수정할 수 있어요":undefined}>
+                      <div title={!editMode?"지도 편집에서 수정할 수 있어요":undefined}>
                       {/* 노드 유형 */}
                       <div className="rounded-lg border border-slate-200 bg-white p-2.5 mb-2.5">
                         <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-2">노드 유형</div>
@@ -3005,7 +3005,7 @@ function MonitoringHome({ onNavigate }) {
                       </div>
 
                       {/* 속도 + 특성 {"—"} 편집 모드 외 호버 시 tooltip */}
-                      <div title={!editMode?"맵 편집에서 수정할 수 있어요":undefined}>
+                      <div title={!editMode?"지도 편집에서 수정할 수 있어요":undefined}>
                       {/* 속도 */}
                       <div className="rounded-lg border border-slate-200 bg-white p-2.5 mb-2.5">
                         <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-2">속도 (m/s)</div>
@@ -3052,7 +3052,7 @@ function MonitoringHome({ onNavigate }) {
                   <div className="py-8 text-center">
                     <div className="w-10 h-10 mx-auto rounded-full bg-slate-50 grid place-items-center mb-2"><Icon name="Info" size={16} className="text-slate-400"/></div>
                     <div className="text-[12.5px] font-medium text-slate-700">선택 없음</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">맵에서 노드{"·"}엣지{"·"}로봇을<br/>클릭하면 속성이 표시됩니다.</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">지도에서 노드{"·"}엣지{"·"}로봇을<br/>클릭하면 속성이 표시됩니다.</div>
                   </div>
                 )}
                 {/* 로봇 상세 (로봇 선택 시) */}
@@ -4713,7 +4713,7 @@ function ToolCartView() {
           <MgmtField label="사용 여부">
             <MgmtToggle on={carts.find(x=>x.id===editTarget.id)?.inUse} onClick={()=>setCarts(cs=>cs.map(x=>x.id===editTarget.id?{...x,inUse:!x.inUse,activatedAt:!x.inUse?nowStamp():x.activatedAt}:x))}/>
           </MgmtField>
-          <MgmtField label="맵 표시 여부">
+          <MgmtField label="지도 표시 여부">
             <MgmtToggle on={carts.find(x=>x.id===editTarget.id)?.visible} onLabel="표시" offLabel="숨김" onClick={()=>setCarts(cs=>cs.map(x=>x.id===editTarget.id?{...x,visible:!x.visible}:x))}/>
           </MgmtField>
           <div className="text-[11px] text-slate-400">그 외 항목은 등록 시 결정되며 수정할 수 없습니다.</div>
@@ -5039,7 +5039,7 @@ function FleetMgmtView() {
 function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
   const [name,setName]=useState(init?init.name:"");
   const [version,setVersion]=useState(init?init.version:"v1.0");
-  const [maker,setMaker]=useState(init?init.maker:FLEET_MAKERS[0]);
+  const [maker,setMaker]=useState(init?init.maker:"");
   const [w,setW]=useState(init?String(init.w):"");
   const [dd,setDd]=useState(init?String(init.d):"");
   const [h,setH]=useState(init?String(init.h):"");
@@ -5102,9 +5102,7 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
       </div>
       <div className="grid grid-cols-2 gap-3">
         <MgmtField label="제조사">
-          <select value={maker} onChange={e=>setMaker(e.target.value)} className={mgmtSelCls}>
-            {FLEET_MAKERS.map(mk=><option key={mk} value={mk}>{mk}</option>)}
-          </select>
+          <input value={maker} onChange={e=>setMaker(e.target.value)} placeholder="예: YJ" className={mgmtInpCls}/>
         </MgmtField>
         <MgmtField label="공차 중량 (kg)">
           <input value={mass} onChange={e=>setMass(num(e.target.value))} className={mgmtInpCls}/>
@@ -5306,66 +5304,68 @@ function FleetActionModal({fleetRow, fleetId, onClose, bump, showToast}){
   );
 }
 
-/* ══════════ 기준정보: 맵 관리 ══════════ */
+/* ══════════ 기준정보: 지도 관리 ══════════ */
 const initMapRegistry=[
-  {id:"map-001", line:"P3", floor:"3", srcVersion:"v1.0", mapVersion:"v1.3",      desc:"P3 3층 표준 운영 맵",      creator:"kim.fab",  createdAt:"2026-04-02 09:30", active:true},
+  {id:"map-001", line:"P3", floor:"3", srcVersion:"v1.0", mapVersion:"v1.3",      desc:"P3 3층 표준 운영 지도",      creator:"kim.fab",  createdAt:"2026-04-02 09:30", active:true},
   {id:"map-002", line:"P3", floor:"3", srcVersion:"v1.0", mapVersion:"v1.4-beta", desc:"3층 신규 경로 시험용",     creator:"lee.amr",  createdAt:"2026-05-21 14:10", active:false},
-  {id:"map-003", line:"P3", floor:"7", srcVersion:"v2.0", mapVersion:"v2.1",      desc:"P3 7층 표준 운영 맵",      creator:"kim.fab",  createdAt:"2026-04-15 11:00", active:false},
+  {id:"map-003", line:"P3", floor:"7", srcVersion:"v2.0", mapVersion:"v2.1",      desc:"P3 7층 표준 운영 지도",      creator:"kim.fab",  createdAt:"2026-04-15 11:00", active:false},
   {id:"map-004", line:"P3", floor:"7", srcVersion:"v2.0", mapVersion:"v2.2-beta", desc:"7층 충전소 위치 변경 검토", creator:"park.ops", createdAt:"2026-06-01 16:40", active:false},
 ];
 
 function MapMgmtView() {
   const [list,setList]=useState(initMapRegistry);
   const [delTarget,setDelTarget]=useState(null);
+  const [selTarget,setSelTarget]=useState(null); // 지도 변경 확인 대상
   const [editorOpen,setEditorOpen]=useState(null); // {mode:"create"} | {mode:"edit", map}
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
 
-  const selectMap=(id)=>{
-    setList(ls=>ls.map(x=>({...x,active:x.id===id})));
-    const m=list.find(x=>x.id===id);
-    if(m) showToast(m.line+" "+m.floor+"층 "+m.mapVersion+" 맵이 모니터링에 표시됩니다.");
+  const confirmSelect=()=>{
+    if(!selTarget) return;
+    setList(ls=>ls.map(x=>({...x,active:x.id===selTarget.id})));
+    showToast(selTarget.line+" "+selTarget.floor+"층 "+selTarget.mapVersion+" 지도가 모니터링에 표시됩니다.");
+    setSelTarget(null);
   };
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">맵 관리</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">맵 버전을 관리하고, 모니터링에 표시할 맵을 선택합니다. 활성화는 1개만 가능합니다.</p>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">지도 관리</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">지도 버전을 관리하고, 모니터링에 표시할 지도를 선택합니다. 활성화는 1개만 가능합니다.</p>
         </div>
         <button onClick={()=>setEditorOpen({mode:"create"})} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
-          <Icon name="Plus" size={14}/> 맵 생성
+          <Icon name="Plus" size={14}/> 지도 생성
         </button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
           <Icon name="Map" size={14} className="text-slate-500"/>
-          <span className="text-[13px] font-semibold text-slate-900">맵 목록</span>
+          <span className="text-[13px] font-semibold text-slate-900">지도 목록</span>
           <span className="text-[11px] text-slate-400 tnum">{list.length}개</span>
-          <span className="ml-auto text-[10.5px] text-slate-400">활성 맵 = 모니터링 홈에 표시되는 맵</span>
+          <span className="ml-auto text-[10.5px] text-slate-400">활성 지도 = 모니터링 홈에 표시되는 지도</span>
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5 w-[100px]">맵 선택</th>
+            <th className="font-medium px-4 py-2.5 w-[100px]">지도 선택</th>
             <th className="font-medium py-2.5 w-[60px]">라인</th>
             <th className="font-medium py-2.5 w-[50px]">층</th>
-            <th className="font-medium py-2.5 w-[100px]">원본 맵 버전</th>
-            <th className="font-medium py-2.5 w-[100px]">맵 버전</th>
+            <th className="font-medium py-2.5 w-[100px]">원본 지도 버전</th>
+            <th className="font-medium py-2.5 w-[100px]">지도 버전</th>
             <th className="font-medium py-2.5">설명</th>
             <th className="font-medium py-2.5 w-[90px]">생성자</th>
             <th className="font-medium py-2.5 w-[130px]">생성일시</th>
             <th className="font-medium py-2.5 pr-4 text-right w-[110px]">관리</th>
           </tr></thead>
           <tbody>
-            {list.length===0&&<tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">등록된 맵이 없습니다.</td></tr>}
+            {list.length===0&&<tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">등록된 지도가 없습니다.</td></tr>}
             {list.map(m=>(
               <tr key={m.id} className={"border-b border-slate-100 "+(m.active?"bg-blue-50/40":"hover:bg-slate-50/60")}>
                 <td className="px-4 py-3">
                   {m.active
                     ? <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700"><span className="w-3.5 h-3.5 rounded-full border-[4.5px] border-blue-600 bg-white"/>표시 중</span>
-                    : <button onClick={()=>selectMap(m.id)} title="이 맵을 모니터링 맵으로 선택"
+                    : <button onClick={()=>setSelTarget(m)} title="이 지도를 모니터링 지도로 선택"
                         className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-blue-600 group">
                         <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 group-hover:border-blue-500"/>선택
                       </button>}
@@ -5378,10 +5378,10 @@ function MapMgmtView() {
                 <td className="py-3 text-slate-600">{m.creator}</td>
                 <td className="py-3 tnum text-[11.5px] text-slate-500">{m.createdAt}</td>
                 <td className="py-3 pr-4 text-right">
-                  <button onClick={()=>setEditorOpen({mode:"edit",map:m})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="맵 편집 (맵 에디터)"><Icon name="Pencil" size={13}/></button>
-                  <button onClick={()=>m.active?showToast("활성화된 맵은 삭제할 수 없습니다. 다른 맵을 먼저 선택해주세요."):setDelTarget(m)}
+                  <button onClick={()=>setEditorOpen({mode:"edit",map:m})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="지도 편집 (지도 에디터)"><Icon name="Pencil" size={13}/></button>
+                  <button onClick={()=>m.active?showToast("활성화된 지도는 삭제할 수 없습니다. 다른 지도를 먼저 선택해주세요."):setDelTarget(m)}
                     className={"w-7 h-7 rounded-md inline-grid place-items-center "+(m.active?"text-slate-200 cursor-not-allowed":"hover:bg-rose-50 text-slate-400 hover:text-rose-600")}
-                    title={m.active?"활성화된 맵은 삭제 불가":"삭제"}><Icon name="Trash2" size={13}/></button>
+                    title={m.active?"활성화된 지도는 삭제 불가":"삭제"}><Icon name="Trash2" size={13}/></button>
                 </td>
               </tr>
             ))}
@@ -5389,17 +5389,33 @@ function MapMgmtView() {
         </table>
       </div>
 
+      {selTarget&&(()=>{
+        const cur=list.find(x=>x.active);
+        return(
+          <MgmtModal title="모니터링 지도 변경" icon="Map" onClose={()=>setSelTarget(null)}
+            footer={<>
+              <button onClick={()=>setSelTarget(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
+              <button onClick={confirmSelect} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">확인</button>
+            </>}>
+            <div className="text-[13px] text-slate-700 leading-relaxed">
+              현재 지도 버전: <span className="font-bold tnum">{cur?cur.mapVersion:"—"}</span>{cur?` (${cur.line} ${cur.floor}층)`:""} 에서<br/>
+              <span className="font-bold tnum text-blue-700">{selTarget.mapVersion}</span> ({selTarget.line} {selTarget.floor}층) 버전으로 변경하겠습니까?
+            </div>
+            <div className="text-[11.5px] text-slate-400">변경 즉시 모니터링 홈에 표시되는 지도가 교체됩니다.</div>
+          </MgmtModal>
+        );
+      })()}
       {delTarget&&<MgmtDeleteModal label={delTarget.line+" "+delTarget.floor+"층 "+delTarget.mapVersion} onClose={()=>setDelTarget(null)}
         onConfirm={()=>{setList(ls=>ls.filter(x=>x.id!==delTarget.id));showToast(delTarget.mapVersion+" 삭제됨");setDelTarget(null);}}/>}
 
-      {/* 맵 에디터 (예시 팝업) */}
+      {/* 지도 에디터 (예시 팝업) */}
       {editorOpen&&(
-        <MgmtModal title={editorOpen.mode==="create"?"맵 에디터 — 새 맵 생성":"맵 에디터 — "+editorOpen.map.line+" "+editorOpen.map.floor+"층 "+editorOpen.map.mapVersion} icon="Map" width={640} onClose={()=>setEditorOpen(null)}
+        <MgmtModal title={editorOpen.mode==="create"?"지도 에디터 — 새 지도 생성":"지도 에디터 — "+editorOpen.map.line+" "+editorOpen.map.floor+"층 "+editorOpen.map.mapVersion} icon="Map" width={640} onClose={()=>setEditorOpen(null)}
           footer={<button onClick={()=>setEditorOpen(null)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">닫기</button>}>
           <div className="h-[320px] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 grid place-items-center">
             <div className="text-center">
               <Icon name="Map" size={36} className="text-slate-300 mx-auto mb-3"/>
-              <div className="text-[16px] font-semibold text-slate-400">맵 에디터입니다</div>
+              <div className="text-[16px] font-semibold text-slate-400">지도 에디터입니다</div>
             </div>
           </div>
         </MgmtModal>
@@ -5407,6 +5423,125 @@ function MapMgmtView() {
 
       {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
     </div>
+  );
+}
+
+/* ══════════ 기준정보: 알람 관리 ══════════ */
+const initAlarmRegistry=[
+  {id:"EMS_001",  fleet:"agv",  source:"EMS 버튼",     desc:"비상정지(EMS) 호출 발생",        url:"https://wiki.connect.local/alarm/EMS_001"},
+  {id:"OBS_401",  fleet:"amr",  source:"전방 라이다",   desc:"전방 장애물 감지로 주행 정지",    url:"https://wiki.connect.local/alarm/OBS_401"},
+  {id:"BAT_110",  fleet:"amr",  source:"배터리 BMS",   desc:"배터리 잔량 부족 경고",          url:"https://wiki.connect.local/alarm/BAT_110"},
+  {id:"COMM_300", fleet:"semi", source:"통신 모듈",     desc:"관제 서버와 통신 끊김",          url:"https://wiki.connect.local/alarm/COMM_300"},
+  {id:"GRIP_401", fleet:"arm",  source:"그리퍼 센서",   desc:"부품 그립 실패",                url:"https://wiki.connect.local/alarm/GRIP_401"},
+];
+
+function AlarmMgmtView() {
+  const [list,setList]=useState(initAlarmRegistry);
+  const [q,setQ]=useState("");
+  const [addOpen,setAddOpen]=useState(false);
+  const [editTarget,setEditTarget]=useState(null);
+  const [delTarget,setDelTarget]=useState(null);
+  const [toast,setToast]=useState(null);
+  const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
+  const filtered=list.filter(a=>!q||a.id.toLowerCase().includes(q.toLowerCase())||a.desc.includes(q)||a.source.includes(q));
+
+  return(
+    <div className="h-full overflow-auto bg-slate-50 p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">알람 관리</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">알람 코드 등록·편집·삭제 및 조치 방법 문서를 관리합니다.</p>
+        </div>
+        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+          <Icon name="Plus" size={14}/> 등록
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
+          <Icon name="Bell" size={14} className="text-slate-500"/>
+          <span className="text-[13px] font-semibold text-slate-900">알람 목록</span>
+          <span className="text-[11px] text-slate-400 tnum">{filtered.length}개</span>
+          <div className="ml-auto relative">
+            <Icon name="Search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="ID·설명·출발지 검색" className="h-8 pl-7 pr-2 w-44 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-blue-400"/>
+          </div>
+        </div>
+        <table className="w-full text-[12.5px]">
+          <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
+            <th className="font-medium px-4 py-2.5 w-[110px]">알람 ID (코드)</th>
+            <th className="font-medium py-2.5 w-[130px]">Fleet 유형</th>
+            <th className="font-medium py-2.5 w-[120px]">알람 출발지</th>
+            <th className="font-medium py-2.5">알람 설명</th>
+            <th className="font-medium py-2.5 w-[220px]">조치 방법 URL</th>
+            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
+          </tr></thead>
+          <tbody>
+            {filtered.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">등록된 알람이 없습니다.</td></tr>}
+            {filtered.map(a=>{
+              const fm=fleetMeta(a.fleet);
+              return(
+                <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                  <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{a.id}</span></td>
+                  <td className="py-3"><span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:fm.color+"15",color:fm.color}}>{fm.name}</span></td>
+                  <td className="py-3 text-slate-600">{a.source}</td>
+                  <td className="py-3 text-slate-600">{a.desc}</td>
+                  <td className="py-3"><a href={a.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-[11.5px] tnum block truncate max-w-[210px]" title={a.url}>{a.url}</a></td>
+                  <td className="py-3 pr-4 text-right">
+                    <button onClick={()=>setEditTarget({...a})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
+                    <button onClick={()=>setDelTarget(a)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {addOpen&&<AlarmFormModal title="알람 등록" onClose={()=>setAddOpen(false)} existing={list}
+        onSave={(a)=>{setList(ls=>[...ls,a]);setAddOpen(false);showToast(a.id+" 등록됨");}}/>}
+      {editTarget&&<AlarmFormModal title={"알람 편집 — "+editTarget.id} init={editTarget} lockId onClose={()=>setEditTarget(null)} existing={list}
+        onSave={(a)=>{setList(ls=>ls.map(x=>x.id===a.id?a:x));setEditTarget(null);showToast(a.id+" 수정됨");}}/>}
+      {delTarget&&<MgmtDeleteModal label={delTarget.id} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.id!==delTarget.id));showToast(delTarget.id+" 삭제됨");setDelTarget(null);}}/>}
+      {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
+    </div>
+  );
+}
+
+function AlarmFormModal({title,init,lockId,existing,onClose,onSave}){
+  const [id,setId]=useState(init?init.id:"");
+  const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
+  const [source,setSource]=useState(init?init.source:"");
+  const [desc,setDesc]=useState(init?init.desc:"");
+  const [url,setUrl]=useState(init?init.url:"");
+  const dup=!lockId&&existing.some(a=>a.id===id.trim().toUpperCase());
+  const valid=id.trim().length>0&&!dup&&source.trim().length>0&&desc.trim().length>0;
+  return(
+    <MgmtModal title={title} icon="Bell" onClose={onClose}
+      footer={<>
+        <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
+        <button onClick={()=>valid&&onSave({id:lockId?init.id:id.trim().toUpperCase(),fleet,source:source.trim(),desc:desc.trim(),url:url.trim()})} disabled={!valid}
+          className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
+      </>}>
+      <MgmtField label="알람 ID (코드)">
+        <input value={id} onChange={e=>setId(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g,""))} disabled={lockId} placeholder="예: EMS_001" className={mgmtInpCls+(lockId?" bg-slate-50 text-slate-400":"")}/>
+        {dup&&<div className="text-[11px] text-rose-500 mt-1">이미 존재하는 알람 ID입니다.</div>}
+      </MgmtField>
+      <MgmtField label="Fleet 유형">
+        <select value={fleet} onChange={e=>setFleet(e.target.value)} className={mgmtSelCls}>
+          {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </MgmtField>
+      <MgmtField label="알람 출발지">
+        <input value={source} onChange={e=>setSource(e.target.value)} placeholder="예: 전방 라이다, EMS 버튼, 통신 모듈" className={mgmtInpCls}/>
+      </MgmtField>
+      <MgmtField label="알람 설명">
+        <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="예: 전방 장애물 감지로 주행 정지" className={mgmtInpCls}/>
+      </MgmtField>
+      <MgmtField label="알람 조치 방법 URL">
+        <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="예: https://wiki.example.com/alarm/EMS_001" className={mgmtInpCls}/>
+      </MgmtField>
+    </MgmtModal>
   );
 }
 
@@ -6109,7 +6244,7 @@ function MapEditorView() {
           </div>
         </div>
 
-        {/* SVG 맵 */}
+        {/* SVG 지도 */}
         <div className="flex-1 relative overflow-hidden"
           onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
           <svg ref={svgRef} className="w-full h-full"
@@ -6710,7 +6845,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
           <div className="p-4 border-b border-slate-200">
             <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-2">선택된 노드</div>
             {!selNode
-              ? <div className="rounded-md bg-slate-50 border border-dashed border-slate-200 p-3 text-center"><Icon name="MousePointerClick" size={16} className="text-slate-400 mx-auto mb-1"/><p className="text-[11.5px] text-slate-500">맵에서 노드를 클릭하여<br/>단계로 추가하세요</p></div>
+              ? <div className="rounded-md bg-slate-50 border border-dashed border-slate-200 p-3 text-center"><Icon name="MousePointerClick" size={16} className="text-slate-400 mx-auto mb-1"/><p className="text-[11.5px] text-slate-500">지도에서 노드를 클릭하여<br/>단계로 추가하세요</p></div>
               : <div className="rounded-md border border-slate-200 bg-slate-50/40 p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-7 h-7 rounded-full bg-blue-600 text-white grid place-items-center text-[11px] font-semibold">{selIdx+1}</div>
@@ -6852,7 +6987,7 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
                         {f.id===mapId&&<Icon name="Check" size={12} className="text-blue-600"/>}
                       </button>
                     ))}
-                    {steps.length>0&&<div className="px-3 py-1.5 text-[10px] text-amber-600 bg-amber-50 border-t border-slate-100 flex items-center gap-1"><Icon name="Info" size={10}/> 다른 맵 선택 시 현재 작업이 임시저장됩니다</div>}
+                    {steps.length>0&&<div className="px-3 py-1.5 text-[10px] text-amber-600 bg-amber-50 border-t border-slate-100 flex items-center gap-1"><Icon name="Info" size={10}/> 다른 지도 선택 시 현재 작업이 임시저장됩니다</div>}
                   </div>
                 </>}
               </div>
@@ -7030,7 +7165,6 @@ const SC = {
   running:{bg:"bg-blue-100", border:"border-blue-400", fg:"text-blue-900", label:"진행중",chip:"#2563eb"},
   queued: {bg:"bg-amber-50", border:"border-amber-300",fg:"text-amber-900",label:"예약",chip:"#d97706"},
   error:  {bg:"bg-rose-100", border:"border-rose-400", fg:"text-rose-900", label:"실패",chip:"#e11d48"},
-  pending:{bg:"bg-purple-50",border:"border-purple-400",fg:"text-purple-900",label:"Pending",chip:"#7c3aed"},
 };
 
 function getOrderDur(o){
@@ -7323,7 +7457,7 @@ function OrderTemplateView({ onNavigate }) {
           <select value={nodeId||""} onChange={e=>setF(field,e.target.value)}
             className="w-full h-8 pl-2.5 pr-7 rounded-md border text-[12px] outline-none appearance-none"
             style={{borderColor:node?color+"80":"#e2e8f0", background:node?color+"08":"white", color:"#1e293b"}}>
-            <option value="">드롭다운 또는 맵 직접 선택</option>
+            <option value="">드롭다운 또는 지도 직접 선택</option>
             {mapNodes.map(n=><option key={n.id} value={n.id}>{n.label} ({n.id})</option>)}
           </select>
           <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
@@ -7528,12 +7662,12 @@ function OrderTemplateView({ onNavigate }) {
           )}
         </div>
 
-        {/* 우측 맵 */}
+        {/* 우측 지도 */}
         <div className="flex-1 min-w-0 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[12px] font-semibold text-slate-600 flex items-center gap-1.5">
               <Icon name="Map" size={14} className="text-slate-500"/>
-              위치 선택 {"·"} 맵에서 직접 노드를 클릭하거나 좌측 드롭다운을 사용하세요
+              위치 선택 {"·"} 지도에서 직접 노드를 클릭하거나 좌측 드롭다운을 사용하세요
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
               <div className="w-2.5 h-2.5 rounded-sm bg-blue-600"/>Pick
@@ -7784,7 +7918,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
 
         <div className="h-5 w-px bg-slate-200"/>
 
-        {/* 맵 선택 드랍다운 */}
+        {/* 지도 선택 드랍다운 */}
         <div className="relative">
           <button onClick={()=>setSchedMapOpen(o=>!o)}
             className={"h-8 pl-3 pr-2 flex items-center gap-1.5 rounded-md border bg-white text-[12.5px] font-medium transition "+(schedMapOpen?"border-blue-400 ring-2 ring-blue-100 text-blue-700":"border-slate-200 hover:border-slate-300 text-slate-700")}>
@@ -7888,12 +8022,11 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   return (
                     <button key={o.id} onMouseDown={e=>onBlockMouseDown(e,o)}
                       onClick={e=>{if(Date.now()-lastDragRef.current<200){e.preventDefault();return;}setSelOrder({...o,recipe:r});}}
-                      className={"absolute rounded-md border text-left px-2 py-1.5 transition shadow-sm overflow-hidden "+s.bg+" "+s.border+" "+s.fg+(isSel?" ring-2 ring-blue-500 ring-offset-1 z-10":" hover:shadow-md hover:z-10")+(isHL?" ring-2 ring-amber-400":"")+(isMoving?" opacity-30":"")+(editable?" cursor-grab active:cursor-grabbing":" cursor-pointer")}
+                      className={"absolute rounded-md border text-left px-2 py-1.5 transition shadow-sm overflow-hidden "+s.bg+" "+s.border+" "+s.fg+(isSel?" ring-2 ring-blue-500 ring-offset-1 z-10":" hover:shadow-md hover:z-10")+(isHL?" ring-2 ring-amber-400":"")+(isMoving?" opacity-30":"")+(hlRcp&&!isHL?" opacity-25 saturate-50":"")+(editable?" cursor-grab active:cursor-grabbing":" cursor-pointer")}
                       style={{left,top,width,height}}>
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="w-1 h-3 rounded-sm shrink-0" style={{background:barColor}}/>
                         <span className="text-[11px] font-semibold truncate flex-1">{barLabel}</span>
-                        {o.status==="pending"&&<span className="text-[9px] font-bold px-1 rounded" style={{background:"#7c3aed22",color:"#7c3aed"}}>Pending</span>}
                         {!editable&&o.status==="queued"&&<Icon name="Lock" size={9} className="opacity-60 shrink-0"/>}
                       </div>
                       <div className="text-[10px] tnum opacity-80 flex items-center gap-1">
@@ -8067,142 +8200,43 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
 
             {/* ── 작업 요청 현황 탭 ── */}
             {libTab==="requests"&&(()=>{
-              const pendingOrders = orders.filter(o=>{
-                if(!o.fromRequest) return false;
-                if(reqFleetF.size>0 && !reqFleetF.has(o.fleet)) return false;
-                if(reqTplF.size>0   && !reqTplF.has(o.fleet) && !reqTplF.has(o.recipeId)) return false;
-                return true;
+              // 간트 차트의 작업을 템플릿별로 집계
+              const groups=[]; const byKey={};
+              orders.forEach(o=>{
+                const r=o.recipeId?recipes.find(x=>x.id===o.recipeId):null;
+                const key=r?r.id:"__direct__";
+                if(!byKey[key]){
+                  byKey[key]={key, name:r?r.name:"직접 등록 작업", fleet:r?r.fleet:o.fleet,
+                    color:r?fleetMeta(r.fleet).color:(o.fleetColor||"#64748b"), count:0};
+                  groups.push(byKey[key]);
+                }
+                byKey[key].count++;
               });
-              const lockedTemplates = recipes.filter(r=>r.locked);
-              const allTemplatesForFilter = recipes; // 잠금 + semi-x 전부
-              const isDirty = reqFleetF.size>0 || reqTplF.size>0;
-
-              return (<>
-                {/* 필터 */}
-                <div className="px-3 py-2 border-b border-slate-200 space-y-1.5">
-                  {/* Fleet 멀티 필터 */}
-                  {(()=>{
-                    const opts=fleets.map(f=>({id:f.id,label:f.name,color:f.color}));
-                    const val=reqFleetF; const setVal=setReqFleetF;
-                    const open=reqFleetDropOpen; const setOpen=setReqFleetDropOpen;
-                    const toggle=id=>{const n=new Set(val);n.has(id)?n.delete(id):n.add(id);setVal(n);};
-                    const label=val.size===0?"전체 Fleet":val.size===1?(opts.find(o=>o.id===[...val][0])?.label||[...val][0]):`${val.size}개 선택`;
-                    return(
-                      <div className="relative">
-                        <button onClick={()=>setOpen(o=>!o)}
-                          className={"w-full h-7 pl-6 pr-6 rounded-md border text-[11.5px] text-left flex items-center transition "+(open?"border-blue-400 ring-1 ring-blue-200 bg-white":"border-slate-200 bg-white hover:border-slate-300")+(val.size>0?" text-blue-700 font-semibold":" text-slate-600")}>
-                          <Icon name="Layers" size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                          <span className="truncate flex-1">{label}</span>
-                          {val.size>0&&<span className="shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center mr-1">{val.size}</span>}
-                          <Icon name="ChevronDown" size={10} className={"absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(open?"rotate-180":"")}/>
-                        </button>
-                        {open&&<>
-                          <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
-                          <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-1 overflow-hidden">
-                            <button onClick={()=>{setVal(new Set());setOpen(false);}} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(val.size===0?"bg-blue-50":"")}>
-                              <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 "+(val.size===0?"border-blue-500 bg-blue-500":"border-slate-300")}>{val.size===0&&<Icon name="Check" size={9} className="text-white"/>}</div>
-                              <span className={"text-[11.5px] "+(val.size===0?"text-blue-700 font-semibold":"text-slate-700")}>전체</span>
-                            </button>
-                            <div className="h-px bg-slate-100 my-0.5"/>
-                            {opts.map(o=>{const on=val.has(o.id);return(
-                              <button key={o.id} onClick={()=>toggle(o.id)} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(on?"bg-blue-50/60":"")}>
-                                <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 transition "+(on?"border-blue-500 bg-blue-500":"border-slate-300")}>{on&&<Icon name="Check" size={9} className="text-white"/>}</div>
-                                {o.color&&<span className="w-2 h-2 rounded-full shrink-0" style={{background:o.color}}/>}
-                                <span className={"text-[11.5px] flex-1 truncate "+(on?"text-blue-700 font-medium":"text-slate-700")}>{o.label}</span>
-                              </button>
-                            );})}
-                          </div>
-                        </>}
-                      </div>
-                    );
-                  })()}
-                  {/* 템플릿 멀티 필터 */}
-                  {(()=>{
-                    const opts=allTemplatesForFilter.map(r=>({id:r.fleet||r.id, label:r.name, color:fleetMeta(r.fleet).color, useId:!r.locked}));
-                    const val=reqTplF; const setVal=setReqTplF;
-                    const open=reqTplDropOpen; const setOpen=setReqTplDropOpen;
-                    const toggle=id=>{const n=new Set(val);n.has(id)?n.delete(id):n.add(id);setVal(n);};
-                    const label=val.size===0?"전체 템플릿":val.size===1?(opts.find(o=>o.id===[...val][0])?.label||[...val][0]):`${val.size}개 선택`;
-                    return(
-                      <div className="relative">
-                        <button onClick={()=>setOpen(o=>!o)}
-                          className={"w-full h-7 pl-6 pr-6 rounded-md border text-[11.5px] text-left flex items-center transition "+(open?"border-blue-400 ring-1 ring-blue-200 bg-white":"border-slate-200 bg-white hover:border-slate-300")+(val.size>0?" text-blue-700 font-semibold":" text-slate-600")}>
-                          <Icon name="FileText" size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-                          <span className="truncate flex-1">{label}</span>
-                          {val.size>0&&<span className="shrink-0 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center mr-1">{val.size}</span>}
-                          <Icon name="ChevronDown" size={10} className={"absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 transition-transform "+(open?"rotate-180":"")}/>
-                        </button>
-                        {open&&<>
-                          <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)}/>
-                          <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-1 overflow-hidden">
-                            <button onClick={()=>{setVal(new Set());setOpen(false);}} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(val.size===0?"bg-blue-50":"")}>
-                              <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 "+(val.size===0?"border-blue-500 bg-blue-500":"border-slate-300")}>{val.size===0&&<Icon name="Check" size={9} className="text-white"/>}</div>
-                              <span className={"text-[11.5px] "+(val.size===0?"text-blue-700 font-semibold":"text-slate-700")}>전체</span>
-                            </button>
-                            <div className="h-px bg-slate-100 my-0.5"/>
-                            {opts.map(o=>{const on=val.has(o.id);return(
-                              <button key={o.id} onClick={()=>toggle(o.id)} className={"w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-50 "+(on?"bg-blue-50/60":"")}>
-                                <div className={"w-3.5 h-3.5 rounded border-2 grid place-items-center shrink-0 transition "+(on?"border-blue-500 bg-blue-500":"border-slate-300")}>{on&&<Icon name="Check" size={9} className="text-white"/>}</div>
-                                {o.color&&<span className="w-2 h-2 rounded-full shrink-0" style={{background:o.color}}/>}
-                                <span className={"text-[11.5px] flex-1 truncate "+(on?"text-blue-700 font-medium":"text-slate-700")}>{o.label}</span>
-                              </button>
-                            );})}
-                          </div>
-                        </>}
-                      </div>
-                    );
-                  })()}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10.5px] text-slate-500">{pendingOrders.length}건</span>
-                    {isDirty&&(
-                      <button onClick={()=>{setReqFleetF(new Set());setReqTplF(new Set());setFilterTemplate(null);}}
-                        className="text-[10.5px] text-blue-500 hover:text-blue-700 flex items-center gap-1">
-                        <Icon name="RotateCcw" size={9}/> 초기화
-                      </button>
-                    )}
+              groups.sort((a,b)=>b.count-a.count);
+              return(
+                <div className="flex-1 overflow-auto">
+                  <div className="px-3 py-2 text-[11px] text-slate-400 leading-relaxed border-b border-slate-100">
+                    간트 차트에 등록된 작업을 템플릿별로 집계합니다. 항목을 클릭하면 차트에서 해당 작업만 강조됩니다.
                   </div>
-                </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {pendingOrders.length===0&&(
-                    <div className="py-10 text-center">
-                      <Icon name="ClipboardList" size={22} className="mx-auto text-slate-300 mb-2"/>
-                      <div className="text-[12.5px] font-medium text-slate-500">요청된 작업 없음</div>
-                      <div className="text-[11px] text-slate-400 mt-1">작업 요청 화면에서<br/>새 작업을 요청해 보세요</div>
-                    </div>
-                  )}
-                  {pendingOrders.map(o=>{
-                    const fm=fleetMeta(o.fleet||"amr");
+                  {groups.length===0&&<div className="px-3 py-8 text-center text-[12px] text-slate-400">간트 차트에 작업이 없습니다.</div>}
+                  {groups.map(g=>{
+                    const on=hlRcp===g.key;
                     return(
-                      <div key={o.id} className="rounded-lg border border-purple-200 bg-purple-50/40 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-6 h-6 rounded-md grid place-items-center shrink-0" style={{background:fm.color+"18"}}>
-                            <Icon name="Send" size={11} style={{color:fm.color}}/>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-semibold text-slate-900 truncate">{o.label||o.id}</div>
-                            <div className="text-[10px] text-slate-400 tnum">{o.id}</div>
-                          </div>
-                          <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{background:fm.color+"18",color:fm.color}}>{fm.name}</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5 text-[10.5px]">
-                          <div><span className="text-slate-400">Pick </span><span className="font-semibold text-slate-700">{o.pickNode||"—"}</span></div>
-                          <div><span className="text-slate-400">Drop </span><span className="font-semibold text-slate-700">{o.dropNode||"—"}</span></div>
-                          <div><span className="text-slate-400">로봇 </span><span className="font-semibold text-slate-700">{o.robotId}</span></div>
-                          <div><span className="text-slate-400">시작 </span><span className="font-semibold text-slate-700 tnum">{fmtTime(o.start)}</span></div>
-                        </div>
-                        {o.detail?.cartId&&<div className="mt-1.5 text-[10.5px]"><span className="text-slate-400">Cart </span><span className="font-semibold text-slate-700">{o.detail.cartId} ({o.detail.cartCat})</span></div>}
-                        {o.detail?.passengerId&&<div className="mt-1.5 text-[10.5px]"><span className="text-slate-400">승객 ID </span><span className="font-semibold text-slate-700">{o.detail.passengerId}</span></div>}
-                        {o.detail?.userId&&<div className="mt-1.5 text-[10.5px]"><span className="text-slate-400">사용자 ID </span><span className="font-semibold text-slate-700">{o.detail.userId}</span></div>}
-                        <div className="mt-1.5 text-[10.5px] flex items-center gap-1">
-                          <Icon name="User" size={10} className="text-slate-400 shrink-0"/>
-                          <span className="text-slate-400">요청자 </span>
-                          <span className="font-semibold text-blue-700 font-mono">{o.requesterId||"—"}</span>
-                        </div>
-                      </div>
+                      <button key={g.key} onClick={()=>setHlRcp(on?null:g.key)}
+                        className={"w-full flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 text-left transition "+(on?"bg-blue-50":"hover:bg-slate-50")}>
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{background:g.color}}/>
+                        <span className={"text-[12px] flex-1 truncate "+(on?"text-blue-700 font-semibold":"text-slate-700")}>{g.name}</span>
+                        <span className={"text-[11px] px-1.5 py-0.5 rounded-full tnum font-semibold shrink-0 "+(on?"bg-blue-600 text-white":"bg-slate-100 text-slate-600")}>{g.count}</span>
+                      </button>
                     );
                   })}
+                  {hlRcp&&(
+                    <div className="px-3 py-2">
+                      <button onClick={()=>setHlRcp(null)} className="w-full h-7 rounded-md border border-slate-200 text-[11px] text-slate-500 hover:bg-slate-50">강조 해제</button>
+                    </div>
+                  )}
                 </div>
-              </>);
+              );
             })()}
           </aside>
         )}
@@ -8212,7 +8246,6 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
           <div className="w-96 bg-white rounded-xl shadow-2xl border border-slate-200 pointer-events-auto overflow-hidden">
             {(()=>{
               const sc = SC[selOrder.status]||SC["queued"];
-              const isPending = selOrder.status==="pending";
               return (<>
                 <div className="px-5 pt-4 pb-3 border-b border-slate-200">
                   <div className="flex items-center gap-2">
@@ -8221,15 +8254,15 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                     <button onClick={()=>setSelOrder(null)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-500"><Icon name="X" size={14}/></button>
                   </div>
                   <h3 className="text-[16px] font-semibold text-slate-900 mt-1.5">
-                    {isPending ? (selOrder.label||selOrder.id) : selOrder.recipe?.name||selOrder.id}
+                    {selOrder.recipe?.name||selOrder.label||selOrder.id}
                   </h3>
                   <div className="text-[11.5px] text-slate-500 mt-0.5 flex items-center gap-3">
                     <span className="flex items-center gap-1"><Icon name="Bot" size={11}/> {selOrder.robotId}</span>
                     <span className="flex items-center gap-1"><Icon name="Clock" size={11}/> {fmtTime(selOrder.start)}{"—"}{fmtTime(selOrder.start+getOrderDur(selOrder))}</span>
                   </div>
                 </div>
-                {/* Pending 오더 상세 */}
-                {isPending && (
+                {/* 직접 요청 오더 상세 */}
+                {selOrder.fromRequest && (
                   <div className="px-5 py-4 border-b border-slate-200 space-y-2.5">
                     <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-2">작업 정보</div>
                     {[
@@ -8247,7 +8280,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   </div>
                 )}
                 {/* 기존 레시피 오더 단계 */}
-                {!isPending && selOrder.recipe && (
+                {!selOrder.fromRequest && selOrder.recipe && (
                   <div className="px-5 py-3 border-b border-slate-200">
                     <div className="text-[10.5px] font-medium text-slate-400 uppercase tracking-wider mb-2">단계 진행</div>
                     <div className="space-y-1.5">
@@ -8274,7 +8307,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   ))}
                 </div>
                 <div className="px-5 py-3 flex items-center gap-2">
-                  {(isEditable(selOrder)||selOrder.status==="pending")?<>
+                  {isEditable(selOrder)?<>
                     <button onClick={()=>copyOrder(selOrder)} className="flex-1 h-9 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700 flex items-center justify-center gap-1.5"><Icon name="Copy" size={13}/> 복사</button>
                     <button onClick={()=>deleteOrder(selOrder)} className="h-9 px-3 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-[12.5px] font-medium text-rose-600 flex items-center justify-center gap-1.5"><Icon name="Trash2" size={13}/></button>
                   </>:<div className="flex-1 h-9 rounded-md bg-slate-50 border border-slate-200 text-[11.5px] text-slate-500 flex items-center justify-center gap-1.5"><Icon name="Lock" size={12}/>
@@ -8500,10 +8533,10 @@ function LogsView({ initCat3, onMounted }) {
       "Delivery-Parts":{ sub3:["작업","Error"] },
       "SEMI-x":        { sub3:["작업","Error"] },
     }},
-    Infra:{ icon:"Server", sub:{
-      "충전소":{ sub3:["상태","오류","이벤트"] },
-      "자동문":{ sub3:["상태","오류","이벤트"] },
-      "RTLS":  { sub3:["상태","오류","이벤트"] },
+    Infra:{ icon:"Server", single2:true, sub:{
+      "충전소":{ sub3:["상태","오류"] },
+      "자동문":{ sub3:["상태","오류"] },
+      "RTLS":  { sub3:["상태","오류"] },
     }}
   };
 
@@ -8549,7 +8582,8 @@ function LogsView({ initCat3, onMounted }) {
   // 대분류: 단일 선택 → 중분류 전체 선택 + 소분류 유효성 보정
   function selectCat1(k){
     setCat1(new Set([k]));
-    const subs=Object.keys(HIERARCHY[k]?.sub||{});
+    const allSubs=Object.keys(HIERARCHY[k]?.sub||{});
+    const subs=HIERARCHY[k]?.single2?allSubs.slice(0,1):allSubs;
     setCat2(new Set(subs));
     const sub3s=[...new Set(subs.flatMap(c2=>HIERARCHY[k]?.sub?.[c2]?.sub3||[]))];
     setCat3(prev=>sub3s.includes(prev)?prev:(sub3s[0]||""));
@@ -8641,7 +8675,7 @@ function LogsView({ initCat3, onMounted }) {
             <div className="flex items-start gap-4 px-4 py-3">
               <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0 mt-1.5">중분류</span>
               <div className="flex flex-wrap gap-2">
-                {(()=>{const allOn=sub2Options.length>0&&sub2Options.every(k=>cat2.has(k));return(
+                {(()=>{const single2=[...cat1].some(c=>HIERARCHY[c]?.single2);if(single2)return null;const allOn=sub2Options.length>0&&sub2Options.every(k=>cat2.has(k));return(
                   <button onClick={()=>setCat2(allOn?new Set([sub2Options[0]]):new Set(sub2Options))}
                     className={"h-8 px-3.5 rounded-lg text-[12px] font-semibold border-2 transition flex items-center gap-1.5 "+(allOn?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600 hover:border-slate-300")}>
                     {allOn&&<Icon name="Check" size={11} className="text-blue-500"/>}
@@ -8650,8 +8684,9 @@ function LogsView({ initCat3, onMounted }) {
                 );})()}
                 {sub2Options.map(k=>{
                   const on=cat2.has(k);
+                  const single2=[...cat1].some(c=>HIERARCHY[c]?.single2);
                   return(
-                    <button key={k} onClick={()=>toggle(setCat2,k)}
+                    <button key={k} onClick={()=>single2?setCat2(new Set([k])):toggle(setCat2,k)}
                       className={"h-8 px-3.5 rounded-lg text-[12px] font-medium border-2 transition flex items-center gap-1.5 "+(on?"border-blue-500 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600 hover:border-slate-300")}>
                       {on&&<Icon name="Check" size={11} className="text-blue-500"/>}
                       {k}
@@ -9297,7 +9332,7 @@ function App() {
           <div style={{display:active==="basis-cart"?"contents":"none"}}><ToolCartView/></div>
           <div style={{display:active==="basis-map"?"contents":"none"}}><MapMgmtView/></div>
           <div style={{display:active==="basis-infra"?"contents":"none"}}><BasisEmptyView label="인프라 관리" icon="Server"/></div>
-          <div style={{display:active==="basis-alarm"?"contents":"none"}}><BasisEmptyView label="알람 관리" icon="Bell"/></div>
+          <div style={{display:active==="basis-alarm"?"contents":"none"}}><AlarmMgmtView/></div>
           <div style={{display:active==="permissions"?"contents":"none"}}><PermissionsView/></div>
           <div style={{display:active==="map-editor"?"contents":"none"}}><MapEditorView/></div>
         </main>
