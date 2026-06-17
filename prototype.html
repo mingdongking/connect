@@ -803,6 +803,7 @@ function MonitoringHome({ onNavigate }) {
   const [manualRobot, setManualRobot] = useState(robots.filter(r=>r.fleet==="semi")[0]?.id||"");
   const [manualRecipe, setManualRecipe] = useState("");
   const [manualPriority, setManualPriority] = useState("normal");
+  const [cmdFallback, setCmdFallback] = useState(true); // 지정 예약 폴백 허용 (기본 ON)
   // Delivery fleet 파라미터
   const [cmdPickNode, setCmdPickNode] = useState("");
   const [cmdDropNode, setCmdDropNode] = useState("");
@@ -1980,7 +1981,8 @@ function MonitoringHome({ onNavigate }) {
                 <CmdSection icon="Send" tone="blue" title="작업 요청하기" subtitle="선택된 Fleet 로봇에 작업을 요청합니다">
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      <option value="">자동 할당</option>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st!=="down").map(r=><option key={r.id} value={r.id}>{r.id} 지정</option>)}
                     </CmdSelectField>
                     <CmdSelectField label="우선순위" value={manualPriority} onChange={e=>setManualPriority(e.target.value)}>
                       <option value="normal">일반</option>
@@ -1988,7 +1990,26 @@ function MonitoringHome({ onNavigate }) {
                     </CmdSelectField>
                   </div>
 
-                  {/* Semi-x 전용: 템플릿 선택 */}
+                  {/* 로봇 지정 시에만: 폴백 허용 토글 */}
+                  {manualRobot&&(
+                    <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-2">
+                      <div className="flex items-center gap-2">
+                        <Icon name="MapPin" size={12} className="text-blue-600 shrink-0"/>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11.5px] font-semibold text-slate-700">시간 초과 시 재할당 허용</div>
+                          <div className="text-[10px] text-slate-500 leading-snug mt-0.5">
+                            {cmdFallback
+                              ? "이 로봇 선호 — 예약 시각까지 복귀 못 하면 같은 Fleet의 다른 로봇으로 자동 재할당"
+                              : "이 로봇 전용 — 재할당하지 않고 복귀를 기다림 (운영자 확인 필요)"}
+                          </div>
+                        </div>
+                        <button onClick={()=>setCmdFallback(v=>!v)}
+                          className={"relative w-9 h-5 rounded-full transition shrink-0 "+(cmdFallback?"bg-blue-600":"bg-slate-300")}>
+                          <span className={"absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all "+(cmdFallback?"left-[18px]":"left-0.5")}/>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {cmdFleet==="semi"&&(
                     <CmdSelectField label="템플릿" value={manualRecipe} onChange={e=>setManualRecipe(e.target.value)}>
                       <option value="">템플릿 선택</option>
@@ -2009,10 +2030,16 @@ function MonitoringHome({ onNavigate }) {
                       </CmdSelectField>
                     </div>
                     <div className="mt-1.5">
-                      <CmdSelectField label="Cart" value={cmdCartId} onChange={e=>setCmdCartId(e.target.value)}>
+                      <CmdSelectField label="Cart" value={cmdCartId} onChange={e=>{
+                        const v=e.target.value; setCmdCartId(v);
+                        // Tool Cart 선택 시 Pick 위치 자동 지정 (이후 수동 변경 가능)
+                        const CART_PICK={"TC-001·CPT":"B002","TC-002·CTR":"B003","TC-003·CBT":"B006","TC-004·CLV":"B007","TC-005·CPS":"B011"};
+                        if(v&&CART_PICK[v]) setCmdPickNode(CART_PICK[v]);
+                      }}>
                         <option value="">Tool Cart 선택</option>
                         {["TC-001·CPT","TC-002·CTR","TC-003·CBT","TC-004·CLV","TC-005·CPS"].map(c=><option key={c} value={c}>{c}</option>)}
                       </CmdSelectField>
+                      {cmdCartId&&<div className="mt-1 flex items-center gap-1 text-[10px] text-slate-400 leading-relaxed"><Icon name="Info" size={9} className="shrink-0"/>Cart 선택 시 Pick 위치가 자동 지정됩니다. 필요 시 위에서 수동 변경할 수 있습니다.</div>}
                     </div>
                   </>)}
 
@@ -2110,9 +2137,15 @@ function MonitoringHome({ onNavigate }) {
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      <option value="">유휴 로봇 선택</option>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="idle").map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                   </div>
+                  {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="idle").length===0&&(
+                    <div className="mb-2 px-2.5 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-[10.5px] text-slate-400 flex items-center gap-1.5">
+                      <Icon name="Info" size={11}/> 이동 가능한 유휴(idle) 로봇이 없습니다
+                    </div>
+                  )}
                   <div className="relative">
                     <select value={moveTarget} onChange={e=>setMoveTarget(e.target.value)}
                       className={"w-full h-8 rounded-md border bg-white text-[12px] outline-none appearance-none pr-7 focus:border-blue-400 "+(moveTarget?"pl-2.5 border-blue-400 text-blue-700 font-medium":"pl-2.5 border-slate-200 text-slate-800")}>
@@ -2129,9 +2162,15 @@ function MonitoringHome({ onNavigate }) {
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
-                      {mapRobots.filter(r=>r.fleet===cmdFleet).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
+                      <option value="">유휴 로봇 선택</option>
+                      {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="idle").map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
                   </div>
+                  {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="idle").length===0&&(
+                    <div className="mb-2 px-2.5 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-[10.5px] text-slate-400 flex items-center gap-1.5">
+                      <Icon name="Info" size={11}/> 충전 요청 가능한 유휴(idle) 로봇이 없습니다
+                    </div>
+                  )}
                   <CmdSelectField label="충전소" value="auto" onChange={()=>{}}>
                     <option value="auto">자동 선택 (최단경로)</option>
                     {stations.filter(s=>s.type==="charge").map(s=><option key={s.code} value={s.code}>{s.name}</option>)}
