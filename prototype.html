@@ -635,7 +635,6 @@ function CmdSelectField({ label, value, onChange, children }) {
 }
 function ManualTab({ sel }) {
   const [commission, setCommission] = useState("commission");
-  const [dispatchTasks, setDispatchTasks] = useState(true);
   const [directTasks, setDirectTasks] = useState(true);
   const [idleBehavior, setIdleBehavior] = useState(false);
   const [pendingDispatch, setPendingDispatch] = useState("Reassign");
@@ -731,7 +730,6 @@ function ManualTab({ sel }) {
 
           {/* Toggle 항목 */}
           <div className="rounded-md border border-slate-200 px-2.5 divide-y divide-slate-100">
-            <Toggle label="Dispatch Tasks" value={dispatchTasks} onChange={setDispatchTasks}/>
             <Toggle label="Direct Tasks"   value={directTasks}   onChange={setDirectTasks}/>
             <Toggle label="Idle Behavior"  value={idleBehavior}  onChange={setIdleBehavior}/>
           </div>
@@ -793,6 +791,7 @@ function MonitoringHome({ onNavigate }) {
   const [kpiTaskFleet, setKpiTaskFleet] = useState(()=>new Set(fleets.map(f=>f.id))); // 작업현황 Fleet 필터
   const [statusFilter, setStatusFilter] = useState(new Set());
   const [fleetFilter, setFleetFilter] = useState(new Set());
+  const [fleetFilterOpen, setFleetFilterOpen] = useState(false);
   const [floorId, setFloorId] = useState(floors[0].id);
   const [floorDropOpen, setFloorDropOpen] = useState(false);
   const [cmdTab, setCmdTab] = useState("command");
@@ -836,7 +835,6 @@ function MonitoringHome({ onNavigate }) {
   const [cartReRobot, setCartReRobot] = useState("auto"); // 새 로봇 (auto | robotId)
   const [multiDetailOpen, setMultiDetailOpen] = useState(false);
   const [showPendingPanel, setShowPendingPanel] = useState(false);
-  const [dispatchTasks, setDispatchTasks] = useState(true);
   const [directTasks,   setDirectTasks]   = useState(true);
   const [idleBehavior,  setIdleBehavior]  = useState(false);
   const [pendingDispatch, setPendingDispatch] = useState("Reassign");
@@ -856,7 +854,7 @@ function MonitoringHome({ onNavigate }) {
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [moveTarget, setMoveTarget] = useState("");
   const [layerOpen, setLayerOpen] = useState(false);
-  const [layers, setLayers] = useState(new Set(["robot","node","edge","zone","cart"]));
+  const [layers, setLayers] = useState(new Set(["bg","robot","node","edge","zone","cart"]));
   // 편집 중인 다른 사용자 (프로토타입: 시뮬레이션)
   const [editingUser] = useState("samsung.kim");
   const editToastRef = useRef(null);
@@ -1483,7 +1481,7 @@ function MonitoringHome({ onNavigate }) {
                   className={"h-7 px-2.5 flex items-center gap-1.5 rounded text-[11.5px] font-medium transition "+(layerOpen?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-100")}>
                   <Icon name="Layers" size={11}/>
                   <span>레이어</span>
-                  {layers.size<4&&<span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center">{layers.size}</span>}
+                  {layers.size<5&&<span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold grid place-items-center">{layers.size}</span>}
                   <Icon name="ChevronDown" size={10} className={"text-slate-400 transition-transform "+(layerOpen?"rotate-180":"")}/>
                 </button>
                 {layerOpen&&<>
@@ -1491,6 +1489,7 @@ function MonitoringHome({ onNavigate }) {
                   <div className="absolute z-20 top-full mt-1 right-0 w-[180px] bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 overflow-hidden">
                     <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">지도 레이어</div>
                     {[
+                      {id:"bg",    label:"Background", icon:"Image",        color:"#94a3b8"},
                       {id:"robot", label:"로봇",       icon:"Bot",          color:"#2563eb"},
                       {id:"cart",  label:"Tool Cart", icon:"ShoppingCart", color:"#10b981"},
                       {id:"node",  label:"노드",       icon:"MapPin",       color:"#64748b"},
@@ -1510,10 +1509,10 @@ function MonitoringHome({ onNavigate }) {
                       );
                     })}
                     <div className="h-px bg-slate-100 my-1"/>
-                    <button onClick={()=>setLayers(layers.size===4?new Set():new Set(["robot","node","edge","zone"]))}
+                    <button onClick={()=>setLayers(layers.size===5?new Set():new Set(["bg","robot","node","edge","zone"]))}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-slate-500 hover:text-slate-700 hover:bg-slate-50">
                       <Icon name={layers.size===4?"EyeOff":"Eye"} size={11}/>
-                      {layers.size===4?"전체 숨기기":"전체 보이기"}
+                      {layers.size===5?"전체 숨기기":"전체 보이기"}
                     </button>
                   </div>
                 </>}
@@ -1541,11 +1540,41 @@ function MonitoringHome({ onNavigate }) {
               {statuses.map(s=>{const on=statusFilter.has(s.id);return <button key={s.id} onClick={()=>toggle(statusFilter,s.id,setStatusFilter)} className={"h-6 px-2 rounded text-[10.5px] font-medium border flex items-center gap-1 "+(on?"text-white border-transparent":"bg-white text-slate-700 border-slate-200")} style={on?{background:s.color}:{}}><span className="w-1.5 h-1.5 rounded-full" style={{background:on?"#fff":s.color}}/>{s.short}<span className={"tnum "+(on?"opacity-80":"text-slate-400")}>{counts[s.id]}</span></button>;})}
             </div>
             <div className="h-4 w-px bg-slate-200"/>
-            <div className="flex items-center gap-1">
-              <span className="text-[10.5px] font-medium text-slate-500 uppercase mr-1">Fleet</span>
-              <button onClick={()=>setFleetFilter(new Set())} className={"h-6 px-2 rounded text-[10.5px] font-medium border "+(fleetFilter.size===0?"bg-slate-900 text-white border-slate-900":"bg-white text-slate-600 border-slate-200")}>전체</button>
-              {fleets.map(f=>{const on=fleetFilter.has(f.id);return <button key={f.id} onClick={()=>toggle(fleetFilter,f.id,setFleetFilter)} className={"h-6 px-2 rounded text-[10.5px] font-medium border flex items-center gap-1 "+(on?"text-white border-transparent":"bg-white text-slate-700 border-slate-200")} style={on?{background:f.color}:{}}>{f.name}</button>;})}
+            {/* Fleet 드롭다운 멀티셀렉트 */}
+            <div className="relative">
+              {fleetFilterOpen&&<div className="fixed inset-0 z-10" onClick={()=>setFleetFilterOpen(false)}/>}
+              <button onClick={()=>setFleetFilterOpen(o=>!o)}
+                className={"h-6 px-2.5 rounded text-[10.5px] font-medium border flex items-center gap-1.5 transition "+(fleetFilter.size>0?"bg-blue-600 text-white border-blue-600":"bg-white text-slate-600 border-slate-200 hover:border-slate-300")}>
+                <span>Fleet</span>
+                {fleetFilter.size>0&&<span className="bg-white/30 text-white text-[9px] font-bold px-1 rounded-sm">{fleetFilter.size}</span>}
+                <Icon name="ChevronDown" size={10} className={fleetFilterOpen?"rotate-180 transition-transform":"transition-transform"}/>
+              </button>
+              {fleetFilterOpen&&(
+                <div className="absolute z-20 top-full mt-1 left-0 w-[160px] bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
+                  <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100">Fleet 선택 (복수 가능)</div>
+                  {fleets.map(f=>{
+                    const on=fleetFilter.has(f.id);
+                    return(
+                      <button key={f.id} onClick={()=>{const n=new Set(fleetFilter);on?n.delete(f.id):n.add(f.id);setFleetFilter(n);}}
+                        className={"w-full flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 "+(on?"":"opacity-60")}>
+                        <div className={"w-4 h-4 rounded border-2 grid place-items-center shrink-0 transition "+(on?"border-transparent":"border-slate-300")} style={on?{background:f.color}:{}}>
+                          {on&&<Icon name="Check" size={10} className="text-white"/>}
+                        </div>
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{background:f.color}}/>
+                        <span className={"text-[12px] "+(on?"text-slate-800 font-medium":"text-slate-500")}>{f.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+            {/* 필터 초기화 버튼 */}
+            {(fleetFilter.size>0||statusFilter.size>0)&&(
+              <button onClick={()=>{setFleetFilter(new Set());setStatusFilter(new Set());}}
+                className="h-6 px-2 rounded text-[10.5px] font-medium border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 flex items-center gap-1">
+                <Icon name="X" size={10}/> 초기화
+              </button>
+            )}
           </div>
           {/* Map canvas */}
           <div ref={mapCanvasRef}
@@ -2200,34 +2229,35 @@ function MonitoringHome({ onNavigate }) {
                   let nodeStatus="USABLE";
                   if(occCart){ nodeStatus=occCart.status==="resv"?"RESV":occCart.status==="trns"?"TRNS":"INUSE"; }
                   else if(occRobot){ nodeStatus="INUSE"; }
-                  const NODE_ST={
-                    "None":  {desc:"상태 정보 없음", cls:"bg-slate-100 text-slate-500 border-slate-200"},
-                    "RESV":  {desc:"예약됨",        cls:"bg-amber-50 text-amber-700 border-amber-200"},
-                    "TRNS":  {desc:"이송 중",       cls:"bg-blue-50 text-blue-700 border-blue-200"},
-                    "INUSE": {desc:"사용 중(점유)",  cls:"bg-violet-50 text-violet-700 border-violet-200"},
-                    "USABLE":{desc:"사용 가능",      cls:"bg-emerald-50 text-emerald-700 border-emerald-200"},
-                  };
-                  const stMeta=NODE_ST[nodeStatus]||NODE_ST["None"];
+                  const STATUS_DESC={"None":"상태 정보 없음","RESV":"예약됨","TRNS":"이송 중","INUSE":"사용 중","USABLE":"사용 가능"};
                   return(
                     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                      <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5">
-                        <Icon name="MapPin" size={12} className="text-slate-500"/>
+                      <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
                         <span className="text-[11.5px] font-semibold text-slate-700">노드 Properties</span>
                       </div>
-                      <div className="p-3 space-y-2.5">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[11.5px] text-slate-500 w-16 shrink-0">Status</span>
-                          <span className={"inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11.5px] font-bold tnum "+stMeta.cls}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current"/>{nodeStatus}
-                          </span>
-                          <span className="text-[10.5px] text-slate-400">{stMeta.desc}</span>
+                      <div className="p-3 space-y-2">
+                        <div className="flex gap-3 text-[12px]">
+                          <span className="text-slate-400 w-16 shrink-0">Status</span>
+                          <span className="text-slate-800">{nodeStatus} · {STATUS_DESC[nodeStatus]||""}</span>
                         </div>
-                        {occCart&&<div className="flex items-center gap-3"><span className="text-[11.5px] text-slate-500 w-16 shrink-0">점유 카트</span><span className="text-[12px] font-semibold text-slate-800 tnum">{occCart.id}</span></div>}
-                        {!occCart&&occRobot&&<div className="flex items-center gap-3"><span className="text-[11.5px] text-slate-500 w-16 shrink-0">점유 로봇</span><span className="text-[12px] font-semibold text-slate-800 tnum">{occRobot.id}</span></div>}
-                        <div className="flex items-center gap-3"><span className="text-[11.5px] text-slate-500 w-16 shrink-0">허용 Fleet</span><div className="flex gap-1 flex-wrap">{node.fleets.map(fid=>{const fm=fleetMeta(fid);return <span key={fid} className="px-1.5 py-0.5 rounded text-[10.5px] font-medium" style={{background:fm.color+"15",color:fm.color}}>{fm.name}</span>;})}</div></div>
-                        <div className="flex items-center gap-3"><span className="text-[11.5px] text-slate-500 w-16 shrink-0">좌표</span><span className="text-[11.5px] text-slate-600 tnum">({node.x}, {node.y})</span></div>
-                        <div className="text-[10px] text-slate-400 leading-relaxed border-t border-slate-100 pt-2">
-                          Status는 시스템이 자동 판별하는 읽기 전용 값입니다 (None / RESV / TRNS / INUSE / USABLE). 이 화면에서 수정할 수 없습니다.
+                        {occCart&&(
+                          <div className="flex gap-3 text-[12px]">
+                            <span className="text-slate-400 w-16 shrink-0">점유 카트</span>
+                            <span className="text-slate-800 tnum">{occCart.id}</span>
+                          </div>
+                        )}
+                        {!occCart&&occRobot&&(
+                          <div className="flex gap-3 text-[12px]">
+                            <span className="text-slate-400 w-16 shrink-0">점유 로봇</span>
+                            <span className="text-slate-800 tnum">{occRobot.id}</span>
+                          </div>
+                        )}
+                        <div className="flex gap-3 text-[12px]">
+                          <span className="text-slate-400 w-16 shrink-0">허용 Fleet</span>
+                          <span className="text-slate-800">{node.fleets.map(fid=>fleetMeta(fid).name).join(", ")}</span>
+                        </div>
+                        <div className="text-[10.5px] text-slate-400 pt-1 border-t border-slate-100">
+                          읽기 전용 · 시스템 자동 판별
                         </div>
                       </div>
                     </div>
@@ -3321,7 +3351,7 @@ function MonitoringHome({ onNavigate }) {
                         <div className="pt-1 border-t border-slate-100 space-y-3">
                           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Parameter 설정</div>
                           <div className="rounded-md border border-slate-200 px-2.5 divide-y divide-slate-100">
-                            {[["Dispatch Tasks",dispatchTasks,setDispatchTasks],["Direct Tasks",directTasks,setDirectTasks],["Idle Behavior",idleBehavior,setIdleBehavior]].map(([label,val,set])=>(
+                            {[["Direct Tasks",directTasks,setDirectTasks],["Idle Behavior",idleBehavior,setIdleBehavior]].map(([label,val,set])=>(
                               <div key={label} className="flex items-center justify-between py-2.5">
                                 <span className="text-[12px] text-slate-800">{label}</span>
                                 <button onClick={()=>set(!val)}
@@ -3823,14 +3853,9 @@ function RobotStatusView() {
                   <tr key={r.id} onClick={()=>{setSelRobot(isSel?null:r.id);setDrawerTab("orders");}}
                     className={"border-b border-slate-100 cursor-pointer transition "+(isSel?"bg-blue-50/70":"hover:bg-slate-50/60")}>
                     <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
-                    <td className="py-3"><span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:fm.color+"15",color:fm.color}}>{fm.name}</span></td>
+                    <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
                     <td className="py-3"><span className={"inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold "+st.badge}><span className="w-1.5 h-1.5 rounded-full" style={{background:st.chip}}/>{st.label}</span></td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:r.battery+"%",background:r.battery<35?"#e11d48":r.battery<60?"#d97706":"#16a34a"}}/></div>
-                        <span className="text-[11px] tnum text-slate-600">{r.battery}%</span>
-                      </div>
-                    </td>
+                    <td className="py-3 text-[11.5px] tnum text-slate-600">{r.battery}%</td>
                     <td className="py-3 text-slate-600 tnum text-[11.5px]">{nd?nd.id+" · "+nd.label:"—"}</td>
                     <td className="py-3 text-slate-600 text-[11.5px]">{r.task?<span className="tnum">{r.task}</span>:<span className="text-slate-300">—</span>}{r.recipe&&<span className="text-slate-400"> · {r.recipe}</span>}</td>
                     <td className="py-3 pr-4"><span className="tnum font-semibold text-slate-700">{util}%</span></td>
@@ -4359,7 +4384,7 @@ function MiniDonut({ segments }) {
 function AnalyticsView() {
   const [dateFrom,setDateFrom]=useState("2026-06-02");
   const [dateTo,setDateTo]=useState("2026-06-08");
-  const [datePreset,setDatePreset]=useState("7d");
+  const [datePreset,setDatePreset]=useState("today");
   const applyPreset=(p)=>{
     setDatePreset(p);
     const to="2026-06-08";
@@ -4433,7 +4458,7 @@ function AnalyticsView() {
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           {/* 날짜 프리셋 */}
           <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
-            {[{id:"today",label:"오늘"},{id:"7d",label:"최근 7일"},{id:"30d",label:"30일"}].map(p=>(
+            {[{id:"today",label:"오늘"},{id:"7d",label:"최근 7일"}].map(p=>(
               <button key={p.id} onClick={()=>applyPreset(p.id)}
                 className={"h-8 px-2.5 rounded-md text-[12px] font-medium transition "+(datePreset===p.id?"bg-white text-blue-700 shadow-sm":"text-slate-500 hover:text-slate-700")}>
                 {p.label}
@@ -4484,6 +4509,7 @@ function AnalyticsView() {
           <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
             <Icon name="TrendingUp" size={14} className="text-slate-500"/>
             <span className="text-[13px] font-semibold text-slate-900">시간대별 처리량</span>
+            <span className="text-[10.5px] text-slate-400 ml-0.5">평균</span>
             <span className="text-[11px] text-slate-400">오늘 기준</span>
             <div className="ml-auto flex items-center gap-3 text-[10.5px]">
               <button onClick={()=>setShowCompare(v=>!v)}
@@ -4504,6 +4530,7 @@ function AnalyticsView() {
           <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
             <Icon name="BarChart3" size={14} className="text-slate-500"/>
             <span className="text-[13px] font-semibold text-slate-900">Fleet별 작업 현황</span>
+            <span className="text-[10.5px] text-slate-400 ml-0.5">평균</span>
             <div className="ml-auto flex items-center gap-2">
               {stackLegend.map(l=><span key={l.label} className="flex items-center gap-1 text-[10px] text-slate-500"><span className="w-2 h-2 rounded-sm inline-block" style={{background:l.color}}/>{l.label}</span>)}
             </div>
@@ -5069,13 +5096,9 @@ function RobotMgmtView() {
               const node=mapNodes.find(n=>n.id===r.initNode);
               return(
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md grid place-items-center text-white shrink-0" style={{background:fm.color}}><Icon name={r.fleet==="arm"?"Cog":"Bot"} size={13}/></div>
-                      <span className="font-semibold text-slate-900 tnum">{r.id}</span>
-                    </div>
+                  <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
                   </td>
-                  <td className="py-3"><span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:fm.color+"15",color:fm.color}}>{fm.name}</span></td>
+                  <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
                   <td className="py-3 tnum text-slate-600">{r.version}</td>
                   <td className="py-3"><MgmtToggle on={r.inUse} onClick={()=>setList(ls=>ls.map(x=>x.id===r.id?{...x,inUse:!x.inUse}:x))}/></td>
                   <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` · ${node.label}`:""}</td>
@@ -5211,12 +5234,10 @@ function FleetMgmtView() {
                     const acts=actionTypes.filter(a=>a.fleets.includes(fid));
                     return(
                       <button onClick={()=>setActTarget(f)} title="클릭 → Action Type 관리 (Fleet 공통)"
-                        className="flex items-center gap-1 flex-wrap max-w-[220px] hover:opacity-80 transition text-left">
-                        {acts.slice(0,3).map(a=>(
-                          <span key={a.id} className="inline-block px-1.5 py-0.5 rounded text-[10.5px] font-medium" style={{background:a.color+"15",color:a.color}}>{a.id}</span>
-                        ))}
-                        {acts.length>3&&<span className="text-[10.5px] font-semibold text-slate-400">+{acts.length-3}</span>}
-                        {acts.length===0&&<span className="text-[11px] text-slate-400 underline decoration-dotted">액션 추가</span>}
+                        className="text-[11.5px] text-slate-700 hover:text-blue-600 text-left transition">
+                        {acts.length===0
+                          ? <span className="text-slate-400 underline decoration-dotted">액션 추가</span>
+                          : acts.map(a=>a.id).join(", ")+(acts.length>3?" 외 "+(acts.length-3)+"개":"")}
                       </button>
                     );
                   })()}
@@ -7371,6 +7392,7 @@ const SC = {
   running:{bg:"bg-blue-100", border:"border-blue-400", fg:"text-blue-900", label:"진행중",chip:"#2563eb"},
   queued: {bg:"bg-amber-50", border:"border-amber-300",fg:"text-amber-900",label:"예약",chip:"#d97706"},
   error:  {bg:"bg-rose-100", border:"border-rose-400", fg:"text-rose-900", label:"실패",chip:"#e11d48"},
+  pending:{bg:"bg-purple-50",border:"border-purple-400",fg:"text-purple-900",label:"Pending",chip:"#7c3aed"},
 };
 
 function getOrderDur(o){
@@ -7731,7 +7753,7 @@ function OrderTemplateView({ onNavigate }) {
         </div>
         {fleetDef&&(
           <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-full text-[11.5px] font-semibold" style={{background:fleetDef.color+"15",color:fleetDef.color}}>
-            <Icon name={fleetDef.icon} size={12}/>{fleetDef.name}
+            {fleetDef.name}
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
@@ -7749,17 +7771,14 @@ function OrderTemplateView({ onNavigate }) {
         <div className="w-72 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
           {/* Fleet 선택 */}
           <div className="p-4 border-b border-slate-200">
-            <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-2.5">Fleet 선택 *</div>
-            <div className="flex flex-col gap-2">
-              {FLEETS.map(f=>(
-                <button key={f.id} onClick={()=>{setFleet(f.id);setForm({});}}
-                  className={"w-full flex items-center gap-2.5 h-10 px-3 rounded-lg border-2 transition "+(fleet===f.id?"text-white":"border-slate-200 bg-white hover:border-slate-300")}
-                  style={fleet===f.id?{background:f.color,borderColor:f.color}:{}}>
-                  <Icon name={f.icon} size={15} style={{color:fleet===f.id?"white":f.color}}/>
-                  <span className={"text-[13px] font-semibold "+(fleet===f.id?"text-white":"text-slate-800")}>{f.name}</span>
-                  {fleet===f.id&&<Icon name="Check" size={13} className="ml-auto text-white"/>}
-                </button>
-              ))}
+            <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Fleet 선택</div>
+            <div className="relative">
+              <select value={fleet||""} onChange={e=>{setFleet(e.target.value||null);setForm({});}}
+                className="w-full h-9 pl-3 pr-8 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 appearance-none">
+                <option value="">Fleet 선택...</option>
+                {FLEETS.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+              <Icon name="ChevronDown" size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
             </div>
           </div>
 
