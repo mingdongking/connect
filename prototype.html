@@ -2107,7 +2107,7 @@ function MonitoringHome({ onNavigate }) {
                           onNavigate("popup",{popup:{type:"cmd-queue",data:{newRecipe:recipeName}}});
                         }
                       }} className={"w-full h-8 mt-2 rounded-md text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(canDispatch?"bg-blue-600 hover:bg-blue-700":"bg-slate-200 cursor-not-allowed")}>
-                        <Icon name="Send" size={12}/> {manualRobot?"["+manualRobot+"] 작업 요청하기":"작업 요청하기"}
+                        <Icon name="Send" size={12}/> "요청"
                       </button>
                     );
                   })()}
@@ -2145,7 +2145,7 @@ function MonitoringHome({ onNavigate }) {
                     );
                   })()}
                   <button className="w-full h-8 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5 transition">
-                    <Icon name="Square" size={12}/> 즉시 종료
+                    <Icon name="Square" size={12}/> 요청
                   </button>
                 </CmdSection>
 
@@ -2169,7 +2169,7 @@ function MonitoringHome({ onNavigate }) {
                     </select>
                     <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                   </div>
-                  <button className="w-full h-8 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Navigation" size={12}/> 이동 시작</button>
+                  <button className="w-full h-8 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Navigation" size={12}/> 요청</button>
                 </CmdSection>
 
                 <CmdSection icon="BatteryCharging" tone="emerald" title="충전하기" subtitle="충전 스테이션으로 복귀">
@@ -2189,7 +2189,7 @@ function MonitoringHome({ onNavigate }) {
                     {stations.filter(s=>s.type==="charge").map(s=><option key={s.code} value={s.code}>{s.name}</option>)}
                   </CmdSelectField>
                   {sel&&<div className="mt-2 flex items-center gap-2 text-[10.5px] text-slate-500"><span>{sel.id} 배터리</span><div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:sel.battery+"%",background:sel.battery>50?"#10b981":sel.battery>25?"#f59e0b":"#e11d48"}}/></div><span className="tnum font-medium text-slate-700">{sel.battery}%</span></div>}
-                  <button className="w-full h-8 mt-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="BatteryCharging" size={12}/> 충전 시작</button>
+                  <button className="w-full h-8 mt-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="BatteryCharging" size={12}/> 요청</button>
                 </CmdSection>
               </div>
             ) : (
