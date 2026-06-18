@@ -2214,10 +2214,28 @@ function MonitoringHome({ onNavigate }) {
                         <div className="text-[10.5px] text-slate-500 tnum">{fleets.find(f=>f.id===sel.fleet)?.name} {"·"} 배터리 {sel.battery}%</div>
                       </div>
                     </>) : selectedNodeId ? (<>
-                      <div className="w-8 h-8 rounded-lg bg-blue-600 grid place-items-center text-white shrink-0"><Icon name="MapPin" size={14}/></div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-bold text-slate-900">{mapNodes.find(n=>n.id===selectedNodeId)?.label}</div>
                         <div className="text-[10.5px] text-slate-500 tnum">Node {selectedNodeId}</div>
+                        <div className="mt-2 pt-2 border-t border-slate-100 space-y-1">
+                          {(()=>{
+                            const _n=mapNodes.find(n=>n.id===selectedNodeId);
+                            if(!_n) return null;
+                            const _oc=carts.find(c=>{let best=null,bd=1e9;mapNodes.forEach(n=>{const d=Math.hypot(n.x-c.x,n.y-c.y);if(d<bd){bd=d;best=n.id;}});return best===_n.id;});
+                            const _or=mapRobots.find(r=>Math.hypot(_n.x-r.x,_n.y-r.y)<26&&r.st!=="run");
+                            let _st="USABLE";
+                            if(_oc){_st=_oc.status==="resv"?"RESV":_oc.status==="trns"?"TRNS":"INUSE";}
+                            else if(_or){_st="INUSE";}
+                            const _sd={"None":"상태 없음","RESV":"예약됨","TRNS":"이송 중","INUSE":"사용 중","USABLE":"사용 가능"};
+                            return(<>
+                              <div className="flex gap-2 text-[11px]"><span className="text-slate-400 w-14 shrink-0">Status</span><span className="text-slate-700">{_st} · {_sd[_st]}</span></div>
+                              {_oc&&<div className="flex gap-2 text-[11px]"><span className="text-slate-400 w-14 shrink-0">점유 카트</span><span className="text-slate-700 tnum">{_oc.id}</span></div>}
+                              {!_oc&&_or&&<div className="flex gap-2 text-[11px]"><span className="text-slate-400 w-14 shrink-0">점유 로봇</span><span className="text-slate-700 tnum">{_or.id}</span></div>}
+                              <div className="flex gap-2 text-[11px]"><span className="text-slate-400 w-14 shrink-0">허용 Fleet</span><span className="text-slate-700">{_n.fleets.map(fid=>fleetMeta(fid).name).join(", ")}</span></div>
+                              <div className="text-[10px] text-slate-400 pt-0.5">읽기 전용 · 시스템 자동 판별</div>
+                            </>);
+                          })()}
+                        </div>
                       </div>
                     </>) : (<>
                       <div className="w-8 h-8 rounded-lg bg-purple-600 grid place-items-center text-white shrink-0"><Icon name="ArrowRight" size={14}/></div>
@@ -2229,46 +2247,6 @@ function MonitoringHome({ onNavigate }) {
                     <button onClick={()=>{setFocusRobot(null);setSelectedNodeId(null);setSelectedEdgeId(null);}} className="w-6 h-6 grid place-items-center rounded hover:bg-slate-100 text-slate-400 shrink-0"><Icon name="X" size={11}/></button>
                   </div>
                 )}
-                {/* ── 노드 Properties (Status 읽기 전용) ── */}
-                {!sel&&!focusCart&&selectedNodeId&&(()=>{
-                  const node=mapNodes.find(n=>n.id===selectedNodeId);
-                  if(!node) return null;
-                  const occCart=carts.find(c=>{let best=null,bd=1e9;mapNodes.forEach(n=>{const d=Math.hypot(n.x-c.x,n.y-c.y);if(d<bd){bd=d;best=n.id;}});return best===node.id;});
-                  const occRobot=mapRobots.find(r=>Math.hypot(node.x-r.x,node.y-r.y)<26&&r.st!=="run");
-                  let nodeStatus="USABLE";
-                  if(occCart){ nodeStatus=occCart.status==="resv"?"RESV":occCart.status==="trns"?"TRNS":"INUSE"; }
-                  else if(occRobot){ nodeStatus="INUSE"; }
-                  const STATUS_DESC={"None":"상태 정보 없음","RESV":"예약됨","TRNS":"이송 중","INUSE":"사용 중","USABLE":"사용 가능"};
-                  return(
-                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                      <div className="p-3 space-y-2">
-                        <div className="flex gap-3 text-[12px]">
-                          <span className="text-slate-400 w-16 shrink-0">Status</span>
-                          <span className="text-slate-800">{nodeStatus} · {STATUS_DESC[nodeStatus]||""}</span>
-                        </div>
-                        {occCart&&(
-                          <div className="flex gap-3 text-[12px]">
-                            <span className="text-slate-400 w-16 shrink-0">점유 카트</span>
-                            <span className="text-slate-800 tnum">{occCart.id}</span>
-                          </div>
-                        )}
-                        {!occCart&&occRobot&&(
-                          <div className="flex gap-3 text-[12px]">
-                            <span className="text-slate-400 w-16 shrink-0">점유 로봇</span>
-                            <span className="text-slate-800 tnum">{occRobot.id}</span>
-                          </div>
-                        )}
-                        <div className="flex gap-3 text-[12px]">
-                          <span className="text-slate-400 w-16 shrink-0">허용 Fleet</span>
-                          <span className="text-slate-800">{node.fleets.map(fid=>fleetMeta(fid).name).join(", ")}</span>
-                        </div>
-                        <div className="text-[10.5px] text-slate-400 pt-1 border-t border-slate-100">
-                          읽기 전용 · 시스템 자동 판별
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
                 {/* ── 오류 로봇 조치 (down 상태 로봇 선택 시 우선 표시) ── */}
                 {sel&&sel.st==="down"&&(()=>{
                   const stoppedOrder=initOrders.find(o=>o.robotId===sel.id&&o.status==="running");
