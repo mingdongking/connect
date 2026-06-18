@@ -2114,8 +2114,7 @@ function MonitoringHome({ onNavigate }) {
                 </CmdSection>
 
                 <CmdSection icon="Square" tone="rose" title="작업 중단하기" subtitle="진행 중인 작업을 중단합니다">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                   <div className="mb-2">
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
                       {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="run"&&r.task).map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
                     </CmdSelectField>
@@ -2150,9 +2149,8 @@ function MonitoringHome({ onNavigate }) {
                   </button>
                 </CmdSection>
 
-                <CmdSection icon="Navigation" tone="indigo" title="노드 이동하기" subtitle="대상 스테이션으로 이동">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                <CmdSection icon="Navigation" tone="indigo" title="이동하기" subtitle="대상 스테이션으로 이동">
+                   <div className="mb-2">
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
                       <option value="">유휴 로봇 선택</option>
                       {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="idle").map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
@@ -2171,13 +2169,11 @@ function MonitoringHome({ onNavigate }) {
                     </select>
                     <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                   </div>
-                  {moveTarget&&<div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-blue-600 bg-blue-50 rounded px-2 py-1"><Icon name="MapPin" size={10}/><span>선택됨: <strong>{mapNodes.find(n=>n.id===moveTarget)?.label}</strong></span></div>}
                   <button className="w-full h-8 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center justify-center gap-1.5"><Icon name="Navigation" size={12}/> 이동 시작</button>
                 </CmdSection>
 
                 <CmdSection icon="BatteryCharging" tone="emerald" title="충전하기" subtitle="충전 스테이션으로 복귀">
-                  <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    <CmdSelectField label="Fleet" value={cmdFleet}><option value={cmdFleet}>{fleets.find(f=>f.id===cmdFleet)?.name}</option></CmdSelectField>
+                   <div className="mb-2">
                     <CmdSelectField label="로봇" value={manualRobot} onChange={e=>setManualRobot(e.target.value)}>
                       <option value="">유휴 로봇 선택</option>
                       {mapRobots.filter(r=>r.fleet===cmdFleet&&r.st==="idle").map(r=><option key={r.id} value={r.id}>{r.id}</option>)}
