@@ -421,7 +421,16 @@ const NAV = [
       { id:"basis-alarm",  label:"알람 관리",        icon:"Bell" },
     ]
   },
-  { id:"permissions", label:"권한 관리",     icon:"ShieldCheck" },
+  { id:"permissions", label:"권한 관리(임직원)", icon:"ShieldCheck",
+    children:[
+      { id:"permissions-approval", label:"승인/거절 이력", icon:"ClipboardList" },
+    ]
+  },
+  { id:"permissions-partner", label:"권한 관리(협력사)", icon:"ShieldPlus",
+    children:[
+      { id:"permissions-partner-approval", label:"승인/거절 이력", icon:"ClipboardList" },
+    ]
+  },
 ];
 
 // 모든 nav 아이템 flat 목록 (커맨드 팔레트용)
@@ -2232,9 +2241,6 @@ function MonitoringHome({ onNavigate }) {
                   const STATUS_DESC={"None":"상태 정보 없음","RESV":"예약됨","TRNS":"이송 중","INUSE":"사용 중","USABLE":"사용 가능"};
                   return(
                     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                      <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
-                        <span className="text-[11.5px] font-semibold text-slate-700">노드 Properties</span>
-                      </div>
                       <div className="p-3 space-y-2">
                         <div className="flex gap-3 text-[12px]">
                           <span className="text-slate-400 w-16 shrink-0">Status</span>
@@ -4508,8 +4514,7 @@ function AnalyticsView() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
             <Icon name="TrendingUp" size={14} className="text-slate-500"/>
-            <span className="text-[13px] font-semibold text-slate-900">시간대별 처리량</span>
-            <span className="text-[10.5px] text-slate-400 ml-0.5">평균</span>
+            <span className="text-[13px] font-semibold text-slate-900">시간대별 평균 처리량</span>
             <span className="text-[11px] text-slate-400">오늘 기준</span>
             <div className="ml-auto flex items-center gap-3 text-[10.5px]">
               <button onClick={()=>setShowCompare(v=>!v)}
@@ -4529,8 +4534,7 @@ function AnalyticsView() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
             <Icon name="BarChart3" size={14} className="text-slate-500"/>
-            <span className="text-[13px] font-semibold text-slate-900">Fleet별 작업 현황</span>
-            <span className="text-[10.5px] text-slate-400 ml-0.5">평균</span>
+            <span className="text-[13px] font-semibold text-slate-900">Fleet별 평균 작업현황</span>
             <div className="ml-auto flex items-center gap-2">
               {stackLegend.map(l=><span key={l.label} className="flex items-center gap-1 text-[10px] text-slate-500"><span className="w-2 h-2 rounded-sm inline-block" style={{background:l.color}}/>{l.label}</span>)}
             </div>
@@ -4756,34 +4760,18 @@ function AnalyticsView() {
               const srColor = successRate>=95?"#10b981":successRate>=85?"#d97706":"#e11d48";
               return(
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md grid place-items-center text-white shrink-0" style={{background:fm.color}}>
-                        <Icon name={r.fleet==="arm"?"Cog":"Bot"} size={13}/>
-                      </div>
-                      <span className="font-semibold text-slate-900 tnum">{r.id}</span>
-                    </div>
-                  </td>
-                  <td className="py-3">
-                    <span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:fm.color+"15",color:fm.color}}>
-                      {fm.name}
-                    </span>
-                  </td>
+                  <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
+                  <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
                   <td className="py-3 text-right">
                     <span className="text-[12.5px] font-semibold text-slate-900 tnum">{throughput}</span>
                     <span className="text-[10.5px] text-slate-400 ml-0.5">건</span>
                   </td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{width:successRate+"%",background:srColor}}/>
-                      </div>
-                      <span className="tnum text-[11.5px] font-semibold w-9 text-right" style={{color:srColor}}>{successRate}%</span>
-                    </div>
+                  <td className="py-3 text-right">
+                    <span className="tnum text-[11.5px] font-semibold" style={{color:srColor}}>{successRate}%</span>
                   </td>
                   <td className="py-3 text-right">
                     {errors>0
-                      ? <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-rose-600 tnum"><Icon name="AlertTriangle" size={10}/>{errors}건</span>
+                      ? <span className="text-[11.5px] font-semibold text-rose-600 tnum">{errors}건</span>
                       : <span className="text-[11.5px] text-slate-300 tnum">0건</span>}
                   </td>
                   <td className="py-3 pr-4 text-right">
@@ -9124,6 +9112,20 @@ function LogsView({ initCat3, onMounted }) {
 /* ══════════════════════════════════════════
    PERMISSIONS VIEW
 ══════════════════════════════════════════ */
+const PARTNER_COMPANIES = ["YJ로보틱스","나비라","에스디테크","DS시스템","대우산업"];
+const initPartnerUsers = [
+  {id:"yj.admin",   name:"YJ관리자",  dept:"YJ로보틱스",   fleets:["amr","agv"],        role:"Admin",    joined:"2025-11-01"},
+  {id:"yj.eng1",    name:"YJ엔지니어",dept:"YJ로보틱스",   fleets:["amr"],              role:"Engineer", joined:"2025-11-15"},
+  {id:"navi.eng",   name:"나비라담당", dept:"나비라",       fleets:["agv","arm"],        role:"Engineer", joined:"2026-01-10"},
+  {id:"sd.admin",   name:"SD관리자",  dept:"에스디테크",   fleets:["arm","semi"],       role:"Admin",    joined:"2025-12-20"},
+  {id:"sd.eng",     name:"SD엔지니어",dept:"에스디테크",   fleets:["semi"],             role:"Engineer", joined:"2026-02-01"},
+  {id:"ds.eng",     name:"DS담당",    dept:"DS시스템",     fleets:["amr","agv","arm"],  role:"Engineer", joined:"2026-03-05"},
+];
+const initPartnerPending = [
+  {id:"daewoo.eng1",name:"대우엔지1", dept:"대우산업",     fleets:["amr"],              role:"Engineer", requestedAt:"2026-06-15 09:30"},
+  {id:"yj.eng2",    name:"YJ엔지2",  dept:"YJ로보틱스",   fleets:["agv","semi"],       role:"Engineer", requestedAt:"2026-06-17 14:20"},
+];
+
 const ROLES = ["Engineer","Admin","Master"];
 const ROLE_COLOR = {
   Engineer:"bg-slate-100 text-slate-700",
@@ -9154,10 +9156,11 @@ const initPending = [
   {id:"new.user3", name:"신규3", dept:"Digital Twin Center", fleets:["amr","agv","arm","semi"], role:"Engineer", requestedAt:"2026-05-14 10:05"},
 ];
 
-function PermissionsView() {
+function PermissionsView({ mode="employee" }) {
+  const isPartner = mode==="partner";
   const [tab,setTab]=useState("list");
-  const [users,setUsers]=useState(initUsers);
-  const [pending,setPending]=useState(initPending);
+  const [users,setUsers]=useState(isPartner?initPartnerUsers:initUsers);
+  const [pending,setPending]=useState(isPartner?initPartnerPending:initPending);
   const [fleetF,setFleetF]=useState(new Set());
   const [roleF,setRoleF]=useState(new Set());
   const [deptF,setDeptF]=useState(new Set());
@@ -9212,8 +9215,8 @@ function PermissionsView() {
       {/* Header */}
       <div className="flex items-end justify-between mb-5">
         <div>
-          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">권한 관리</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet 별 사용자 접근 권한을 관리합니다. Admin 이상 권한 소유자만 수정 가능합니다.</p>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">{isPartner?"권한 관리(협력사)":"권한 관리(임직원)"}</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">{isPartner?"협력사 사용자 접근 권한을 관리합니다.":"Fleet 별 사용자 접근 권한을 관리합니다."} Admin 이상 권한 소유자만 수정 가능합니다.</p>
         </div>
       </div>
 
@@ -9244,10 +9247,10 @@ function PermissionsView() {
               </div>
               {/* 부서 */}
               <MultiSelectDropdown
-                label="부서"
+                label={isPartner?"업체":"부서"}
                 value={deptF}
                 onChange={v=>{setDeptF(v);resetPage();}}
-                options={DEPTS.map(d=>({id:d,label:d}))}
+                options={(isPartner?PARTNER_COMPANIES:DEPTS).map(d=>({id:d,label:d}))}
               />
               {/* Fleet */}
               <MultiSelectDropdown
@@ -9417,7 +9420,7 @@ function PermissionsView() {
                 <div className="text-[11px] font-medium text-slate-500 mb-1.5">부서</div>
                 <div className="relative">
                   <select value={editUser.dept} onChange={e=>setEditUser({...editUser,dept:e.target.value})} className="h-9 pl-3 pr-8 w-full rounded-md border border-slate-200 bg-white text-[12.5px] outline-none focus:border-blue-400 appearance-none">
-                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                    {(isPartner?PARTNER_COMPANIES:DEPTS).map(d=><option key={d} value={d}>{d}</option>)}
                   </select>
                   <Icon name="ChevronDown" size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                 </div>
@@ -9585,6 +9588,9 @@ function App() {
           <div style={{display:active==="basis-infra"?"contents":"none"}}><BasisEmptyView label="인프라 관리" icon="Server"/></div>
           <div style={{display:active==="basis-alarm"?"contents":"none"}}><AlarmMgmtView/></div>
           <div style={{display:active==="permissions"?"contents":"none"}}><PermissionsView/></div>
+          <div style={{display:active==="permissions-approval"?"contents":"none"}}><PermissionsView tab="approval"/></div>
+          <div style={{display:active==="permissions-partner"?"contents":"none"}}><PermissionsView mode="partner"/></div>
+          <div style={{display:active==="permissions-partner-approval"?"contents":"none"}}><BasisEmptyView label="승인/거절 이력 (협력사)" icon="ClipboardList"/></div>
           <div style={{display:active==="map-editor"?"contents":"none"}}><MapEditorView/></div>
         </main>
       </div>
