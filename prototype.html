@@ -2961,23 +2961,6 @@ function MonitoringHome({ onNavigate }) {
                   );
                   return (
                     <div className="space-y-2.5">
-                      {/* 헤더 */}
-                      <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-2.5">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-6 h-6 rounded bg-blue-600 grid place-items-center shrink-0"><Icon name="MapPin" size={12} className="text-white"/></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[13px] font-semibold text-blue-900">{node.label}</div>
-                            <div className="text-[10px] text-blue-500 tnum">{node.id}</div>
-                          </div>
-                          <button onClick={()=>setSelectedNodeId(null)} className="w-6 h-6 grid place-items-center rounded hover:bg-blue-100 text-blue-400"><Icon name="X" size={11}/></button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-[11px]">
-                          <div><div className="text-[10px] text-blue-400">X</div><div className="font-semibold text-blue-900 tnum">{node.x}</div></div>
-                          <div><div className="text-[10px] text-blue-400">Y</div><div className="font-semibold text-blue-900 tnum">{node.y}</div></div>
-                          <div><div className="text-[10px] text-blue-400">θ (deg)</div><div className="font-semibold text-blue-900 tnum">{np.theta}</div></div>
-                        </div>
-                      </div>
-
                       {/* 노드 유형 + 특성 {"—"} 편집 모드 외 호버 시 tooltip */}
                       <div title={!editMode?"지도 편집에서 수정할 수 있어요":undefined}>
                       {/* 노드 유형 */}
@@ -7888,6 +7871,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
   const [reqTplDropOpen,setReqTplDropOpen]=useState(false);
   const [now,setNow]=useState(()=>{const d=new Date();return d.getHours()*60+d.getMinutes();});
   const [hlRcp,setHlRcp]=useState(initialFocusRecipeId||null);
+  const [openExpanded,setOpenExpanded]=useState(null); // 아코디언 열린 key
   const [addOpen,setAddOpen]=useState(false);
   const [fleetF,setFleetF]=useState(new Set());
   const [libQ,setLibQ]=useState("");
@@ -8390,24 +8374,26 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
 
             {/* ── 작업 요청 현황 탭 ── */}
             {libTab==="requests"&&(()=>{
-              // 오늘 간트 차트에 등록된 작업을 템플릿별로 집계
               const groups=[]; const byKey={};
               orders.forEach(o=>{
                 const r=o.recipeId?recipes.find(x=>x.id===o.recipeId):null;
                 const key=r?r.id:"__direct__";
                 if(!byKey[key]){
-                  byKey[key]={key, recipe:r, name:r?r.name:"직접 등록 작업",
+                  byKey[key]={key,recipe:r,name:r?r.name:"직접 등록 작업",
                     fleet:r?r.fleet:(o.fleet||"amr"),
-                    color:r?fleetMeta(r.fleet).color:(o.fleetColor||"#64748b"), count:0};
+                    color:r?fleetMeta(r.fleet).color:(o.fleetColor||"#64748b"),count:0,orders:[]};
                   groups.push(byKey[key]);
                 }
                 byKey[key].count++;
+                byKey[key].orders.push(o);
               });
               groups.sort((a,b)=>b.count-a.count);
+              const ST_CHIP={done:"bg-slate-100 text-slate-500",running:"bg-blue-50 text-blue-600",queued:"bg-amber-50 text-amber-700",error:"bg-rose-50 text-rose-600",pending:"bg-purple-50 text-purple-700"};
+              const fmtT=m=>`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
               return(
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                   <div className="text-[10.5px] text-slate-400 leading-relaxed">
-                    오늘 간트 차트에 등록된 작업을 템플릿별로 집계합니다. 클릭하면 차트에서 해당 작업만 강조됩니다.
+                    오늘 간트에 등록된 작업을 템플릿별로 집계합니다. 카드 클릭 시 차트 강조, ▾ 클릭 시 상세 목록이 열립니다.
                   </div>
                   {groups.length===0&&(
                     <div className="py-8 text-center">
@@ -8418,40 +8404,60 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                   {groups.map(g=>{
                     const r=g.recipe;
                     const isHL=hlRcp===g.key;
+                    const isOpen=openExpanded===g.key;
                     const fm=fleetMeta(g.fleet);
                     const dur=r?recipeDuration(r):null;
                     return(
-                      <div key={g.key} onClick={()=>setHlRcp(isHL?null:g.key)}
-                        className={"group rounded-lg border bg-white p-3 select-none cursor-pointer transition "+(isHL?"border-amber-400 ring-2 ring-amber-200":"border-slate-200 hover:border-slate-300 hover:shadow-sm")}>
-                        <div className="flex items-start gap-2">
-                          <div className="w-7 h-7 rounded-md grid place-items-center shrink-0" style={{background:g.color+"18",color:g.color}}>
-                            <Icon name={r?"Workflow":"Send"} size={13}/>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <div className="text-[12px] font-medium text-slate-900 truncate flex-1">{g.name}</div>
-                              <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-blue-600 text-white text-[10.5px] font-bold grid place-items-center tnum" title="오늘 간트 차트에 등록된 수">
-                                {g.count}
-                              </span>
+                      <div key={g.key} className={"rounded-lg border bg-white select-none transition "+(isHL?"border-amber-400 ring-2 ring-amber-200":"border-slate-200")}>
+                        {/* 카드 헤더 — 클릭 시 하이라이트 */}
+                        <div onClick={()=>setHlRcp(isHL?null:g.key)}
+                          className="p-3 cursor-pointer">
+                          <div className="flex items-start gap-2">
+                            <div className="w-7 h-7 rounded-md grid place-items-center shrink-0" style={{background:g.color+"18",color:g.color}}>
+                              <Icon name={r?"Workflow":"Send"} size={13}/>
                             </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{background:g.color+"15",color:g.color}}>{fm.name}</span>
-                              {r&&<span className="text-[10px] text-slate-400 tnum">{r.id}</span>}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <div className="text-[12px] font-medium text-slate-900 truncate flex-1">{g.name}</div>
+                                <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-blue-600 text-white text-[10.5px] font-bold grid place-items-center tnum">{g.count}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] font-semibold px-1.5 py-px rounded" style={{background:g.color+"15",color:g.color}}>{fm.name}</span>
+                                {r&&<span className="text-[10px] text-slate-400 tnum">{r.id}</span>}
+                              </div>
                             </div>
+                            {/* 아코디언 토글 버튼 */}
+                            <button onClick={e=>{e.stopPropagation();setOpenExpanded(isOpen?null:g.key);}}
+                              className="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 shrink-0 mt-0.5 transition">
+                              <Icon name={isOpen?"ChevronUp":"ChevronDown"} size={13}/>
+                            </button>
                           </div>
+                          {r&&(
+                            <div className="flex items-center gap-1 mt-2.5 overflow-hidden">
+                              {r.steps.slice(0,6).map((s,si)=>{const a=actMeta(s.actionType);return(<React.Fragment key={si}><div className="w-5 h-5 rounded grid place-items-center shrink-0" style={{background:a.color+"18"}}><Icon name={a.icon} size={10} style={{color:a.color}}/></div>{si<Math.min(r.steps.length,6)-1&&<div className="w-1 h-px bg-slate-300 shrink-0"/>}</React.Fragment>);})}
+                              <span className="ml-auto text-[10.5px] text-slate-500 tnum">{dur}분</span>
+                            </div>
+                          )}
                         </div>
-                        {r&&(
-                          <div className="flex items-center gap-1 mt-2.5 overflow-hidden">
-                            {r.steps.slice(0,6).map((s,i)=>{const a=actMeta(s.actionType);return(<React.Fragment key={i}><div className="w-5 h-5 rounded grid place-items-center shrink-0" style={{background:a.color+"18"}}><Icon name={a.icon} size={10} style={{color:a.color}}/></div>{i<Math.min(r.steps.length,6)-1&&<div className="w-1 h-px bg-slate-300 shrink-0"/>}</React.Fragment>);})}
-                            <span className="ml-auto text-[10.5px] text-slate-500 tnum">{dur}분</span>
+                        {/* 아코디언 — 상세 목록 */}
+                        {isOpen&&(
+                          <div className="border-t border-slate-100 divide-y divide-slate-100">
+                            {g.orders.sort((a,b)=>a.start-b.start).map((o,oi)=>{
+                              const sc=SC[o.status]||SC.queued;
+                              const stLabel=o.statusLabel||(SC[o.status]?.label)||o.status;
+                              return(
+                                <div key={oi} className="px-3 py-2 flex items-center gap-2 hover:bg-slate-50/60">
+                                  <span className="text-[11px] tnum text-slate-400 w-10 shrink-0">{fmtT(o.start)}</span>
+                                  <span className="text-[11.5px] text-slate-700 tnum flex-1">{o.robotId}</span>
+                                  <span className={"text-[10px] px-1.5 py-0.5 rounded font-semibold shrink-0 "+ST_CHIP[o.status]}>{stLabel}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
                     );
                   })}
-                  {hlRcp&&(
-                    <button onClick={()=>setHlRcp(null)} className="w-full h-7 rounded-md border border-slate-200 text-[11px] text-slate-500 hover:bg-slate-50">강조 해제</button>
-                  )}
                 </div>
               );
             })()}
