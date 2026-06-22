@@ -4975,13 +4975,8 @@ function RobotMgmtView() {
               const node=mapNodes.find(n=>n.id===r.initNode);
               return(
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md grid place-items-center text-white shrink-0" style={{background:fm.color}}><Icon name={r.fleet==="arm"?"Cog":"Bot"} size={13}/></div>
-                      <span className="font-semibold text-slate-900 tnum">{r.id}</span>
-                    </div>
-                  </td>
-                  <td className="py-3"><span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:fm.color+"15",color:fm.color}}>{fm.name}</span></td>
+                  <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
+                  <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
                   <td className="py-3 tnum text-slate-600">{r.version}</td>
                   <td className="py-3"><MgmtToggle on={r.inUse} onClick={()=>setList(ls=>ls.map(x=>x.id===r.id?{...x,inUse:!x.inUse}:x))}/></td>
                   <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` \u00b7 ${node.label}`:""}</td>
