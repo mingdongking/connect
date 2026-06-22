@@ -3425,7 +3425,7 @@ function InfraStatusView() {
   const dCounts = Object.fromEntries(Object.keys(doorStatus).map(k=>[k, doors.filter(d=>d.status===k).length]));
 
   const [q,setQ]=useState("");
-  const [statusF,setStatusF]=useState("all");
+  const [statusF,setStatusF]=useState(new Set());
 
   const filteredChargers = chargers.filter(c=>{
     if(statusF!=="all"&&c.status!==statusF) return false;
@@ -3682,6 +3682,7 @@ function InfraStatusView() {
 ══════════════════════════════════════════ */
 function RobotStatusView() {
   const [fleetF,setFleetF]=useState(new Set());
+  const [fleetFilterOpen,setFleetFilterOpen]=useState(false);
   const [statusF,setStatusF]=useState("all");
   const [q,setQ]=useState("");
   const [sortBy,setSortBy]=useState("status");
