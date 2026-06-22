@@ -9608,12 +9608,11 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
               <th className="font-medium py-2.5">이름</th>
               <th className="font-medium py-2.5">부서</th>
               <th className="font-medium py-2.5 min-w-[180px]">Fleet 권한</th>
-              <th className="font-medium py-2.5">권한 등급</th>
               <th className="font-medium py-2.5">등록일</th>
               {canEdit&&<th className="font-medium py-2.5 text-right pr-4">액션</th>}
             </tr></thead>
             <tbody>
-              {paged.length===0&&<tr><td colSpan={7} className="px-4 py-12 text-center text-[12.5px] text-slate-400"><Icon name="SearchX" size={20} className="mx-auto mb-2 text-slate-300"/>검색 결과가 없습니다.</td></tr>}
+              {paged.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-[12.5px] text-slate-400"><Icon name="SearchX" size={20} className="mx-auto mb-2 text-slate-300"/>검색 결과가 없습니다.</td></tr>}
               {paged.map(u=>(
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50/60 group">
                   <td className="px-4 py-3">
@@ -9630,28 +9629,14 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                       {Object.entries(u.perms||{}).map(([fId,role])=>permBadge(fId,role))}
                     </div>
                   </td>
-                  <td className="py-3">
-                    {(()=>{const tr=topRole(u.perms);return tr?(
-                    <span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold "+ROLE_COLOR[tr]}>
-                      {tr==="Master"&&<Icon name="Crown" size={10}/>}
-                      {tr==="Admin"&&<Icon name="ShieldCheck" size={10}/>}
-                      {tr==="Engineer"&&<Icon name="Wrench" size={10}/>}
-                      {tr}
-                    </span>):<span className="text-slate-300 text-[11px]">—</span>;})()}
-                  </td>
+
                   <td className="py-3 tnum text-[11.5px] text-slate-500">{u.joined}</td>
                   {canEdit&&(
-                    <td className="py-3 pr-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
-                        {u.id!==CURRENT_USER.id&&<>
-                          <button onClick={()=>setEditUser({...u,perms:{...(u.perms||{})}})} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-[11px] font-medium text-slate-600 hover:text-blue-700 flex items-center gap-1">
-                            <Icon name="Pencil" size={11}/> 수정
-                          </button>
-                          <button onClick={()=>handleDelete(u.id)} className="h-7 px-2 rounded border border-rose-200 bg-white hover:bg-rose-50 text-[11px] font-medium text-rose-500 hover:text-rose-700 flex items-center gap-1">
-                            <Icon name="Trash2" size={11}/> 삭제
-                          </button>
-                        </>}
-                      </div>
+                    <td className="py-3 pr-4 text-right whitespace-nowrap">
+                      {u.id!==CURRENT_USER.id&&<>
+                        <button onClick={()=>setEditUser({...u,perms:{...(u.perms||{})}})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="수정"><Icon name="Pencil" size={13}/></button>
+                        <button onClick={()=>handleDelete(u.id)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
+                      </>}
                     </td>
                   )}
                 </tr>
