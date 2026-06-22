@@ -472,6 +472,7 @@ function Sidebar({ active, onChange }) {
                 onClick={()=>{ onChange(n.id); if(hasChildren) toggleExpand(n.id); }}
                 className={"w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium transition-colors mb-0.5 "+
                   (isOn||childActive?"bg-blue-50 text-blue-700":"text-slate-700 hover:bg-slate-100")}>
+                <Icon name={n.icon} size={16} strokeWidth={(isOn||childActive)?2:1.75} className={(isOn||childActive)?"text-blue-600":"text-slate-500"}/>
                 <span>{n.label}</span>
                 {hasChildren ? (
                   <Icon name={isExpanded?"ChevronDown":"ChevronRight"} size={13} className="ml-auto text-slate-400"/>
@@ -488,8 +489,8 @@ function Sidebar({ active, onChange }) {
                       <button key={c.id} onClick={()=>onChange(c.id)}
                         className={"w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-colors mb-0.5 "+
                           (cOn?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-100")}>
+                        <Icon name={c.icon} size={14} strokeWidth={cOn?2:1.75} className={cOn?"text-blue-500":"text-slate-400"}/>
                         <span>{c.label}</span>
-                        {cOn && <span className="ml-auto w-1 h-3.5 rounded-full bg-blue-600"/>}
                       </button>
                     );
                   })}
@@ -4920,299 +4921,12 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
   const seqPart=existingCarts.filter(c=>c.category===category).length+1;
   const previewPart=cat.partBase+seqPart;
 
-  const submit=()=>{
-    const useNow=inUse==="true";
-    onAdd({
-      id:previewId, teamDiv:process+" "+floor+"층 분임조", partName:previewPart,
-      size, floor, process, category, fleet:fleetSel,
-      inUse:useNow, visible:true,
-      createdAt:nowStamp(), activatedAt:useNow?nowStamp():"-", initNode,
-    });
-  };
-
-  return(
-    <MgmtModal title="카트 등록" icon="ShoppingCart" onClose={onClose}
-      footer={<>
-        <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
-        <button onClick={submit} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">등록</button>
-      </>}>
-      <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 flex items-center gap-2">
-        <Icon name="Tag" size={13} className="text-blue-500"/>
-        <span className="text-[12px] text-slate-500">생성될 ID</span>
-        <span className="text-[12.5px] font-bold text-slate-900 tnum ml-auto">{previewId}</span>
-        <span className="text-[11px] text-slate-400">· {previewPart} · {fleetSel}</span>
-      </div>
-      <MgmtField label="카트 Size">
-        <select value={size} onChange={e=>setSize(e.target.value)} className={mgmtSelCls}>
-          {CART_SIZE_OPTS.map(s=><option key={s.id} value={s.id}>{s.label} ({s.id})</option>)}
-        </select>
-      </MgmtField>
-      <div className="grid grid-cols-2 gap-3">
-        <MgmtField label="층 정보">
-          <select value={floor} onChange={e=>setFloor(e.target.value)} className={mgmtSelCls}>
-            {CART_FLOOR_OPTS.map(f=><option key={f} value={f}>{f}층</option>)}
-          </select>
-        </MgmtField>
-        <MgmtField label="공정 정보">
-          <select value={process} onChange={e=>setProcess(e.target.value)} className={mgmtSelCls}>
-            {CART_PROCESS_OPTS.map(p=><option key={p} value={p}>{p}</option>)}
-          </select>
-        </MgmtField>
-      </div>
-      <MgmtField label="부품 카테고리">
-        <select value={category} onChange={e=>{const v=e.target.value;setCategory(v);setFleetSel(CART_CATEGORY_OPTS.find(x=>x.id===v).fleet);}} className={mgmtSelCls}>
-          {CART_CATEGORY_OPTS.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
-      </MgmtField>
-      <MgmtField label="Fleet">
-        <select value={fleetSel} onChange={e=>setFleetSel(e.target.value)} className={mgmtSelCls}>
-          <option value="Tool">Tool</option>
-          <option value="Parts">Parts</option>
-        </select>
-      </MgmtField>
-      <div className="grid grid-cols-2 gap-3">
-        <MgmtField label="사용여부">
-          <select value={inUse} onChange={e=>setInUse(e.target.value)} className={mgmtSelCls}>
-            <option value="true">사용</option>
-            <option value="false">미사용</option>
-          </select>
-        </MgmtField>
-        <MgmtField label="초기 노드 설정">
-          <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
-            {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} · {n.label}</option>)}
-          </select>
-        </MgmtField>
-      </div>
-    </MgmtModal>
-  );
-}
-
-/* ══════════ 기준정보: 로봇 관리 ══════════ */
-const initRobotRegistry = robots.map((r,i)=>({
-  id:r.id, fleet:r.fleet, version:"v"+(2+(i%2))+"."+(i%5), inUse:true, initNode:mapNodes[i%mapNodes.length].id,
-}));
-
-function RobotMgmtView() {
-  const [list,setList]=useState(initRobotRegistry);
-  const [q,setQ]=useState("");
-  const [addOpen,setAddOpen]=useState(false);
-  const [editTarget,setEditTarget]=useState(null);
-  const [copyTarget,setCopyTarget]=useState(null);
-  const [delTarget,setDelTarget]=useState(null);
-  const [toast,setToast]=useState(null);
-  const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
-  const filtered=list.filter(r=>!q||r.id.toLowerCase().includes(q.toLowerCase()));
-
-  return(
-    <div className="h-full overflow-auto bg-slate-50 p-5">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">로봇 관리</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">로봇 등록·편집·삭제 및 사용 여부를 관리합니다.</p>
-        </div>
-        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
-          <Icon name="Plus" size={14}/> 등록
-        </button>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
-          <Icon name="Bot" size={14} className="text-slate-500"/>
-          <span className="text-[13px] font-semibold text-slate-900">로봇 목록</span>
-          <span className="text-[11px] text-slate-400 tnum">{filtered.length}대</span>
-          <div className="ml-auto relative">
-            <Icon name="Search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
-            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="로봇 ID 검색" className="h-8 pl-7 pr-2 w-40 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-blue-400"/>
-          </div>
-        </div>
-        <table className="w-full text-[12.5px]">
-          <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">로봇 ID</th>
-            <th className="font-medium py-2.5">Fleet 종류</th>
-            <th className="font-medium py-2.5">버전</th>
-            <th className="font-medium py-2.5">사용여부</th>
-            <th className="font-medium py-2.5">초기 노드</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
-          </tr></thead>
-          <tbody>
-            {filtered.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">표시할 로봇이 없습니다.</td></tr>}
-            {filtered.map(r=>{
-              const fm=fleetMeta(r.fleet);
-              const node=mapNodes.find(n=>n.id===r.initNode);
-              return(
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
-                  <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
-                  <td className="py-3 tnum text-slate-600">{r.version}</td>
-                  <td className="py-3"><MgmtToggle on={r.inUse} onClick={()=>setList(ls=>ls.map(x=>x.id===r.id?{...x,inUse:!x.inUse}:x))}/></td>
-                  <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` · ${node.label}`:""}</td>
-                  <td className="py-3 pr-4 text-right">
-                    <button onClick={()=>setEditTarget({...r})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
-                    <button onClick={()=>setDelTarget(r)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {addOpen&&<RobotFormModal title="로봇 등록" onClose={()=>setAddOpen(false)} existing={list}
-        onSave={(r)=>{setList(ls=>[...ls,r]);setAddOpen(false);showToast(r.id+" 등록됨");}}/>}
-      {editTarget&&<RobotFormModal title={"로봇 편집 — "+editTarget.id} init={editTarget} lockId onClose={()=>setEditTarget(null)} existing={list}
-        onSave={(r)=>{setList(ls=>ls.map(x=>x.id===r.id?r:x));setEditTarget(null);showToast(r.id+" 수정됨");}}/>}
-      {delTarget&&<MgmtDeleteModal label={delTarget.id} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.id!==delTarget.id));showToast(delTarget.id+" 삭제됨");setDelTarget(null);}}/>}
-      {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
-    </div>
-  );
-}
-
-function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
-  const [id,setId]=useState(init?init.id:"");
-  const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
-  const fleetVerOpts=(fId)=>{
-    const nm=fleets.find(f=>f.id===fId)?.name;
-    const vs=[...new Set(initFleetRegistry.filter(fr=>fr.name===nm).map(fr=>fr.version))];
-    return vs.length?vs:[...new Set(initFleetRegistry.map(fr=>fr.version))];
-  };
-  const [version,setVersion]=useState(init?init.version:fleetVerOpts(fleets[0].id)[0]);
-  const [initNode,setInitNode]=useState(init?init.initNode:mapNodes[0].id);
-  const verList=(()=>{const vs=fleetVerOpts(fleet);return (init&&!vs.includes(init.version))?[init.version,...vs]:vs;})();
-  const dup=!lockId&&existing.some(r=>r.id===id);
-  const valid=id.trim().length>0&&!dup;
-  return(
-    <MgmtModal title={title} icon="Bot" onClose={onClose}
-      footer={<>
-        <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
-        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,initNode,inUse:init?init.inUse:true})} disabled={!valid}
-          className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
-      </>}>
-      <MgmtField label="로봇 ID">
-        <input value={id} onChange={e=>setId(e.target.value)} disabled={lockId} placeholder="예: Tool007" className={mgmtInpCls+(lockId?" bg-slate-50 text-slate-400":"")}/>
-        {dup&&<div className="text-[11px] text-rose-500 mt-1">이미 존재하는 ID입니다.</div>}
-      </MgmtField>
-      <MgmtField label="Fleet 종류">
-        <select value={fleet} onChange={e=>{const v=e.target.value;setFleet(v);setVersion(fleetVerOpts(v)[0]);}} className={mgmtSelCls}>
-          {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
-        </select>
-      </MgmtField>
-      <MgmtField label="버전 (Fleet 관리에 등록된 버전)">
-        <select value={version} onChange={e=>setVersion(e.target.value)} className={mgmtSelCls}>
-          {verList.map(v=><option key={v} value={v}>{v}</option>)}
-        </select>
-      </MgmtField>
-      <MgmtField label="초기 노드 설정">
-        <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
-          {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} · {n.label}</option>)}
-        </select>
-      </MgmtField>
-    </MgmtModal>
-  );
-}
-
-/* ══════════ 기준정보: Fleet 관리 ══════════ */
-const FLEET_MAKERS=["YJ","IT","SD","DS","SEC"];
-const initFleetRegistry=[
-  {name:"Delivery-Tool",  version:"v2.4", maker:"YJ",  w:900,  d:650, h:1200, mass:400, maxSpeed:1.5, linAccel:0.75, angSpeed:0.6, angAccel:2.0, turnRadius:0.6, vicinity:1.2, reversible:false, maxDelay:30, voltage:54, capacity:52, chargingCurrent:25, rechargeThreshold:40, rechargeSoc:70, capLoop:true,  capDelivery:true,  capClean:false, parkingResv:true},
-  {name:"Ride",           version:"v1.8", maker:"IT",  w:1200, d:800, h:300,  mass:650, maxSpeed:2.0, linAccel:0.9,  angSpeed:0.5, angAccel:1.5, turnRadius:1.2, vicinity:1.6, reversible:true,  maxDelay:45, voltage:48, capacity:80, chargingCurrent:30, rechargeThreshold:35, rechargeSoc:80, capLoop:true,  capDelivery:true,  capClean:false, parkingResv:true},
-  {name:"Delivery-Parts", version:"v3.1", maker:"SD",  w:700,  d:500, h:1500, mass:300, maxSpeed:1.2, linAccel:0.6,  angSpeed:0.7, angAccel:2.2, turnRadius:0.5, vicinity:1.0, reversible:false, maxDelay:30, voltage:54, capacity:40, chargingCurrent:20, rechargeThreshold:40, rechargeSoc:70, capLoop:false, capDelivery:true,  capClean:false, parkingResv:true},
-  {name:"SEMI-x",         version:"v2.0", maker:"DS",  w:850,  d:600, h:1100, mass:420, maxSpeed:1.0, linAccel:0.5,  angSpeed:0.6, angAccel:1.8, turnRadius:0.7, vicinity:1.2, reversible:false, maxDelay:60, voltage:54, capacity:52, chargingCurrent:25, rechargeThreshold:40, rechargeSoc:70, capLoop:true,  capDelivery:true,  capClean:false, parkingResv:false},
-  {name:"PM Bot",         version:"v1.2", maker:"SEC", w:600,  d:450, h:900,  mass:180, maxSpeed:0.8, linAccel:0.4,  angSpeed:0.8, angAccel:2.5, turnRadius:0.4, vicinity:0.9, reversible:true,  maxDelay:20, voltage:24, capacity:30, chargingCurrent:15, rechargeThreshold:45, rechargeSoc:75, capLoop:true,  capDelivery:false, capClean:true,  parkingResv:false},
-];
-
-
-function FleetMgmtView() {
-  const [list,setList]=useState(initFleetRegistry);
-  const [addOpen,setAddOpen]=useState(false);
-  const [editTarget,setEditTarget]=useState(null);
-  const [copyTarget,setCopyTarget]=useState(null);
-  const [delTarget,setDelTarget]=useState(null);
-  const [actTarget,setActTarget]=useState(null); // Action Type 관리 대상 Fleet
-  const [actVer,setActVer]=useState(0); // actionTypes 변경 시 리렌더용
-  const [toast,setToast]=useState(null);
-  const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
-  const fleetIdOf=name=>fleets.find(f=>f.name===name)?.id;
-
-  return(
-    <div className="h-full overflow-auto bg-slate-50 p-5">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">Fleet 관리</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet 사양 등록·편집·삭제를 관리합니다.</p>
-        </div>
-        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
-          <Icon name="Plus" size={14}/> 등록
-        </button>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
-          <Icon name="Boxes" size={14} className="text-slate-500"/>
-          <span className="text-[13px] font-semibold text-slate-900">Fleet 목록</span>
-          <span className="text-[11px] text-slate-400 tnum">{list.length}개</span>
-        </div>
-        <table className="w-full text-[12.5px]">
-          <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">Fleet 명</th>
-            <th className="font-medium py-2.5">버전</th>
-            <th className="font-medium py-2.5">HW 사이즈 (가로×세로×높이)</th>
-            <th className="font-medium py-2.5 text-right">최대속도</th>
-            <th className="font-medium py-2.5 text-right">회전반경</th>
-            <th className="font-medium py-2.5 pl-5">제조사</th>
-            <th className="font-medium py-2.5 pl-5">Action Type</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
-          </tr></thead>
-          <tbody>
-            {list.length===0&&<tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
-            {list.map(f=>(
-              <tr key={f.name+"@"+f.version} className="border-b border-slate-100 hover:bg-slate-50/60">
-                <td className="px-4 py-3"><span className="font-semibold text-slate-900">{f.name}</span></td>
-                <td className="py-3 tnum text-slate-600">{f.version}</td>
-                <td className="py-3 tnum text-slate-600">{f.w} × {f.d} × {f.h} <span className="text-[10.5px] text-slate-400">mm</span></td>
-                <td className="py-3 tnum text-slate-600 text-right">{f.maxSpeed} <span className="text-[10.5px] text-slate-400">m/s</span></td>
-                <td className="py-3 tnum text-slate-600 text-right">{f.turnRadius} <span className="text-[10.5px] text-slate-400">m</span></td>
-                <td className="py-3 pl-5 text-slate-600">{f.maker}</td>
-                <td className="py-3 pl-5">
-                  {(()=>{
-                    const fid=fleetIdOf(f.name);
-                    if(!fid) return <span className="text-[11px] text-slate-300">—</span>;
-                    const acts=actionTypes.filter(a=>a.fleets.includes(fid));
-                    return(
-                      <button onClick={()=>setActTarget(f)} title="클릭 → Action Type 관리 (Fleet 공통)"
-                        className="text-[11.5px] text-slate-700 hover:text-blue-600 text-left transition">
-                        {acts.length===0
-                          ? <span className="text-slate-400 underline decoration-dotted">액션 추가</span>
-                          : acts.map(a=>a.id).join(", ")+(acts.length>3?" 외 "+(acts.length-3)+"개":"")}
-                      </button>
-                    );
-                  })()}
-                </td>
-                <td className="py-3 pr-4 text-right">
-                  <button onClick={()=>setCopyTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-emerald-600 inline-grid place-items-center" title="복사 (다른 버전으로 추가)"><Icon name="Copy" size={13}/></button>
-                  <button onClick={()=>setEditTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
-                  <button onClick={()=>setDelTarget(f)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {addOpen&&<FleetFormModal title="Fleet 등록" onClose={()=>setAddOpen(false)} existing={list}
-        onSave={(f)=>{setList(ls=>[...ls,f]);setAddOpen(false);showToast(f.name+" 등록됨");}}/>}
-      {copyTarget&&<FleetFormModal title={"Fleet 복사 — "+copyTarget.name} init={{...copyTarget,version:""}} onClose={()=>setCopyTarget(null)} existing={list}
-        onSave={(f)=>{setList(ls=>[...ls,f]);setCopyTarget(null);showToast(f.name+" "+f.version+" 버전으로 복사됨");}}/> }
-{editTarget&&<FleetFormModal title={"Fleet 편집 — "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
-        onSave={(f)=>{setList(ls=>ls.map(x=>(x.name===editTarget.name&&x.version===editTarget.version)?f:x));setEditTarget(null);showToast(f.name+" "+f.version+" 수정됨");}}/>}
-      {delTarget&&<MgmtDeleteModal label={delTarget.name+" "+delTarget.version} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>!(x.name===delTarget.name&&x.version===delTarget.version)));showToast(delTarget.name+" "+delTarget.version+" 삭제됨");setDelTarget(null);}}/>}
-      {actTarget&&<FleetActionModal fleetRow={actTarget} fleetId={fleetIdOf(actTarget.name)} onClose={()=>setActTarget(null)} bump={()=>setActVer(v=>v+1)} showToast={showToast}/>}
-      {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
-    </div>
-  );
 }
 
 function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
+  const [confirmOverwrite,setConfirmOverwrite]=useState(null);
   const [name,setName]=useState(init?init.name:"");
+  const [newNameInput,setNewNameInput]=useState("");
   const [version,setVersion]=useState(init?init.version:"v1.0");
   const [maker,setMaker]=useState(init?init.maker:"");
   const [w,setW]=useState(init?String(init.w):"");
@@ -5237,33 +4951,50 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
   const [capClean,setCapClean]=useState(!!init?.capClean);
   const [parkingResv,setParkingResv]=useState(init?!!init.parkingResv:true);
 
-  const dup=!lockName&&existing.some(f=>f.name===name.trim()&&f.version===version.trim());
-  const valid=name.trim()&&!dup&&w&&dd&&h&&maxSpeed&&turnRadius;
+  const effectiveName=name==="__new__"?newNameInput.trim():name.trim();
+  const dup=!lockName&&existing.some(f=>f.name===effectiveName&&f.version===version.trim());
   const num=v=>v.replace(/[^0-9.]/g,"");
   const intOnly=v=>v.replace(/[^0-9]/g,"");
   const secHdr="flex items-center gap-2 pt-1";
   const secTxt="text-[11px] font-bold text-blue-700";
+  const valid=effectiveName&&w&&dd&&h&&maxSpeed&&turnRadius;
 
+  const buildPayload=()=>({
+    name:effectiveName, version:version.trim(), maker,
+    w:Number(w), d:Number(dd), h:Number(h), mass:Number(mass||0),
+    maxSpeed:Number(maxSpeed), linAccel:Number(linAccel||0), angSpeed:Number(angSpeed||0), angAccel:Number(angAccel||0),
+    turnRadius:Number(turnRadius), vicinity:Number(vicinity||0), reversible, maxDelay:Number(maxDelay||0),
+    voltage:Number(voltage||0), capacity:Number(capacity||0), chargingCurrent:Number(chargingCurrent||0),
+    rechargeThreshold:Number(rechargeThreshold||0), rechargeSoc:Number(rechargeSoc||0),
+    capLoop, capDelivery, capClean, parkingResv,
+  });
   const submit=()=>{
+    if(!version.trim()){alert("버전명을 기입해주세요.");return;}
     if(!valid) return;
-    onSave({
-      name:name.trim(), version:version.trim(), maker,
-      w:Number(w), d:Number(dd), h:Number(h), mass:Number(mass||0),
-      maxSpeed:Number(maxSpeed), linAccel:Number(linAccel||0), angSpeed:Number(angSpeed||0), angAccel:Number(angAccel||0),
-      turnRadius:Number(turnRadius), vicinity:Number(vicinity||0), reversible, maxDelay:Number(maxDelay||0),
-      voltage:Number(voltage||0), capacity:Number(capacity||0), chargingCurrent:Number(chargingCurrent||0),
-      rechargeThreshold:Number(rechargeThreshold||0), rechargeSoc:Number(rechargeSoc||0),
-      capLoop, capDelivery, capClean, parkingResv,
-    });
+    if(dup){setConfirmOverwrite(buildPayload());return;}
+    onSave(buildPayload());
   };
 
   return(
     <MgmtModal title={title} icon="Boxes" width={560} onClose={onClose}
+      extra={confirmOverwrite&&(
+        <div className="absolute inset-0 z-10 rounded-xl bg-black/30 flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-2xl p-5 w-72 space-y-3 mx-4">
+            <div className="text-[14px] font-semibold text-slate-900">동일 버전이 있습니다</div>
+            <div className="text-[12.5px] text-slate-600 leading-relaxed">{confirmOverwrite.name} {confirmOverwrite.version} 버전이 이미 존재합니다. 덮어쓰기 할까요?</div>
+            <div className="flex gap-2">
+              <button onClick={()=>setConfirmOverwrite(null)} className="flex-1 h-9 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">아니오</button>
+              <button onClick={()=>{onSave(confirmOverwrite);setConfirmOverwrite(null);}} className="flex-1 h-9 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">네</button>
+            </div>
+          </div>
+        </div>
+      )}
       footer={<>
         <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
         <button onClick={submit} disabled={!valid}
           className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
       </>}>
+
 
       <div className={secHdr}><span className={secTxt}>기본 정보</span><div className="flex-1 h-px bg-slate-100"/></div>
       <div className="grid grid-cols-2 gap-3">
@@ -7883,7 +7614,8 @@ function OrderTemplateView({ onNavigate }) {
                   <Sel val={form.cartId} onChange={v=>{
                     setF("cartId",v);
                     // Cart 선택 시 Pick 위치 자동 채움 (수동 변경 가능)
-                    const CART_PICK={"TC-001·CPT":"B002","TC-002·CTR":"B003","TC-003·CBT":"B006","TC-004·CLV":"B007","TC-005·CPS":"B011"};
+                    const cart=TOOL_CARTS.find(c=>c.id===v);
+                    const CART_PICK={"TC-001":"B002","TC-002":"B003","TC-003":"B006","TC-004":"B007","TC-005":"B011"};
                     if(v&&CART_PICK[v]) setF("pickNode",CART_PICK[v]);
                   }}
                     opts={TOOL_CARTS.map(c=>({id:c.id,label:`${c.id} · ${c.cat}`}))}
