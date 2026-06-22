@@ -4821,6 +4821,7 @@ function ToolCartView() {
   const [q,setQ]=useState("");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
+  const [copyTarget,setCopyTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
@@ -4998,6 +4999,7 @@ function RobotMgmtView() {
   const [q,setQ]=useState("");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
+  const [copyTarget,setCopyTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
@@ -5125,6 +5127,7 @@ function FleetMgmtView() {
   const [list,setList]=useState(initFleetRegistry);
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
+  const [copyTarget,setCopyTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
   const [actTarget,setActTarget]=useState(null); // Action Type 관리 대상 Fleet
   const [actVer,setActVer]=useState(0); // actionTypes 변경 시 리렌더용
@@ -5187,6 +5190,7 @@ function FleetMgmtView() {
                   })()}
                 </td>
                 <td className="py-3 pr-4 text-right">
+                  <button onClick={()=>setCopyTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-emerald-600 inline-grid place-items-center" title="복사 (다른 버전으로 추가)"><Icon name="Copy" size={13}/></button>
                   <button onClick={()=>setEditTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
                   <button onClick={()=>setDelTarget(f)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
                 </td>
@@ -5198,7 +5202,9 @@ function FleetMgmtView() {
 
       {addOpen&&<FleetFormModal title="Fleet 등록" onClose={()=>setAddOpen(false)} existing={list}
         onSave={(f)=>{setList(ls=>[...ls,f]);setAddOpen(false);showToast(f.name+" 등록됨");}}/>}
-      {editTarget&&<FleetFormModal title={"Fleet 편집 — "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
+      {copyTarget&&<FleetFormModal title={"Fleet 복사 — "+copyTarget.name} init={{...copyTarget,version:""}} onClose={()=>setCopyTarget(null)} existing={list}
+        onSave={(f)=>{setList(ls=>[...ls,f]);setCopyTarget(null);showToast(f.name+" "+f.version+" 버전으로 복사됨");}}/> }
+{editTarget&&<FleetFormModal title={"Fleet 편집 — "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
         onSave={(f)=>{setList(ls=>ls.map(x=>(x.name===editTarget.name&&x.version===editTarget.version)?f:x));setEditTarget(null);showToast(f.name+" "+f.version+" 수정됨");}}/>}
       {delTarget&&<MgmtDeleteModal label={delTarget.name+" "+delTarget.version} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>!(x.name===delTarget.name&&x.version===delTarget.version)));showToast(delTarget.name+" "+delTarget.version+" 삭제됨");setDelTarget(null);}}/>}
       {actTarget&&<FleetActionModal fleetRow={actTarget} fleetId={fleetIdOf(actTarget.name)} onClose={()=>setActTarget(null)} bump={()=>setActVer(v=>v+1)} showToast={showToast}/>}
@@ -5264,7 +5270,29 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
       <div className={secHdr}><span className={secTxt}>기본 정보</span><div className="flex-1 h-px bg-slate-100"/></div>
       <div className="grid grid-cols-2 gap-3">
         <MgmtField label="Fleet 명">
-          <input value={name} onChange={e=>setName(e.target.value)} disabled={lockName} placeholder="예: Delivery-Tool" className={mgmtInpCls+(lockName?" bg-slate-50 text-slate-400":"")}/>
+          {lockName
+            ? <input value={name} disabled className={mgmtInpCls+" bg-slate-50 text-slate-400"}/>
+            : <select value={name} onChange={e=>{
+                const v=e.target.value;
+                setName(v);
+                if(v&&v!=="__new__"){
+                  const ref=existing.find(f=>f.name===v);
+                  if(ref){
+                    setMaker(ref.maker);setW(String(ref.w));setDd(String(ref.d));setH(String(ref.h));setMass(String(ref.mass));
+                    setMaxSpeed(String(ref.maxSpeed));setLinAccel(String(ref.linAccel));setAngSpeed(String(ref.angSpeed));setAngAccel(String(ref.angAccel));
+                    setTurnRadius(String(ref.turnRadius));setVicinity(String(ref.vicinity));setReversible(!!ref.reversible);setMaxDelay(String(ref.maxDelay));
+                    setVoltage(String(ref.voltage));setCapacity(String(ref.capacity));setChargingCurrent(String(ref.chargingCurrent));
+                    setRechargeThreshold(String(ref.rechargeThreshold));setRechargeSoc(String(ref.rechargeSoc));
+                    setCapLoop(!!ref.capLoop);setCapDelivery(!!ref.capDelivery);setCapClean(!!ref.capClean);setParkingResv(!!ref.parkingResv);
+                  }
+                }
+              }} className={mgmtSelCls}>
+                <option value="">Fleet 선택 또는 새로 추가...</option>
+                {[...new Set(existing.map(f=>f.name))].map(n=><option key={n} value={n}>{n}</option>)}
+                <option value="__new__">＋ 새 Fleet 직접 입력</option>
+              </select>
+          }
+          {name==="__new__"&&<input value={""} onChange={e=>setName(e.target.value)} placeholder="새 Fleet 명 입력" className={mgmtInpCls+" mt-1.5"} autoFocus/>}
           {dup&&<div className="text-[11px] text-rose-500 mt-1">동일 Fleet명·버전이 이미 존재합니다.</div>}
         </MgmtField>
         <MgmtField label="버전">
@@ -5397,8 +5425,8 @@ function FleetActionModal({fleetRow, fleetId, onClose, bump, showToast}){
       footer={<button onClick={onClose} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">완료</button>}>
 
       <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-[11px] text-slate-500 leading-relaxed">
-        Action Type은 <b>Fleet 단위</b>로 관리되며 같은 Fleet의 <b>모든 버전에 공통</b> 적용됩니다.<br/>
-        버전별로는 HW 사양(사이즈·최대속도·회전반경)만 달라질 수 있습니다.
+        Action Type은 <b>Fleet 단위</b>로 관리되며 같은 Fleet명의 <b>모든 버전에 공통</b> 적용됩니다.<br/>
+        버전별로는 HW 사양(사이즈·최대속도·회전반경)만 달라질 수 있으며, 같은 Fleet에 다른 Action Type을 지정할 수 없습니다.
       </div>
 
       {/* 적용된 액션 목록 */}
@@ -5606,11 +5634,132 @@ const initAlarmRegistry=[
   {id:"GRIP_401", fleet:"arm",  source:"그리퍼 센서",   desc:"부품 그립 실패",                url:"https://wiki.connect.local/alarm/GRIP_401"},
 ];
 
+function InfraMgmtView(){
+  const [tab,setTab]=useState("charger");
+
+  const initChargers=[
+    {id:"CHG-001",location:"A동 충전존 #1",fleet:"amr",status:"active",voltage:"54V",current:"25A",waypoint:"B012"},
+    {id:"CHG-002",location:"A동 충전존 #2",fleet:"amr",status:"active",voltage:"54V",current:"25A",waypoint:"B013"},
+    {id:"CHG-003",location:"B동 충전존 #1",fleet:"agv",status:"active",voltage:"48V",current:"30A",waypoint:"B015"},
+    {id:"CHG-004",location:"B동 충전존 #2",fleet:"agv",status:"inactive",voltage:"48V",current:"30A",waypoint:"B016"},
+    {id:"CHG-005",location:"C동 충전존 #1",fleet:"arm",status:"active",voltage:"24V",current:"15A",waypoint:"B018"},
+  ];
+  const initDoors=[
+    {id:"DOOR-001",location:"A동 메인 입구",type:"자동슬라이딩",fleet:"amr",status:"active",connected:true,waypoint:"B003"},
+    {id:"DOOR-002",location:"A동↔B동 연결통로",type:"자동슬라이딩",fleet:"all",status:"active",connected:true,waypoint:"B007"},
+    {id:"DOOR-003",location:"B동 출입문",type:"방화셔터",fleet:"agv",status:"inactive",connected:false,waypoint:"B011"},
+    {id:"DOOR-004",location:"C동 출입문",type:"자동슬라이딩",fleet:"arm",status:"active",connected:true,waypoint:"B017"},
+  ];
+
+  const [chargers,setChargers]=useState(initChargers);
+  const [doors,setDoors]=useState(initDoors);
+  const [toast,setToast]=useState(null);
+  const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
+
+  const ST={active:{label:"활성",cls:"text-emerald-700"},inactive:{label:"비활성",cls:"text-slate-400"}};
+
+  return(
+    <div className="h-full overflow-auto bg-slate-50 p-5">
+      <div className="mb-4">
+        <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">인프라 관리</h1>
+        <p className="text-[12.5px] text-slate-500 mt-0.5">충전소·자동문 등 현장 인프라 장치를 관리합니다.</p>
+      </div>
+
+      {/* 탭 */}
+      <div className="flex gap-1 mb-4 border-b border-slate-200">
+        {[["charger","충전소 관리","BatteryCharging"],["door","자동문 관리","DoorOpen"]].map(([k,label,icon])=>(
+          <button key={k} onClick={()=>setTab(k)}
+            className={"h-9 px-4 flex items-center gap-1.5 text-[13px] font-medium border-b-2 -mb-px transition "+(tab===k?"border-blue-600 text-blue-700":"border-transparent text-slate-500 hover:text-slate-700")}>
+            <Icon name={icon} size={14}/>{label}
+          </button>
+        ))}
+      </div>
+
+      {/* 충전소 관리 */}
+      {tab==="charger"&&(
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-slate-900">충전소 목록</span>
+            <span className="text-[11px] text-slate-400 tnum">{chargers.length}개</span>
+          </div>
+          <table className="w-full text-[12.5px]">
+            <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
+              <th className="font-medium px-4 py-2.5">충전소 ID</th>
+              <th className="font-medium py-2.5">위치</th>
+              <th className="font-medium py-2.5">Fleet</th>
+              <th className="font-medium py-2.5">전압 / 전류</th>
+              <th className="font-medium py-2.5">Waypoint</th>
+              <th className="font-medium py-2.5">상태</th>
+            </tr></thead>
+            <tbody>
+              {chargers.map(c=>{
+                const st=ST[c.status]||ST.inactive;
+                const fm=fleetMeta(c.fleet);
+                return(
+                  <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                    <td className="px-4 py-3 font-semibold text-slate-900 tnum">{c.id}</td>
+                    <td className="py-3 text-slate-700">{c.location}</td>
+                    <td className="py-3 text-slate-700">{fm.name}</td>
+                    <td className="py-3 text-slate-600 tnum">{c.voltage} / {c.current}</td>
+                    <td className="py-3 text-slate-600 tnum">{c.waypoint}</td>
+                    <td className={"py-3 font-medium "+st.cls}>{st.label}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 자동문 관리 */}
+      {tab==="door"&&(
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-slate-900">자동문 목록</span>
+            <span className="text-[11px] text-slate-400 tnum">{doors.length}개</span>
+          </div>
+          <table className="w-full text-[12.5px]">
+            <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
+              <th className="font-medium px-4 py-2.5">자동문 ID</th>
+              <th className="font-medium py-2.5">위치</th>
+              <th className="font-medium py-2.5">유형</th>
+              <th className="font-medium py-2.5">허용 Fleet</th>
+              <th className="font-medium py-2.5">Waypoint</th>
+              <th className="font-medium py-2.5">연결</th>
+              <th className="font-medium py-2.5">상태</th>
+            </tr></thead>
+            <tbody>
+              {doors.map(d=>{
+                const st=ST[d.status]||ST.inactive;
+                const fm=d.fleet==="all"?"전체 Fleet":fleetMeta(d.fleet).name;
+                return(
+                  <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                    <td className="px-4 py-3 font-semibold text-slate-900 tnum">{d.id}</td>
+                    <td className="py-3 text-slate-700">{d.location}</td>
+                    <td className="py-3 text-slate-600">{d.type}</td>
+                    <td className="py-3 text-slate-700">{fm}</td>
+                    <td className="py-3 text-slate-600 tnum">{d.waypoint}</td>
+                    <td className={"py-3 font-medium "+(d.connected?"text-emerald-700":"text-slate-400")}>{d.connected?"연결됨":"미연결"}</td>
+                    <td className={"py-3 font-medium "+st.cls}>{st.label}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
+    </div>
+  );
+}
+
+
 function AlarmMgmtView() {
   const [list,setList]=useState(initAlarmRegistry);
   const [q,setQ]=useState("");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
+  const [copyTarget,setCopyTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
@@ -9565,7 +9714,7 @@ function App() {
           <div style={{display:active==="basis-robot"?"contents":"none"}}><RobotMgmtView/></div>
           <div style={{display:active==="basis-cart"?"contents":"none"}}><ToolCartView/></div>
           <div style={{display:active==="basis-map"?"contents":"none"}}><MapMgmtView/></div>
-          <div style={{display:active==="basis-infra"?"contents":"none"}}><BasisEmptyView label="인프라 관리" icon="Server"/></div>
+          <div style={{display:active==="basis-infra"?"contents":"none"}}><InfraMgmtView/></div>
           <div style={{display:active==="basis-alarm"?"contents":"none"}}><AlarmMgmtView/></div>
           <div style={{display:active==="permissions"?"contents":"none"}}><PermissionsView/></div>
           <div style={{display:active==="permissions-approval"?"contents":"none"}}><PermissionsView tab="approval"/></div>
