@@ -3634,10 +3634,12 @@ function InfraStatusView() {
                     <div className="h-full rounded-full" style={{width:(100-failPct)+"%",background:d.fail>0?"#10b981":"#10b981"}}/>
                   </div>
                   {d.fail>0&&(
-                    <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-rose-600 bg-rose-50 rounded-lg px-3 py-2">
+                    <button onClick={()=>setSelThings(selThings===t.key?null:t.key)}
+                      className={"mt-3 w-full flex items-center gap-1.5 text-[11.5px] rounded-lg px-3 py-2 transition "+(selThings===t.key?"bg-rose-100 text-rose-700 ring-1 ring-rose-300":"bg-rose-50 text-rose-600 hover:bg-rose-100")}>
                       <Icon name="AlertTriangle" size={12}/>
-                      <span className="font-medium">{d.fail}개 장치 오류 {"—"} 점검 필요</span>
-                    </div>
+                      <span className="font-medium">{d.fail}개 장치 오류 {"—"} 클릭하여 내역 보기</span>
+                      <Icon name={selThings===t.key?"ChevronUp":"ChevronDown"} size={12} className="ml-auto"/>
+                    </button>
                   )}
                   {d.fail===0&&(
                     <div className="mt-3 flex items-center gap-1.5 text-[11.5px] text-emerald-600 bg-emerald-50 rounded-lg px-3 py-2">
@@ -6988,7 +6990,9 @@ function RecipeView({ onSaveRecipe }) {
 function RecipeList({ recipes, meta, tempCount, onEdit, onNew }) {
   const [q, setQ] = useState("");
   const [fleetF, setFleetF] = useState("all");
-  const [statusF, setStatusF] = useState("all");
+  const [statusF, setStatusF] = useState(new Set());
+  const [statusFOpen, setStatusFOpen] = useState(false);
+  const sort = useTableSort(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -6999,13 +7003,23 @@ function RecipeList({ recipes, meta, tempCount, onEdit, onNew }) {
 
   const filtered = recipes.filter(r => {
     if (fleetF !== "all" && r.fleet !== fleetF) return false;
-    if (statusF !== "all" && r.status !== statusF) return false;
+    if (statusF.size>0 && !statusF.has(r.status)) return false;
     if (q && !r.name.toLowerCase().includes(q.toLowerCase()) && !r.id.includes(q)) return false;
     return true;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+  const sorted = sort.sortRows(filtered, {
+    name:r=>r.name,
+    fleet:r=>{const fm=fleets.find(f=>f.id===r.fleet);return fm?fm.name:r.fleet;},
+    dur:r=>recipeDuration(r),
+    status:r=>r.status,
+    creator:r=>(meta[r.id]||{}).creator||"",
+    created:r=>(meta[r.id]||{}).created||"",
+    modifier:r=>(meta[r.id]||{}).modifier||"",
+    modified:r=>(meta[r.id]||{}).modified||"",
+  });
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = sorted.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
 
   // reset page on filter change
   const handleFilter = (fn) => { fn(); setPage(1); };
@@ -7070,15 +7084,31 @@ function RecipeList({ recipes, meta, tempCount, onEdit, onNew }) {
             </select>
             <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
           </div>
-          {/* 상태 필터 */}
+          {/* 상태 필터 (다중 선택) */}
           <div className="relative">
-            <select value={statusF} onChange={e=>{setStatusF(e.target.value);setPage(1);}}
-              className="h-8 pl-3 pr-7 rounded-md border border-slate-200 bg-white text-[12px] text-slate-700 outline-none appearance-none focus:border-blue-400 cursor-pointer">
-              <option value="all">전체 상태</option>
-              <option value="published">사용 중</option>
-              <option value="draft">임시저장</option>
-            </select>
-            <Icon name="ChevronDown" size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+            <button onClick={()=>setStatusFOpen(v=>!v)}
+              className={"h-8 px-3 rounded-md border text-[12px] font-medium flex items-center gap-1.5 transition "+(statusF.size>0?"border-blue-400 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-700 hover:border-slate-300")}>
+              {statusF.size===0?"전체 상태":statusF.size+"개 선택"}
+              <Icon name="ChevronDown" size={11}/>
+            </button>
+            {statusFOpen&&(
+              <>
+                <div className="fixed inset-0 z-10" onClick={()=>setStatusFOpen(false)}/>
+                <div className="absolute left-0 top-full mt-1 z-20 w-36 bg-white border border-slate-200 rounded-lg shadow-lg p-1.5">
+                  {Object.entries(statusCfg).map(([k,v])=>{
+                    const on=statusF.has(k);
+                    return (
+                      <button key={k} onClick={()=>{const n=new Set(statusF);n.has(k)?n.delete(k):n.add(k);setStatusF(n);setPage(1);}}
+                        className={"w-full h-8 px-2 rounded-md flex items-center gap-2 text-[12px] transition "+(on?"bg-blue-50 text-blue-700 font-medium":"text-slate-600 hover:bg-slate-50")}>
+                        <span className={"w-4 h-4 rounded border grid place-items-center shrink-0 "+(on?"bg-blue-600 border-blue-600":"border-slate-300")}>{on&&<Icon name="Check" size={10} className="text-white"/>}</span>
+                        <span className={"w-1.5 h-1.5 rounded-full "+v.dot}/>{v.label}
+                      </button>
+                    );
+                  })}
+                  {statusF.size>0&&<button onClick={()=>{setStatusF(new Set());setPage(1);}} className="w-full h-7 mt-1 rounded-md text-[11.5px] text-slate-500 hover:bg-slate-50 border-t border-slate-100">초기화</button>}
+                </div>
+              </>
+            )}
           </div>
           <span className="ml-auto text-[11.5px] text-slate-400 tnum">{filtered.length}건</span>
         </div>
@@ -7087,14 +7117,14 @@ function RecipeList({ recipes, meta, tempCount, onEdit, onNew }) {
         <table className="w-full text-[12.5px]">
           <thead>
             <tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
-              <th className="font-medium px-4 py-2.5 w-[220px]">템플릿명</th>
-              <th className="font-medium py-2.5 w-[90px]">Fleet</th>
-              <th className="font-medium py-2.5 w-[90px]">소요시간</th>
-              <th className="font-medium py-2.5 w-[90px]">상태</th>
-              <th className="font-medium py-2.5 w-[100px]">생성자</th>
-              <th className="font-medium py-2.5 w-[90px]">생성일</th>
-              <th className="font-medium py-2.5 w-[100px]">수정자</th>
-              <th className="font-medium py-2.5 w-[90px]">수정일</th>
+              <SortTh label="템플릿명" k="name" sort={sort} className="px-4 w-[220px]"/>
+              <SortTh label="Fleet" k="fleet" sort={sort} className="w-[90px]"/>
+              <SortTh label="소요시간" k="dur" sort={sort} className="w-[90px]"/>
+              <SortTh label="상태" k="status" sort={sort} className="w-[90px]"/>
+              <SortTh label="생성자" k="creator" sort={sort} className="w-[100px]"/>
+              <SortTh label="생성일" k="created" sort={sort} className="w-[90px]"/>
+              <SortTh label="수정자" k="modifier" sort={sort} className="w-[100px]"/>
+              <SortTh label="수정일" k="modified" sort={sort} className="w-[90px]"/>
               <th className="font-medium py-2.5 w-[40px]"></th>
             </tr>
           </thead>
@@ -9494,6 +9524,17 @@ const initPartnerPending = [
   {id:"yj.eng2",    name:"YJ엔지2",  dept:"YJ로보틱스",   perms:{agv:"Engineer",semi:"Admin"},   requestedAt:"2026-06-17 14:20"},
 ];
 
+// 승인/거절 처리 이력 (로그)
+const initApprovalHistory = [
+  {id:"jang.eng", name:"장엔지", dept:"A-FAB 기술팀",        perms:{amr:"Engineer"},            result:"approved", actor:"samsung.kim", actedAt:"2026-06-18 10:12", requestedAt:"2026-06-17 16:40"},
+  {id:"seo.tmp",  name:"서임시", dept:"스마트팩토리팀",       perms:{agv:"Admin",arm:"Engineer"},result:"rejected", actor:"park.lee",    actedAt:"2026-06-16 15:33", requestedAt:"2026-06-16 09:05"},
+  {id:"min.eng",  name:"민엔지", dept:"물류자동화팀",         perms:{semi:"Engineer"},           result:"approved", actor:"samsung.kim", actedAt:"2026-06-14 11:20", requestedAt:"2026-06-13 14:10"},
+];
+const initPartnerHistory = [
+  {id:"ds.tmp",   name:"DS임시",  dept:"DS시스템",     perms:{amr:"Engineer"},          result:"rejected", actor:"samsung.kim", actedAt:"2026-06-17 09:50", requestedAt:"2026-06-16 17:22"},
+  {id:"navi.eng2",name:"나비라2", dept:"나비라",       perms:{agv:"Engineer"},          result:"approved", actor:"yoo.admin",   actedAt:"2026-06-15 13:05", requestedAt:"2026-06-14 10:30"},
+];
+
 const ROLES = ["Engineer","Admin","Master"];
 const ROLE_COLOR = {
   Engineer:"bg-slate-100 text-slate-700",
@@ -9537,6 +9578,8 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
   const [tab,setTab]=useState(approvalOnly?"pending":initialTab);
   const [users,setUsers]=useState(isPartner?initPartnerUsers:initUsers);
   const [pending,setPending]=useState(isPartner?initPartnerPending:initPending);
+  const [history,setHistory]=useState(isPartner?initPartnerHistory:initApprovalHistory);
+  const [approveConfirm,setApproveConfirm]=useState(null); // 승인 확인 팝업 대상(pending 항목)
   const [fleetF,setFleetF]=useState(new Set());
   const [roleF,setRoleF]=useState(new Set());
   const [deptF,setDeptF]=useState(new Set());
@@ -9573,9 +9616,15 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
   function handleApprove(p){
     setUsers(prev=>[...prev,{id:p.id,name:p.name,dept:p.dept,perms:p.perms,joined:new Date().toISOString().slice(0,10)}]);
     setPending(prev=>prev.filter(x=>x.id!==p.id));
+    setHistory(prev=>[{id:p.id,name:p.name,dept:p.dept,perms:p.perms,result:"approved",actor:CURRENT_USER.id,actedAt:nowStamp(),requestedAt:p.requestedAt},...prev]);
+    setApproveConfirm(null);
     showToast(`${p.id} 승인 완료`);
   }
-  function handleReject(id){setPending(prev=>prev.filter(x=>x.id!==id));showToast("승인 요청이 거절되었습니다.","warn");}
+  function handleReject(p){
+    setPending(prev=>prev.filter(x=>x.id!==p.id));
+    setHistory(prev=>[{id:p.id,name:p.name,dept:p.dept,perms:p.perms,result:"rejected",actor:CURRENT_USER.id,actedAt:nowStamp(),requestedAt:p.requestedAt},...prev]);
+    showToast("승인 요청이 거절되었습니다.","warn");
+  }
   function handleEditSave(userId,newPerms,newDept){
     setUsers(p=>p.map(u=>u.id===userId?{...u,perms:newPerms,dept:newDept}:u));
     setEditUser(null);
@@ -9770,8 +9819,8 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                     <td className="py-3 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {canEdit?<>
-                          <button onClick={()=>handleApprove(p)} className="h-7 px-3 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[11.5px] font-medium flex items-center gap-1"><Icon name="Check" size={11}/> 승인</button>
-                          <button onClick={()=>handleReject(p.id)} className="h-7 px-3 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-[11.5px] font-medium flex items-center gap-1"><Icon name="X" size={11}/> 거절</button>
+                          <button onClick={()=>setApproveConfirm(p)} className="h-7 px-3 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[11.5px] font-medium flex items-center gap-1"><Icon name="Check" size={11}/> 승인</button>
+                          <button onClick={()=>handleReject(p)} className="h-7 px-3 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-[11.5px] font-medium flex items-center gap-1"><Icon name="X" size={11}/> 거절</button>
                         </>:<span className="text-[11px] text-slate-400 flex items-center gap-1"><Icon name="Lock" size={10}/> Admin 이상 권한 필요</span>}
                       </div>
                     </td>
@@ -9779,6 +9828,47 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                 ))}
               </tbody>
             </table>
+        )}
+        {tab==="pending"&&(
+          <div className="border-t border-slate-200">
+            <div className="h-11 px-4 flex items-center gap-2 bg-slate-50/40">
+              <Icon name="History" size={13} className="text-slate-400"/>
+              <span className="text-[12.5px] font-semibold text-slate-700">처리 이력</span>
+              <span className="text-[11px] text-slate-400 tnum">{history.length}건</span>
+              <span className="ml-auto text-[11px] text-slate-400">승인/거절 처리 로그</span>
+            </div>
+            {history.length===0
+              ?<div className="py-10 text-center text-[12.5px] text-slate-400">처리 이력이 없습니다.</div>
+              :<table className="w-full text-[12.5px]">
+                <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
+                  <th className="font-medium px-4 py-2.5">결과</th>
+                  <th className="font-medium py-2.5">사용자 ID</th>
+                  <th className="font-medium py-2.5">이름</th>
+                  <th className="font-medium py-2.5">부서</th>
+                  <th className="font-medium py-2.5">신청 권한</th>
+                  <th className="font-medium py-2.5">처리자</th>
+                  <th className="font-medium py-2.5 pr-4">처리 일시</th>
+                </tr></thead>
+                <tbody>
+                  {history.map((h,hi)=>(
+                    <tr key={h.id+"_"+hi} className="border-b border-slate-100 hover:bg-slate-50/60">
+                      <td className="px-4 py-3">
+                        <span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold "+(h.result==="approved"?"bg-emerald-50 text-emerald-700":"bg-rose-50 text-rose-600")}>
+                          <Icon name={h.result==="approved"?"Check":"X"} size={10}/>{h.result==="approved"?"승인":"거절"}
+                        </span>
+                      </td>
+                      <td className="py-3 font-mono text-[12px] text-slate-800">{h.id}</td>
+                      <td className="py-3 text-slate-800 font-medium">{h.name}</td>
+                      <td className="py-3 text-[11.5px] text-slate-600">{h.dept}</td>
+                      <td className="py-3"><div className="flex flex-wrap gap-1">{Object.entries(h.perms||{}).map(([fId,role])=>permBadge(fId,role))}</div></td>
+                      <td className="py-3 font-mono text-[11.5px] text-slate-600">{h.actor}</td>
+                      <td className="py-3 pr-4 tnum text-[11.5px] text-slate-500">{h.actedAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            }
+          </div>
         )}
       </div>
 
@@ -9847,6 +9937,56 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                 disabled={Object.keys(editUser.perms||{}).length===0}
                 className="h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-[12.5px] font-medium flex items-center gap-1.5">
                 <Icon name="Check" size={13}/> 저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 승인 확인 모달 — 요청자가 신청한 조건 표시 */}
+      {approveConfirm&&(
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onClick={()=>setApproveConfirm(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[460px] max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 grid place-items-center text-emerald-600"><Icon name="UserCheck" size={18}/></div>
+              <div>
+                <div className="text-[14px] font-semibold text-slate-900">권한 신청 승인</div>
+                <div className="text-[11.5px] text-slate-400">요청자가 신청한 권한 조건을 확인하고 승인합니다.</div>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 grid place-items-center text-white font-semibold">{approveConfirm.name[0]}</div>
+                <div>
+                  <div className="font-mono text-[13px] font-semibold text-slate-900">{approveConfirm.id}</div>
+                  <div className="text-[11px] text-slate-500">{approveConfirm.name} {"·"} {approveConfirm.dept}</div>
+                </div>
+                <div className="ml-auto text-[10.5px] text-slate-400 tnum">신청 {approveConfirm.requestedAt}</div>
+              </div>
+              <div>
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">신청한 서비스(Fleet)별 권한</div>
+                <div className="space-y-1.5">
+                  {fleets.map(f=>{
+                    const role=approveConfirm.perms[f.id];
+                    return (
+                      <div key={f.id} className={"flex items-center gap-2 p-2 rounded-lg border "+(role?"border-slate-200":"border-slate-100 opacity-40")}>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11.5px] font-semibold w-[130px] shrink-0" style={{color:f.color}}>
+                          <span className="w-2 h-2 rounded-full" style={{background:f.color}}/>{f.name}
+                        </span>
+                        {role
+                          ? <span className={"px-2 py-0.5 rounded text-[11.5px] font-semibold "+ROLE_COLOR[role]}>{role}</span>
+                          : <span className="text-[11.5px] text-slate-400">미신청</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 승인하면 위 권한 그대로 사용자에게 부여됩니다.</div>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
+              <button onClick={()=>setApproveConfirm(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
+              <button onClick={()=>handleApprove(approveConfirm)} className="h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[12.5px] font-bold flex items-center gap-1.5">
+                <Icon name="Check" size={13}/> 승인 확정
               </button>
             </div>
           </div>
