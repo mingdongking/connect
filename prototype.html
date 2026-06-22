@@ -4859,7 +4859,7 @@ function ToolCartView() {
             <th className="font-medium py-2.5">활성화 일시</th>
             <th className="font-medium py-2.5">표시여부</th>
             <th className="font-medium py-2.5">Fleet</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
+            <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
             {filtered.length===0&&<tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">표시할 카트가 없습니다.</td></tr>}
@@ -4933,6 +4933,22 @@ function RobotMgmtView() {
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
+  // 복사: 접두어 유지 + 다음 빈 번호 자동 부여 (중복 방지)
+  const nextRobotId=(baseId)=>{
+    const m=String(baseId).match(/^(.*?)(\d+)$/);
+    const prefix=m?m[1]:baseId;
+    const pad=m?m[2].length:3;
+    const used=new Set(list.map(x=>x.id));
+    let n=m?parseInt(m[2],10)+1:1;
+    let cand;
+    do{ cand=prefix+String(n).padStart(pad,"0"); n++; }while(used.has(cand));
+    return cand;
+  };
+  const handleCopy=(r)=>{
+    const newId=nextRobotId(r.id);
+    setList(ls=>[...ls,{...r,id:newId}]);
+    showToast(r.id+" → "+newId+" 복사됨");
+  };
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
   const filtered=list.filter(r=>!q||r.id.toLowerCase().includes(q.toLowerCase()));
@@ -4966,7 +4982,7 @@ function RobotMgmtView() {
             <th className="font-medium py-2.5">버전</th>
             <th className="font-medium py-2.5">사용여부</th>
             <th className="font-medium py-2.5">초기 노드</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
+            <th className="font-medium py-2.5 pr-4 w-[80px]"></th>
           </tr></thead>
           <tbody>
             {filtered.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">표시할 로봇이 없습니다.</td></tr>}
@@ -4980,7 +4996,8 @@ function RobotMgmtView() {
                   <td className="py-3 tnum text-slate-600">{r.version}</td>
                   <td className="py-3"><MgmtToggle on={r.inUse} onClick={()=>setList(ls=>ls.map(x=>x.id===r.id?{...x,inUse:!x.inUse}:x))}/></td>
                   <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` · ${node.label}`:""}</td>
-                  <td className="py-3 pr-4 text-right">
+                  <td className="py-3 pr-4 text-right whitespace-nowrap">
+                    <button onClick={()=>handleCopy(r)} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-emerald-600 inline-grid place-items-center" title="복사 (다음 번호로 추가)"><Icon name="Copy" size={13}/></button>
                     <button onClick={()=>setEditTarget({...r})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
                     <button onClick={()=>setDelTarget(r)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
                   </td>
@@ -5498,7 +5515,7 @@ function MapMgmtView() {
             <th className="font-medium py-2.5">설명</th>
             <th className="font-medium py-2.5 w-[90px]">생성자</th>
             <th className="font-medium py-2.5 w-[130px]">생성일시</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[110px]">관리</th>
+            <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
             {list.length===0&&<tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">등록된 지도가 없습니다.</td></tr>}
@@ -5737,7 +5754,7 @@ function AlarmMgmtView() {
             <th className="font-medium py-2.5 w-[120px]">알람 출발지</th>
             <th className="font-medium py-2.5">알람 설명</th>
             <th className="font-medium py-2.5 w-[220px]">조치 방법 URL</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">관리</th>
+            <th className="font-medium py-2.5 pr-4 w-[80px]"></th>
           </tr></thead>
           <tbody>
             {filtered.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">등록된 알람이 없습니다.</td></tr>}
