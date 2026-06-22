@@ -4923,6 +4923,81 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
 
 }
 
+const initFleetRegistry=[
+  {name:"Delivery-Tool",  version:"v2.4", w:900,  d:650, h:1200, maxSpeed:1.5, turnRadius:0.6, maker:"OMRON"},
+  {name:"Ride",           version:"v1.8", w:1200, d:800, h:300,  maxSpeed:2.0, turnRadius:1.2, maker:"MiR"},
+  {name:"Delivery-Parts", version:"v3.1", w:700,  d:500, h:1500, maxSpeed:1.2, turnRadius:0.5, maker:"Doosan Robotics"},
+  {name:"SEMI-x",         version:"v2.0", w:850,  d:600, h:1100, maxSpeed:1.0, turnRadius:0.7, maker:"Hyundai Robotics"},
+  {name:"PM Bot",         version:"v1.2", w:600,  d:450, h:900,  maxSpeed:0.8, turnRadius:0.4, maker:"LG CNS"},
+];
+
+function FleetMgmtView() {
+  const [list,setList]=useState(initFleetRegistry);
+  const [addOpen,setAddOpen]=useState(false);
+  const [editTarget,setEditTarget]=useState(null);
+  const [delTarget,setDelTarget]=useState(null);
+  const [toast,setToast]=useState(null);
+  const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
+
+  return(
+    <div className="h-full overflow-auto bg-slate-50 p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">Fleet \uad00\ub9ac</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet \uc0ac\uc591 \ub4f1\ub85d\u00b7\ud3b8\uc9d1\u00b7\uc0ad\uc81c\ub97c \uad00\ub9ac\ud569\ub2c8\ub2e4.</p>
+        </div>
+        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+          <Icon name="Plus" size={14}/> \ub4f1\ub85d
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
+          <Icon name="Boxes" size={14} className="text-slate-500"/>
+          <span className="text-[13px] font-semibold text-slate-900">Fleet \ubaa9\ub85d</span>
+          <span className="text-[11px] text-slate-400 tnum">{list.length}\uac1c</span>
+        </div>
+        <table className="w-full text-[12.5px]">
+          <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
+            <th className="font-medium px-4 py-2.5">Fleet \uba85</th>
+            <th className="font-medium py-2.5">\ubc84\uc804</th>
+            <th className="font-medium py-2.5">HW \uc0ac\uc774\uc988 (\uac00\ub85c\u00d7\uc138\ub85c\u00d7\ub192\uc774)</th>
+            <th className="font-medium py-2.5 text-right">\ucd5c\ub300\uc18d\ub3c4</th>
+            <th className="font-medium py-2.5 text-right">\ud68c\uc804\ubc18\uacbd</th>
+            <th className="font-medium py-2.5 pl-5">\uc81c\uc870\uc0ac</th>
+            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">\uad00\ub9ac</th>
+          </tr></thead>
+          <tbody>
+            {list.length===0&&<tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">\ub4f1\ub85d\ub41c Fleet\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</td></tr>}
+            {list.map(f=>(
+              <tr key={f.name} className="border-b border-slate-100 hover:bg-slate-50/60">
+                <td className="px-4 py-3"><span className="font-semibold text-slate-900">{f.name}</span></td>
+                <td className="py-3 tnum text-slate-600">{f.version}</td>
+                <td className="py-3 tnum text-slate-600">{f.w} \u00d7 {f.d} \u00d7 {f.h} <span className="text-[10.5px] text-slate-400">mm</span></td>
+                <td className="py-3 tnum text-slate-600 text-right">{f.maxSpeed} <span className="text-[10.5px] text-slate-400">m/s</span></td>
+                <td className="py-3 tnum text-slate-600 text-right">{f.turnRadius} <span className="text-[10.5px] text-slate-400">m</span></td>
+                <td className="py-3 pl-5 text-slate-600">{f.maker}</td>
+                <td className="py-3 pr-4 text-right">
+                  <button onClick={()=>setEditTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="\ud3b8\uc9d1"><Icon name="Pencil" size={13}/></button>
+                  <button onClick={()=>setDelTarget(f)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="\uc0ad\uc81c"><Icon name="Trash2" size={13}/></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {addOpen&&<FleetFormModal title="Fleet \ub4f1\ub85d" onClose={()=>setAddOpen(false)} existing={list}
+        onSave={(f)=>{setList(ls=>[...ls,f]);setAddOpen(false);showToast(f.name+" \ub4f1\ub85d\ub428");}}/>}
+      {editTarget&&<FleetFormModal title={"Fleet \ud3b8\uc9d1 \u2014 "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
+        onSave={(f)=>{setList(ls=>ls.map(x=>x.name===f.name?f:x));setEditTarget(null);showToast(f.name+" \uc218\uc815\ub428");}}/>}
+      {delTarget&&<MgmtDeleteModal label={delTarget.name} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.name!==delTarget.name));showToast(delTarget.name+" \uc0ad\uc81c\ub428");setDelTarget(null);}}/>}
+      {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
+    </div>
+  );
+}
+
+
 function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
   const [confirmOverwrite,setConfirmOverwrite]=useState(null);
   const [name,setName]=useState(init?init.name:"");
