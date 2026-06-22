@@ -4923,6 +4923,130 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
 
 }
 
+function RobotMgmtView() {
+  const [list,setList]=useState(initRobotRegistry);
+  const [q,setQ]=useState("");
+  const [addOpen,setAddOpen]=useState(false);
+  const [editTarget,setEditTarget]=useState(null);
+  const [delTarget,setDelTarget]=useState(null);
+  const [toast,setToast]=useState(null);
+  const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
+  const filtered=list.filter(r=>!q||r.id.toLowerCase().includes(q.toLowerCase()));
+
+  return(
+    <div className="h-full overflow-auto bg-slate-50 p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">\ub85c\ubd07 \uad00\ub9ac</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">AMR \ub4f1\ub85d\u00b7\ud3b8\uc9d1\u00b7\uc0ad\uc81c \ubc0f \uc0ac\uc6a9 \uc5ec\ubd80\ub97c \uad00\ub9ac\ud569\ub2c8\ub2e4.</p>
+        </div>
+        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+          <Icon name="Plus" size={14}/> \ub4f1\ub85d
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
+          <Icon name="Bot" size={14} className="text-slate-500"/>
+          <span className="text-[13px] font-semibold text-slate-900">AMR \ubaa9\ub85d</span>
+          <span className="text-[11px] text-slate-400 tnum">{filtered.length}\ub300</span>
+          <div className="ml-auto relative">
+            <Icon name="Search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="AMR ID \uac80\uc0c9" className="h-8 pl-7 pr-2 w-40 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-blue-400"/>
+          </div>
+        </div>
+        <table className="w-full text-[12.5px]">
+          <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
+            <th className="font-medium px-4 py-2.5">AMR ID</th>
+            <th className="font-medium py-2.5">Fleet \uc885\ub958</th>
+            <th className="font-medium py-2.5">\ubc84\uc804</th>
+            <th className="font-medium py-2.5">\uc0ac\uc6a9\uc5ec\ubd80</th>
+            <th className="font-medium py-2.5">\ucd08\uae30 \ub178\ub4dc</th>
+            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">\uad00\ub9ac</th>
+          </tr></thead>
+          <tbody>
+            {filtered.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">\ud45c\uc2dc\ud560 \ub85c\ubd07\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</td></tr>}
+            {filtered.map(r=>{
+              const fm=fleetMeta(r.fleet);
+              const node=mapNodes.find(n=>n.id===r.initNode);
+              return(
+                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-md grid place-items-center text-white shrink-0" style={{background:fm.color}}><Icon name={r.fleet==="arm"?"Cog":"Bot"} size={13}/></div>
+                      <span className="font-semibold text-slate-900 tnum">{r.id}</span>
+                    </div>
+                  </td>
+                  <td className="py-3"><span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] font-medium" style={{background:fm.color+"15",color:fm.color}}>{fm.name}</span></td>
+                  <td className="py-3 tnum text-slate-600">{r.version}</td>
+                  <td className="py-3"><MgmtToggle on={r.inUse} onClick={()=>setList(ls=>ls.map(x=>x.id===r.id?{...x,inUse:!x.inUse}:x))}/></td>
+                  <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` \u00b7 ${node.label}`:""}</td>
+                  <td className="py-3 pr-4 text-right">
+                    <button onClick={()=>setEditTarget({...r})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="\ud3b8\uc9d1"><Icon name="Pencil" size={13}/></button>
+                    <button onClick={()=>setDelTarget(r)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="\uc0ad\uc81c"><Icon name="Trash2" size={13}/></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {addOpen&&<RobotFormModal title="AMR \ub4f1\ub85d" onClose={()=>setAddOpen(false)} existing={list}
+        onSave={(r)=>{setList(ls=>[...ls,r]);setAddOpen(false);showToast(r.id+" \ub4f1\ub85d\ub428");}}/>}
+      {editTarget&&<RobotFormModal title={"AMR \ud3b8\uc9d1 \u2014 "+editTarget.id} init={editTarget} lockId onClose={()=>setEditTarget(null)} existing={list}
+        onSave={(r)=>{setList(ls=>ls.map(x=>x.id===r.id?r:x));setEditTarget(null);showToast(r.id+" \uc218\uc815\ub428");}}/>}
+      {delTarget&&<MgmtDeleteModal label={delTarget.id} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.id!==delTarget.id));showToast(delTarget.id+" \uc0ad\uc81c\ub428");setDelTarget(null);}}/>}
+      {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
+    </div>
+  );
+}
+
+function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
+  const [id,setId]=useState(init?init.id:"");
+  const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
+  const [version,setVersion]=useState(init?init.version:"v1.0");
+  const [initNode,setInitNode]=useState(init?init.initNode:mapNodes[0].id);
+  const dup=!lockId&&existing.some(r=>r.id===id);
+  const valid=id.trim().length>0&&!dup;
+  return(
+    <MgmtModal title={title} icon="Bot" onClose={onClose}
+      footer={<>
+        <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">\ucde8\uc18c</button>
+        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,initNode,inUse:init?init.inUse:true})} disabled={!valid}
+          className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>\uc800\uc7a5</button>
+      </>}>
+      <MgmtField label="AMR ID">
+        <input value={id} onChange={e=>setId(e.target.value)} disabled={lockId} placeholder="\uc608: Tool007" className={mgmtInpCls+(lockId?" bg-slate-50 text-slate-400":"")}/>
+        {dup&&<div className="text-[11px] text-rose-500 mt-1">\uc774\ubbf8 \uc874\uc7ac\ud558\ub294 ID\uc785\ub2c8\ub2e4.</div>}
+      </MgmtField>
+      <MgmtField label="Fleet \uc885\ub958">
+        <select value={fleet} onChange={e=>setFleet(e.target.value)} className={mgmtSelCls}>
+          {fleets.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </MgmtField>
+      <MgmtField label="\ubc84\uc804">
+        <input value={version} onChange={e=>setVersion(e.target.value)} placeholder="\uc608: v2.4" className={mgmtInpCls}/>
+      </MgmtField>
+      <MgmtField label="\ucd08\uae30 \ub178\ub4dc \uc124\uc815">
+        <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
+          {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} \u00b7 {n.label}</option>)}
+        </select>
+      </MgmtField>
+    </MgmtModal>
+  );
+}
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 \uae30\uc900\uc815\ubcf4: Fleet \uad00\ub9ac \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const initFleetRegistry=[
+  {name:"Delivery-Tool",  version:"v2.4", w:900,  d:650, h:1200, maxSpeed:1.5, turnRadius:0.6, maker:"OMRON"},
+  {name:"Ride",           version:"v1.8", w:1200, d:800, h:300,  maxSpeed:2.0, turnRadius:1.2, maker:"MiR"},
+  {name:"Delivery-Parts", version:"v3.1", w:700,  d:500, h:1500, maxSpeed:1.2, turnRadius:0.5, maker:"Doosan Robotics"},
+  {name:"SEMI-x",         version:"v2.0", w:850,  d:600, h:1100, maxSpeed:1.0, turnRadius:0.7, maker:"Hyundai Robotics"},
+  {name:"PM Bot",         version:"v1.2", w:600,  d:450, h:900,  maxSpeed:0.8, turnRadius:0.4, maker:"LG CNS"},
+];
+
+
 const initFleetRegistry=[
   {name:"Delivery-Tool",  version:"v2.4", w:900,  d:650, h:1200, maxSpeed:1.5, turnRadius:0.6, maker:"OMRON"},
   {name:"Ride",           version:"v1.8", w:1200, d:800, h:300,  maxSpeed:2.0, turnRadius:1.2, maker:"MiR"},
