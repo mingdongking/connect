@@ -3368,6 +3368,7 @@ function BarChart({ data }) {
 }
 function InfraStatusView() {
   const [tab, setTab] = useState("charger");
+  const [selThings,setSelThings]=useState(null);
 
   // ── 충전소 목 데이터 ──
   const chargers = [
@@ -3383,38 +3384,45 @@ function InfraStatusView() {
 
   // ── 자동문 목 데이터 ──
   const doors = [
-    {id:"DOOR-A1", location:"A동 입구",  status:"open",   lastEvent:"13:42:01", daily:247},
-    {id:"DOOR-A2", location:"A동 비상문",status:"close",  lastEvent:"13:10:44", daily:12},
-    {id:"DOOR-B1", location:"B동 하역장",status:"open",   lastEvent:"13:30:00", daily:183},
-    {id:"DOOR-B2", location:"B동 서측문",status:"manual", lastEvent:"13:05:00", daily:8},
-    {id:"DOOR-C1", location:"C동 충전구역",status:"close",lastEvent:"12:50:00", daily:94},
+    {id:"DOOR-A1", location:"A동 입구",  status:"open",    lastEvent:"13:42:01"},
+    {id:"DOOR-A2", location:"A동 비상문",status:"close",   lastEvent:"13:10:44"},
+    {id:"DOOR-B1", location:"B동 하역장",status:"moving",  lastEvent:"13:30:00"},
+    {id:"DOOR-B2", location:"B동 서측문",status:"offline", lastEvent:"13:05:00"},
+    {id:"DOOR-C1", location:"C동 충전구역",status:"unknown",lastEvent:"12:50:00"},
   ];
 
   // ── Things 목 데이터 ──
   const things = {
-    tag:         {total:48, fail:2,  ok:46},
-    locator:     {total:12, fail:1,  ok:11},
-    locatorUwb:  {total:8,  fail:0,  ok:8},
+    tag:         {total:48, fail:2,  ok:46, failList:[
+      {id:"TAG-0231", location:"A동 2F 적재구역", code:"BAT_LOW",   detail:"배터리 잔량 8% — 교체 필요", since:"13:22"},
+      {id:"TAG-0188", location:"B동 1F 하역장",  code:"SIGNAL_LOSS",detail:"신호 끊김 12분 경과",        since:"13:10"},
+    ]},
+    locator:     {total:12, fail:1,  ok:11, failList:[
+      {id:"LOC-007",  location:"A동 3F 통로",    code:"OFFLINE",    detail:"앵커 응답 없음 — 전원 확인", since:"12:48"},
+    ]},
+    locatorUwb:  {total:8,  fail:0,  ok:8, failList:[]},
   };
 
   // 충전소 상태 색
   const chargerStatus = {
-    run:      {label:"충전중",  color:"#2563eb", bg:"#dbeafe", fg:"#1d4ed8"},
-    idle:     {label:"대기",    color:"#10b981", bg:"#d1fae5", fg:"#065f46"},
-    fault:    {label:"오류",    color:"#e11d48", bg:"#ffe4e6", fg:"#9f1239"},
-    offline:  {label:"오프라인",color:"#94a3b8", bg:"#f1f5f9", fg:"#475569"},
+    run:      {label:"충전중",  color:"#16a34a", bg:"#dcfce7", fg:"#15803d"},
     reserved: {label:"예약됨",  color:"#f59e0b", bg:"#fef3c7", fg:"#92400e"},
+    idle:     {label:"대기",    color:"#94a3b8", bg:"#f1f5f9", fg:"#475569"},
+    fault:    {label:"오류",    color:"#e11d48", bg:"#ffe4e6", fg:"#9f1239"},
+    offline:  {label:"오프라인",color:"#475569", bg:"#e2e8f0", fg:"#1e293b"},
   };
   const doorStatus = {
-    open:   {label:"열림",   color:"#10b981", bg:"#d1fae5", fg:"#065f46"},
-    close:  {label:"닫힘",   color:"#64748b", bg:"#f1f5f9", fg:"#334155"},
-    manual: {label:"수동",   color:"#f59e0b", bg:"#fef3c7", fg:"#92400e"},
+    open:    {label:"열림",            color:"#16a34a", bg:"#dcfce7", fg:"#15803d"},
+    close:   {label:"닫힘",            color:"#64748b", bg:"#f1f5f9", fg:"#334155"},
+    moving:  {label:"열림과 닫힘 사이", color:"#f59e0b", bg:"#fef3c7", fg:"#92400e"},
+    offline: {label:"장치 오프라인",    color:"#475569", bg:"#e2e8f0", fg:"#1e293b"},
+    unknown: {label:"알 수 없음",       color:"#94a3b8", bg:"#f1f5f9", fg:"#64748b"},
   };
 
   // 충전소 KPI
   const cCounts = Object.fromEntries(Object.keys(chargerStatus).map(k=>[k, chargers.filter(c=>c.status===k).length]));
   // 자동문 KPI
-  const dCounts = {open:doors.filter(d=>d.status==="open").length, close:doors.filter(d=>d.status==="close").length, manual:doors.filter(d=>d.status==="manual").length};
+  const dCounts = Object.fromEntries(Object.keys(doorStatus).map(k=>[k, doors.filter(d=>d.status===k).length]));
 
   const [q,setQ]=useState("");
   const [statusF,setStatusF]=useState("all");
@@ -3460,14 +3468,14 @@ function InfraStatusView() {
         {/* KPI */}
         <div className="grid grid-cols-5 gap-3 mb-5">
           {Object.entries(chargerStatus).map(([k,v])=>(
-            <button key={k} onClick={()=>setStatusF(statusF===k?"all":k)}
-              className={"rounded-xl p-3.5 border-2 text-left transition "+(statusF===k?"shadow-sm":"bg-white border-slate-200 hover:border-slate-300")+(statusF===k?" border-current":"")}
-              style={statusF===k?{background:v.bg,borderColor:v.color}:{}}>
+            <button key={k} onClick={()=>{const n=new Set(statusF);n.has(k)?n.delete(k):n.add(k);setStatusF(n);}}
+              className={"rounded-xl p-3.5 border-2 text-left transition "+(statusF.has(k)?"shadow-sm":"bg-white border-slate-200 hover:border-slate-300")}
+              style={statusF.has(k)?{background:v.bg,borderColor:v.color}:{}}>
               <div className="flex items-center justify-between mb-1.5">
                 
-                <span className="text-[22px] font-bold tnum" style={{color:statusF===k?v.fg:"#0f172a"}}>{cCounts[k]||0}</span>
+                <span className="text-[22px] font-bold tnum" style={{color:statusF.has(k)?v.fg:"#0f172a"}}>{cCounts[k]||0}</span>
               </div>
-              <div className="text-[11.5px] font-medium" style={{color:statusF===k?v.fg:"#64748b"}}>{v.label}</div>
+              <div className="text-[11.5px] font-medium" style={{color:statusF.has(k)?v.fg:"#64748b"}}>{v.label}</div>
             </button>
           ))}
         </div>
@@ -3483,17 +3491,17 @@ function InfraStatusView() {
                 className="h-8 pl-7 pr-6 w-[180px] rounded-md border border-slate-200 bg-white text-[12px] outline-none focus:border-blue-400"/>
               {q&&<button onClick={()=>setQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><Icon name="X" size={11}/></button>}
             </div>
-            {statusF!=="all"&&<button onClick={()=>setStatusF("all")} className="h-8 px-2.5 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-rose-500 text-[12px] flex items-center gap-1"><Icon name="RotateCcw" size={11}/> 필터 초기화</button>}
+            {statusF.size>0&&<button onClick={()=>setStatusF(new Set())} className="h-8 px-2.5 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-rose-500 text-[12px] flex items-center gap-1"><Icon name="RotateCcw" size={11}/> 필터 초기화</button>}
             <span className="ml-auto text-[11.5px] text-slate-400 tnum">{filteredChargers.length}건</span>
           </div>
           <table className="w-full text-[12.5px]">
             <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
               <th className="font-medium px-4 py-2.5">충전소 ID</th>
+              <th className="font-medium py-2.5">상태</th>
               <th className="font-medium py-2.5">예약 여부</th>
               <th className="font-medium py-2.5">사용 여부</th>
               <th className="font-medium py-2.5">유형</th>
-              <th className="font-medium py-2.5">충전 로봇 ID</th>
-              <th className="font-medium py-2.5 pr-4">상태</th>
+              <th className="font-medium py-2.5 pr-4">충전 로봇 ID</th>
             </tr></thead>
             <tbody>
               {filteredChargers.length===0&&<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-[12.5px]">검색 결과가 없습니다.</td></tr>}
@@ -3501,33 +3509,17 @@ function InfraStatusView() {
                 const st=chargerStatus[c.status];
                 return(
                   <tr key={c.id} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(c.status==="fault"?"bg-rose-50/20":c.status==="offline"?"bg-slate-50/50":"")}>
-                    <td className="px-4 py-3"><span className="font-mono text-[12px] font-semibold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">{c.id}</span></td>
+                    <td className="px-4 py-3 font-semibold text-slate-900">{c.id}</td>
                     <td className="py-3">
-                      <span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold "+(c.reserved?"bg-amber-50 text-amber-700":"bg-slate-100 text-slate-500")}>
-                        
-                        {c.reserved?"예약됨":"미예약"}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold "+(c.inUse?"bg-blue-50 text-blue-700":"bg-slate-100 text-slate-500")}>
-                        
-                        {c.inUse?"사용 중":"비어있음"}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className={"text-[11.5px] font-semibold px-2 py-0.5 rounded "+(c.type==="급속"?"bg-orange-50 text-orange-700":"bg-slate-100 text-slate-600")}>{c.type}</span>
-                    </td>
-                    <td className="py-3">
-                      {c.robotId!=="-"
-                        ? <span className="font-mono text-[11.5px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{c.robotId}</span>
-                        : <span className="text-slate-300">{"—"}</span>}
-                    </td>
-                    <td className="py-3 pr-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold" style={{background:st.bg,color:st.fg}}>
-                        
+                        <span className="w-1.5 h-1.5 rounded-full" style={{background:st.color}}/>
                         {st.label}
                       </span>
                     </td>
+                    <td className="py-3 text-slate-700">{c.reserved?"예약됨":"미예약"}</td>
+                    <td className="py-3 text-slate-700">{c.inUse?"사용 중":"비어있음"}</td>
+                    <td className="py-3 text-slate-700">{c.type}</td>
+                    <td className="py-3 pr-4 text-slate-700">{c.robotId!=="-"?c.robotId:"—"}</td>
                   </tr>
                 );
               })}
@@ -3539,7 +3531,7 @@ function InfraStatusView() {
       {/* ── 자동문 ── */}
       {tab==="door"&&(<>
         {/* KPI */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-5 gap-3 mb-5">
           {Object.entries(doorStatus).map(([k,v])=>(
             <div key={k} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
@@ -3565,25 +3557,24 @@ function InfraStatusView() {
           <table className="w-full text-[12.5px]">
             <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
               <th className="font-medium px-4 py-2.5">문 ID</th>
-              <th className="font-medium py-2.5">위치</th>
               <th className="font-medium py-2.5">상태</th>
-              <th className="font-medium py-2.5">마지막 이벤트</th>
-              <th className="font-medium py-2.5 pr-4">금일 개폐 횟수</th>
+              <th className="font-medium py-2.5">위치</th>
+              <th className="font-medium py-2.5 pr-4">마지막 이벤트</th>
             </tr></thead>
             <tbody>
               {doors.map(d=>{
                 const st=doorStatus[d.status];
                 return(
                   <tr key={d.id} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(d.status==="manual"?"bg-amber-50/20":"")}>
-                    <td className="px-4 py-3"><span className="font-mono text-[12px] font-semibold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">{d.id}</span></td>
-                    <td className="py-3 text-slate-700">{d.location}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-900">{d.id}</td>
                     <td className="py-3">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold" style={{background:st.bg,color:st.fg}}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{background:st.color}}/>
                         {st.label}
                       </span>
                     </td>
-                    <td className="py-3 tnum text-[11.5px] text-slate-500">{d.lastEvent}</td>
-                    <td className="py-3 pr-4 tnum text-[12px] font-semibold text-slate-900">{d.daily}<span className="text-[11px] font-normal text-slate-400 ml-1">회</span></td>
+                    <td className="py-3 text-slate-700">{d.location}</td>
+                    <td className="py-3 pr-4 tnum text-[11.5px] text-slate-500">{d.lastEvent}</td>
                   </tr>
                 );
               })}
@@ -3646,6 +3637,40 @@ function InfraStatusView() {
             );
           })}
         </div>
+        {selThings&&(()=>{
+          const d=things[selThings];
+          const tlabel={tag:"Tag",locator:"Locator",locatorUwb:"Locator UWB"}[selThings]||selThings;
+          return(
+            <div className="mt-4 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="h-11 px-4 border-b border-slate-200 bg-rose-50/50 flex items-center gap-2">
+                <Icon name="AlertTriangle" size={14} className="text-rose-500"/>
+                <span className="text-[13px] font-semibold text-slate-900">{tlabel} 오류 내역</span>
+                <span className="text-[11px] text-rose-500 tnum">{d.failList.length}건</span>
+                <button onClick={()=>setSelThings(null)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-400"><Icon name="X" size={14}/></button>
+              </div>
+              <table className="w-full text-[12.5px]">
+                <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
+                  <th className="font-medium px-4 py-2.5">장치 ID</th>
+                  <th className="font-medium py-2.5">위치</th>
+                  <th className="font-medium py-2.5">오류 코드</th>
+                  <th className="font-medium py-2.5">상세</th>
+                  <th className="font-medium py-2.5 pr-4">발생 시각</th>
+                </tr></thead>
+                <tbody>
+                  {d.failList.map(f=>(
+                    <tr key={f.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                      <td className="px-4 py-3 font-semibold text-slate-900">{f.id}</td>
+                      <td className="py-3 text-slate-700">{f.location}</td>
+                      <td className="py-3"><span className="font-mono text-[11.5px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">{f.code}</span></td>
+                      <td className="py-3 text-slate-600">{f.detail}</td>
+                      <td className="py-3 pr-4 tnum text-slate-500">{f.since}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       )}
     </div>
   );
@@ -3666,8 +3691,8 @@ function RobotStatusView() {
 
   const STATUS_PRIORITY = { down:0, disconnect:1, manual:2, charge:3, run:4, idle:5 };
   const ST_META = {
-    run:       {label:"가동중",  chip:"#2563eb", badge:"bg-blue-50 text-blue-700 border-blue-200"},
-    charge:    {label:"충전중",  chip:"#16a34a", badge:"bg-emerald-50 text-emerald-700 border-emerald-200"},
+    run:       {label:"가동",  chip:"#2563eb", badge:"bg-blue-50 text-blue-700 border-blue-200"},
+    charge:    {label:"충전",  chip:"#16a34a", badge:"bg-emerald-50 text-emerald-700 border-emerald-200"},
     idle:      {label:"유휴",    chip:"#94a3b8", badge:"bg-slate-100 text-slate-600 border-slate-200"},
     manual:    {label:"수동",    chip:"#7c3aed", badge:"bg-violet-50 text-violet-700 border-violet-200"},
     down:      {label:"에러",    chip:"#e11d48", badge:"bg-rose-50 text-rose-700 border-rose-200"},
@@ -3774,15 +3799,32 @@ function RobotStatusView() {
             </button>
           ))}
           <div className="ml-auto flex items-center gap-2">
-            {fleets.map(f=>{
-              const on=fleetF.has(f.id);
-              return(
-                <button key={f.id} onClick={()=>{const n=new Set(fleetF);on?n.delete(f.id):n.add(f.id);setFleetF(n);}}
-                  className={"h-8 px-2.5 rounded-md border text-[11px] font-medium flex items-center gap-1 transition "+(on?"border-blue-400 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-500 hover:border-slate-300")}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{background:f.color}}/>{f.name}
-                </button>
-              );
-            })}
+            <div className="relative">
+              <button onClick={()=>setFleetFilterOpen(v=>!v)}
+                className={"h-8 px-3 rounded-md border text-[11.5px] font-medium flex items-center gap-1.5 transition "+(fleetF.size>0?"border-blue-400 bg-blue-50 text-blue-700":"border-slate-200 bg-white text-slate-600 hover:border-slate-300")}>
+                <Icon name="Filter" size={12}/>
+                {fleetF.size===0?"Fleet 전체":"Fleet "+fleetF.size+"개 선택"}
+                <Icon name="ChevronDown" size={12}/>
+              </button>
+              {fleetFilterOpen&&(
+                <>
+                  <div className="fixed inset-0 z-10" onClick={()=>setFleetFilterOpen(false)}/>
+                  <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-white border border-slate-200 rounded-lg shadow-lg p-1.5">
+                    {fleets.map(f=>{
+                      const on=fleetF.has(f.id);
+                      return(
+                        <button key={f.id} onClick={()=>{const n=new Set(fleetF);on?n.delete(f.id):n.add(f.id);setFleetF(n);}}
+                          className={"w-full h-8 px-2 rounded-md flex items-center gap-2 text-[12px] transition "+(on?"bg-blue-50 text-blue-700 font-medium":"text-slate-600 hover:bg-slate-50")}>
+                          <span className={"w-4 h-4 rounded border grid place-items-center shrink-0 "+(on?"bg-blue-600 border-blue-600":"border-slate-300")}>{on&&<Icon name="Check" size={10} className="text-white"/>}</span>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{background:f.color}}/>{f.name}
+                        </button>
+                      );
+                    })}
+                    {fleetF.size>0&&<button onClick={()=>setFleetF(new Set())} className="w-full h-7 mt-1 rounded-md text-[11.5px] text-slate-500 hover:bg-slate-50 border-t border-slate-100">초기화</button>}
+                  </div>
+                </>
+              )}
+            </div>
             <div className="relative">
               <Icon name="Search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
               <input value={q} onChange={e=>setQ(e.target.value)} placeholder="로봇 ID 검색"
@@ -3801,7 +3843,7 @@ function RobotStatusView() {
               <th className="font-medium py-2.5 w-[130px]">{sortBtn("battery","배터리")}</th>
               <th className="font-medium py-2.5 w-[140px]">현재 노드</th>
               <th className="font-medium py-2.5">현재 작업</th>
-              <th className="font-medium py-2.5 pr-4 w-[110px]">{sortBtn("util","오늘 가동률")}</th>
+              <th className="font-medium py-2.5 pr-4 w-[110px]">{sortBtn("util","금일 가동률")}</th>
             </tr></thead>
             <tbody>
               {rows.length===0&&<tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">조건에 맞는 로봇이 없습니다.</td></tr>}
@@ -4009,7 +4051,7 @@ const ERROR_LOG = {
     {code:"SENS_220",label:"라이다 센서 오류",   robotId:"Tool001", time:"12:30", orderId:null},
   ],
   agv: [
-    {code:"OBS_401", label:"전방 장애물 감지",   robotId:"Ride001", time:"09:02", orderId:"ord-011"},
+    {code:"PATH_502",label:"경로 재계산 실패",   robotId:"Ride001", time:"09:02", orderId:"ord-011"},
     {code:"PATH_502",label:"경로 재계산 실패",   robotId:"Ride002", time:"09:15", orderId:"ord-019"},
     {code:"EMS_001", label:"EMS 호출",           robotId:"Ride002", time:"09:41", orderId:"ord-019"},
     {code:"STOP_002",label:"비상정지",           robotId:"Ride001", time:"10:50", orderId:"ord-011"},
@@ -4868,10 +4910,10 @@ function ToolCartView() {
                 <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{c.id}</span></td>
                 <td className="py-3 text-slate-600">{c.teamDiv}</td>
                 <td className="py-3 text-slate-700 font-medium">{c.partName}</td>
-                <td className="py-3"><MgmtToggle on={c.inUse} onClick={()=>setCarts(cs=>cs.map(x=>x.id===c.id?{...x,inUse:!x.inUse,activatedAt:!x.inUse?nowStamp():x.activatedAt}:x))}/></td>
+                <td className={"py-3 font-medium "+(c.inUse?"text-emerald-700":"text-slate-400")}>{c.inUse?"사용":"미사용"}</td>
                 <td className="py-3 tnum text-[11.5px] text-slate-500">{c.createdAt}</td>
                 <td className="py-3 tnum text-[11.5px] text-slate-500">{c.activatedAt}</td>
-                <td className="py-3"><MgmtToggle on={c.visible} onLabel="표시" offLabel="숨김" onClick={()=>setCarts(cs=>cs.map(x=>x.id===c.id?{...x,visible:!x.visible}:x))}/></td>
+                <td className={"py-3 font-medium "+(c.visible?"text-slate-700":"text-slate-400")}>{c.visible?"표시":"숨김"}</td>
                 <td className="py-3"><span className={"inline-block px-1.5 py-0.5 rounded text-[11px] font-medium "+(c.fleet==="Tool"?"bg-blue-50 text-blue-700":"bg-violet-50 text-violet-700")}>{c.fleet}</span></td>
                 <td className="py-3 pr-4 text-right">
                   <button onClick={()=>setEditTarget(c)} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
@@ -4910,8 +4952,8 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
   const [floor,setFloor]=useState("3");
   const [process,setProcess]=useState("ETCH");
   const [category,setCategory]=useState("CLV");
-  const [fleetSel,setFleetSel]=useState("Tool");
-  const [inUse,setInUse]=useState("true");
+  const [inUse,setInUse]=useState(true);
+  const [visible,setVisible]=useState(true);
   const [initNode,setInitNode]=useState(mapNodes[0].id);
 
   const cat=CART_CATEGORY_OPTS.find(x=>x.id===category);
@@ -4921,6 +4963,64 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
   const seqPart=existingCarts.filter(c=>c.category===category).length+1;
   const previewPart=cat.partBase+seqPart;
 
+  const submit=()=>{
+    onAdd({
+      id:previewId, teamDiv:process+" "+floor+"층 분임조", partName:previewPart,
+      size, floor, process, category, fleet:cat.fleet,
+      inUse, visible,
+      createdAt:nowStamp(), activatedAt:inUse?nowStamp():"-", initNode,
+    });
+  };
+
+  return(
+    <MgmtModal title="카트 등록" icon="ShoppingCart" onClose={onClose}
+      footer={<>
+        <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
+        <button onClick={submit} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">등록</button>
+      </>}>
+      <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 flex items-center gap-2">
+        <Icon name="Tag" size={13} className="text-blue-500"/>
+        <span className="text-[12px] text-slate-500">생성될 ID</span>
+        <span className="text-[12.5px] font-bold text-slate-900 tnum ml-auto">{previewId}</span>
+        <span className="text-[11px] text-slate-400">· {previewPart} · {cat.fleet}</span>
+      </div>
+      <MgmtField label="카트 Size">
+        <select value={size} onChange={e=>setSize(e.target.value)} className={mgmtSelCls}>
+          {CART_SIZE_OPTS.map(s=><option key={s.id} value={s.id}>{s.label} ({s.id})</option>)}
+        </select>
+      </MgmtField>
+      <div className="grid grid-cols-2 gap-3">
+        <MgmtField label="층 정보">
+          <select value={floor} onChange={e=>setFloor(e.target.value)} className={mgmtSelCls}>
+            {CART_FLOOR_OPTS.map(f=><option key={f} value={f}>{f}층</option>)}
+          </select>
+        </MgmtField>
+        <MgmtField label="공정 정보">
+          <select value={process} onChange={e=>setProcess(e.target.value)} className={mgmtSelCls}>
+            {CART_PROCESS_OPTS.map(p=><option key={p} value={p}>{p}</option>)}
+          </select>
+        </MgmtField>
+      </div>
+      <MgmtField label="부품 카테고리">
+        <select value={category} onChange={e=>setCategory(e.target.value)} className={mgmtSelCls}>
+          {CART_CATEGORY_OPTS.map(c=><option key={c.id} value={c.id}>{c.label} → Fleet: {c.fleet}</option>)}
+        </select>
+      </MgmtField>
+      <MgmtField label="초기 노드 설정">
+        <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
+          {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} · {n.label}</option>)}
+        </select>
+      </MgmtField>
+      <div className="grid grid-cols-2 gap-3">
+        <MgmtField label="사용 여부">
+          <MgmtToggle on={inUse} onClick={()=>setInUse(v=>!v)}/>
+        </MgmtField>
+        <MgmtField label="지도 표시 여부">
+          <MgmtToggle on={visible} onLabel="표시" offLabel="숨김" onClick={()=>setVisible(v=>!v)}/>
+        </MgmtField>
+      </div>
+    </MgmtModal>
+  );
 }
 
 const initRobotRegistry = robots.map((r,i)=>({
@@ -4994,7 +5094,7 @@ function RobotMgmtView() {
                   <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
                   <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
                   <td className="py-3 tnum text-slate-600">{r.version}</td>
-                  <td className="py-3"><MgmtToggle on={r.inUse} onClick={()=>setList(ls=>ls.map(x=>x.id===r.id?{...x,inUse:!x.inUse}:x))}/></td>
+                  <td className={"py-3 font-medium "+(r.inUse?"text-emerald-700":"text-slate-400")}>{r.inUse?"사용":"미사용"}</td>
                   <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` · ${node.label}`:""}</td>
                   <td className="py-3 pr-4 text-right whitespace-nowrap">
                     <button onClick={()=>handleCopy(r)} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-emerald-600 inline-grid place-items-center" title="복사 (다음 번호로 추가)"><Icon name="Copy" size={13}/></button>
@@ -5023,13 +5123,14 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
   const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
   const [version,setVersion]=useState(init?init.version:"v1.0");
   const [initNode,setInitNode]=useState(init?init.initNode:mapNodes[0].id);
+  const [inUse,setInUse]=useState(init?init.inUse:true);
   const dup=!lockId&&existing.some(r=>r.id===id);
   const valid=id.trim().length>0&&!dup;
   return(
     <MgmtModal title={title} icon="Bot" onClose={onClose}
       footer={<>
         <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
-        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,initNode,inUse:init?init.inUse:true})} disabled={!valid}
+        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,initNode,inUse})} disabled={!valid}
           className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
       </>}>
       <MgmtField label="로봇 ID">
@@ -5048,6 +5149,9 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
         <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
           {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} · {n.label}</option>)}
         </select>
+      </MgmtField>
+      <MgmtField label="사용 여부">
+        <MgmtToggle on={inUse} onClick={()=>setInUse(v=>!v)}/>
       </MgmtField>
     </MgmtModal>
   );
@@ -5614,6 +5718,7 @@ function InfraMgmtView(){
   const [chargers,setChargers]=useState(initChargers);
   const [doors,setDoors]=useState(initDoors);
   const [toast,setToast]=useState(null);
+  const [mapEditConfirm,setMapEditConfirm]=useState(null); // {action,id}
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
 
   const ST={active:{label:"활성",cls:"text-emerald-700"},inactive:{label:"비활성",cls:"text-slate-400"}};
@@ -5650,6 +5755,7 @@ function InfraMgmtView(){
               <th className="font-medium py-2.5">전압 / 전류</th>
               <th className="font-medium py-2.5">Waypoint</th>
               <th className="font-medium py-2.5">상태</th>
+              <th className="font-medium py-2.5 pr-4 w-[90px]"></th>
             </tr></thead>
             <tbody>
               {chargers.map(c=>{
@@ -5663,6 +5769,10 @@ function InfraMgmtView(){
                     <td className="py-3 text-slate-600 tnum">{c.voltage} / {c.current}</td>
                     <td className="py-3 text-slate-600 tnum">{c.waypoint}</td>
                     <td className={"py-3 font-medium "+st.cls}>{st.label}</td>
+                    <td className="py-3 pr-4 text-right whitespace-nowrap">
+                      <button onClick={()=>setMapEditConfirm({action:"edit",id:c.id})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="수정"><Icon name="Pencil" size={13}/></button>
+                      <button onClick={()=>setMapEditConfirm({action:"delete",id:c.id})} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
+                    </td>
                   </tr>
                 );
               })}
@@ -5687,6 +5797,7 @@ function InfraMgmtView(){
               <th className="font-medium py-2.5">Waypoint</th>
               <th className="font-medium py-2.5">연결</th>
               <th className="font-medium py-2.5">상태</th>
+              <th className="font-medium py-2.5 pr-4 w-[90px]"></th>
             </tr></thead>
             <tbody>
               {doors.map(d=>{
@@ -5701,11 +5812,32 @@ function InfraMgmtView(){
                     <td className="py-3 text-slate-600 tnum">{d.waypoint}</td>
                     <td className={"py-3 font-medium "+(d.connected?"text-emerald-700":"text-slate-400")}>{d.connected?"연결됨":"미연결"}</td>
                     <td className={"py-3 font-medium "+st.cls}>{st.label}</td>
+                    <td className="py-3 pr-4 text-right whitespace-nowrap">
+                      <button onClick={()=>setMapEditConfirm({action:"edit",id:d.id})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="수정"><Icon name="Pencil" size={13}/></button>
+                      <button onClick={()=>setMapEditConfirm({action:"delete",id:d.id})} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+      {mapEditConfirm&&(
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onClick={()=>setMapEditConfirm(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[360px] space-y-4" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 grid place-items-center text-blue-600 shrink-0"><Icon name="Map" size={18}/></div>
+              <div className="text-[14px] font-semibold text-slate-900">맵 에디터에서 수정</div>
+            </div>
+            <div className="text-[13px] text-slate-600 leading-relaxed">
+              충전소·자동문 정보는 <strong>맵 에디터</strong>에서 수정해야 합니다.<br/>맵 에디터로 이동하시겠어요?
+            </div>
+            <div className="flex gap-2">
+              <button onClick={()=>setMapEditConfirm(null)} className="flex-1 h-9 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
+              <button onClick={()=>{const id=mapEditConfirm.id;setMapEditConfirm(null);showToast(id+" — 맵 에디터로 이동합니다.");}} className="flex-1 h-9 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold hover:bg-blue-700">맵 에디터로 이동</button>
+            </div>
+          </div>
         </div>
       )}
       {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
@@ -6658,15 +6790,33 @@ function BasisEmptyView({ label, icon }) {
   );
 }
 
-function BasisView() {
+function BasisView({ onNav }) {
+  const cards=[
+    {id:"basis-fleet", label:"Fleet 관리",     icon:"Boxes",        desc:"Fleet 사양·버전·Action Type을 등록하고 관리합니다.", color:"#2563eb"},
+    {id:"basis-robot", label:"로봇 관리",       icon:"Bot",          desc:"개별 로봇의 Fleet·버전·초기 노드·사용 여부를 관리합니다.", color:"#0ea5e9"},
+    {id:"basis-cart",  label:"Tool Cart 관리",  icon:"ShoppingCart", desc:"Tool Cart 등록·사용/표시 여부 및 초기 위치를 관리합니다.", color:"#7c3aed"},
+    {id:"basis-map",   label:"지도 관리",        icon:"Map",          desc:"맵 레벨·노드·엣지 등 지도 정보를 관리합니다.", color:"#16a34a"},
+    {id:"basis-infra", label:"인프라 관리",      icon:"Server",       desc:"충전소·자동문 등 현장 인프라 장치를 관리합니다.", color:"#f97316"},
+    {id:"basis-alarm", label:"알람 관리",        icon:"Bell",         desc:"알람 코드별 심각도·조치 방법 문서를 관리합니다.", color:"#dc2626"},
+  ];
   return (
-    <div className="h-full flex items-center justify-center bg-slate-50">
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-white border border-slate-200 shadow-sm grid place-items-center mb-4">
-          <Icon name="Database" size={26} className="text-slate-300"/>
-        </div>
-        <div className="text-[15px] font-semibold text-slate-500">기준 정보 관리</div>
-        <div className="text-[12px] text-slate-400 mt-1.5">준비 중입니다.</div>
+    <div className="h-full overflow-auto bg-slate-50 p-5">
+      <div className="mb-5">
+        <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">기준 정보 관리</h1>
+        <p className="text-[12.5px] text-slate-500 mt-0.5">관리할 항목을 선택하세요.</p>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {cards.map(c=>(
+          <button key={c.id} onClick={()=>onNav&&onNav(c.id)}
+            className="group text-left bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition">
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <div className="w-9 h-9 rounded-lg grid place-items-center shrink-0" style={{background:c.color+"15",color:c.color}}><Icon name={c.icon} size={18}/></div>
+              <span className="text-[14px] font-bold text-slate-900">{c.label}</span>
+              <Icon name="ChevronRight" size={15} className="ml-auto text-slate-300 group-hover:text-slate-500 transition"/>
+            </div>
+            <p className="text-[12px] text-slate-500 leading-relaxed">{c.desc}</p>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -8276,8 +8426,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
             <div ref={rColRef} className="shrink-0 border-r border-slate-200 bg-slate-50/40 overflow-y-hidden" style={{width:RCOL}}>
               {visR.map(r=>{const fm=fleetMeta(r.fleet),sm=statusMap[r.status]||statusMap.idle;return(
                 <div key={r.id} className="flex items-center gap-2.5 px-3 border-b border-slate-200/70" style={{height:GANTT.rowH}}>
-                  <div className="relative w-7 h-7 rounded-md grid place-items-center" style={{background:fm.color+"18",color:fm.color}}><Icon name={r.fleet==="arm"?"Cog":"Bot"} size={14}/></div>
-                  <div className="min-w-0"><div className="text-[12.5px] font-medium text-slate-900">{r.id}</div><div className="text-[10.5px] text-slate-500 truncate">{r.task||sm.label}</div></div>
+                  <div className="min-w-0"><div className="text-[12.5px] font-medium text-slate-900">{r.id}</div></div>
                 </div>
               );})}
             </div>
@@ -8463,7 +8612,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                         {!r.locked&&<Icon name="GripVertical" size={13} className="text-slate-300 group-hover:text-slate-500 mt-1"/>}
                       </div>
                       <div className="flex items-center gap-1 mt-2.5 overflow-hidden">
-                        {r.steps.slice(0,6).map((s,i)=>{const a=actMeta(s.actionType);return(<React.Fragment key={i}><div className="w-5 h-5 rounded grid place-items-center shrink-0" style={{background:a.color+"18"}}><Icon name={a.icon} size={10} style={{color:a.color}}/></div>{i<Math.min(r.steps.length,6)-1&&<div className="w-1 h-px bg-slate-300 shrink-0"/>}</React.Fragment>);})}
+                        {r.steps.slice(0,6).map((s,i)=>{const a=actMeta(s.actionType);return(<React.Fragment key={i}><span className="text-[10px] font-medium text-slate-600 shrink-0">{a.id}</span>{i<Math.min(r.steps.length,6)-1&&<Icon name="ChevronRight" size={9} className="text-slate-300 shrink-0"/>}</React.Fragment>);})}
                         <span className="ml-auto text-[10.5px] text-slate-500 tnum">{dur}분</span>
                       </div>
                     </div>
@@ -8546,7 +8695,7 @@ function SchedulerView({ initialFocusRecipeId, pendingOrder, onMounted, onNaviga
                           </div>
                           {r&&(
                             <div className="flex items-center gap-1 mt-2.5 overflow-hidden">
-                              {r.steps.slice(0,6).map((s,si)=>{const a=actMeta(s.actionType);return(<React.Fragment key={si}><div className="w-5 h-5 rounded grid place-items-center shrink-0" style={{background:a.color+"18"}}><Icon name={a.icon} size={10} style={{color:a.color}}/></div>{si<Math.min(r.steps.length,6)-1&&<div className="w-1 h-px bg-slate-300 shrink-0"/>}</React.Fragment>);})}
+                              {r.steps.slice(0,6).map((s,si)=>{const a=actMeta(s.actionType);return(<React.Fragment key={si}><span className="text-[10px] font-medium text-slate-600 shrink-0">{a.id}</span>{si<Math.min(r.steps.length,6)-1&&<Icon name="ChevronRight" size={9} className="text-slate-300 shrink-0"/>}</React.Fragment>);})}
                               <span className="ml-auto text-[10.5px] text-slate-500 tnum">{dur}분</span>
                             </div>
                           )}
@@ -9676,7 +9825,7 @@ function App() {
           <div style={{display:active==="robot-status"?"contents":"none"}}><RobotStatusView/></div>
           <div style={{display:active==="infra-status"?"contents":"none"}}><InfraStatusView/></div>
           <div style={{display:active==="logs"?"contents":"none"}}><LogsView initCat3={logsInitCat3} onMounted={()=>setLogsInitCat3(null)}/></div>
-          <div style={{display:active==="basis"?"contents":"none"}}><BasisView/></div>
+          <div style={{display:active==="basis"?"contents":"none"}}><BasisView onNav={setActive}/></div>
           <div style={{display:active==="basis-fleet"?"contents":"none"}}><FleetMgmtView/></div>
           <div style={{display:active==="basis-robot"?"contents":"none"}}><RobotMgmtView/></div>
           <div style={{display:active==="basis-cart"?"contents":"none"}}><ToolCartView/></div>
