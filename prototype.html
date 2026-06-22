@@ -9408,16 +9408,16 @@ function LogsView({ initCat3, onMounted }) {
 ══════════════════════════════════════════ */
 const PARTNER_COMPANIES = ["YJ로보틱스","나비라","에스디테크","DS시스템","대우산업"];
 const initPartnerUsers = [
-  {id:"yj.admin",   name:"YJ관리자",  dept:"YJ로보틱스",   fleets:["amr","agv"],        role:"Admin",    joined:"2025-11-01"},
-  {id:"yj.eng1",    name:"YJ엔지니어",dept:"YJ로보틱스",   fleets:["amr"],              role:"Engineer", joined:"2025-11-15"},
-  {id:"navi.eng",   name:"나비라담당", dept:"나비라",       fleets:["agv","arm"],        role:"Engineer", joined:"2026-01-10"},
-  {id:"sd.admin",   name:"SD관리자",  dept:"에스디테크",   fleets:["arm","semi"],       role:"Admin",    joined:"2025-12-20"},
-  {id:"sd.eng",     name:"SD엔지니어",dept:"에스디테크",   fleets:["semi"],             role:"Engineer", joined:"2026-02-01"},
-  {id:"ds.eng",     name:"DS담당",    dept:"DS시스템",     fleets:["amr","agv","arm"],  role:"Engineer", joined:"2026-03-05"},
+  {id:"yj.admin",   name:"YJ관리자",  dept:"YJ로보틱스",   perms:{amr:"Admin",agv:"Engineer"},        joined:"2025-11-01"},
+  {id:"yj.eng1",    name:"YJ엔지니어",dept:"YJ로보틱스",   perms:{amr:"Engineer"},                    joined:"2025-11-15"},
+  {id:"navi.eng",   name:"나비라담당", dept:"나비라",       perms:{agv:"Engineer",arm:"Engineer"},     joined:"2026-01-10"},
+  {id:"sd.admin",   name:"SD관리자",  dept:"에스디테크",   perms:{arm:"Admin",semi:"Engineer"},       joined:"2025-12-20"},
+  {id:"sd.eng",     name:"SD엔지니어",dept:"에스디테크",   perms:{semi:"Engineer"},                   joined:"2026-02-01"},
+  {id:"ds.eng",     name:"DS담당",    dept:"DS시스템",     perms:{amr:"Engineer",agv:"Admin",arm:"Engineer"}, joined:"2026-03-05"},
 ];
 const initPartnerPending = [
-  {id:"daewoo.eng1",name:"대우엔지1", dept:"대우산업",     fleets:["amr"],              role:"Engineer", requestedAt:"2026-06-15 09:30"},
-  {id:"yj.eng2",    name:"YJ엔지2",  dept:"YJ로보틱스",   fleets:["agv","semi"],       role:"Engineer", requestedAt:"2026-06-17 14:20"},
+  {id:"daewoo.eng1",name:"대우엔지1", dept:"대우산업",     perms:{amr:"Engineer"},                requestedAt:"2026-06-15 09:30"},
+  {id:"yj.eng2",    name:"YJ엔지2",  dept:"YJ로보틱스",   perms:{agv:"Engineer",semi:"Admin"},   requestedAt:"2026-06-17 14:20"},
 ];
 
 const ROLES = ["Engineer","Admin","Master"];
@@ -9439,23 +9439,23 @@ const CURRENT_USER = { id:"samsung.kim", role:"Master" };
 const DEPTS = ["Digital Twin Center","A-FAB 기술팀","스마트팩토리팀","물류자동화팀","품질관리팀"];
 
 const initUsers = [
-  {id:"samsung.kim", name:"김삼성", dept:"Digital Twin Center", fleets:["amr","agv","arm","semi"], role:"Master",   joined:"2025-01-15"},
-  {id:"park.lee",    name:"이박",   dept:"A-FAB 기술팀",        fleets:["amr","agv"],              role:"Admin",    joined:"2025-02-20"},
-  {id:"choi.jun",    name:"전최",   dept:"스마트팩토리팀",       fleets:["agv","arm"],              role:"Admin",    joined:"2025-03-10"},
-  {id:"kim.eng1",    name:"김엔지", dept:"A-FAB 기술팀",        fleets:["amr"],                    role:"Engineer", joined:"2025-04-05"},
-  {id:"lee.eng2",    name:"이엔지", dept:"물류자동화팀",         fleets:["arm","semi"],             role:"Engineer", joined:"2025-05-01"},
-  {id:"park.eng3",   name:"박엔지", dept:"품질관리팀",           fleets:["semi"],                   role:"Engineer", joined:"2025-05-15"},
-  {id:"oh.admin",    name:"오관리", dept:"Digital Twin Center", fleets:["amr","arm"],              role:"Admin",    joined:"2025-06-01"},
-  {id:"jung.eng",    name:"정엔지", dept:"스마트팩토리팀",       fleets:["agv"],                    role:"Engineer", joined:"2025-07-10"},
-  {id:"shin.eng",    name:"신엔지", dept:"물류자동화팀",         fleets:["amr","agv","arm"],        role:"Engineer", joined:"2025-08-20"},
-  {id:"han.eng",     name:"한엔지", dept:"A-FAB 기술팀",        fleets:["semi"],                   role:"Engineer", joined:"2025-09-01"},
-  {id:"yoo.admin",   name:"유관리", dept:"품질관리팀",           fleets:["agv","semi"],             role:"Admin",    joined:"2025-10-15"},
-  {id:"lim.eng",     name:"임엔지", dept:"Digital Twin Center", fleets:["amr"],                    role:"Engineer", joined:"2025-11-01"},
+  {id:"samsung.kim", name:"김삼성", dept:"Digital Twin Center", perms:{amr:"Master",agv:"Master",arm:"Master",semi:"Master"}, joined:"2025-01-15"},
+  {id:"park.lee",    name:"이박",   dept:"A-FAB 기술팀",        perms:{amr:"Admin",agv:"Engineer"},        joined:"2025-02-20"},
+  {id:"choi.jun",    name:"전최",   dept:"스마트팩토리팀",       perms:{agv:"Admin",arm:"Engineer"},        joined:"2025-03-10"},
+  {id:"kim.eng1",    name:"김엔지", dept:"A-FAB 기술팀",        perms:{amr:"Engineer"},                    joined:"2025-04-05"},
+  {id:"lee.eng2",    name:"이엔지", dept:"물류자동화팀",         perms:{arm:"Admin",semi:"Engineer"},       joined:"2025-05-01"},
+  {id:"park.eng3",   name:"박엔지", dept:"품질관리팀",           perms:{semi:"Engineer"},                   joined:"2025-05-15"},
+  {id:"oh.admin",    name:"오관리", dept:"Digital Twin Center", perms:{amr:"Admin",arm:"Admin"},           joined:"2025-06-01"},
+  {id:"jung.eng",    name:"정엔지", dept:"스마트팩토리팀",       perms:{agv:"Engineer"},                    joined:"2025-07-10"},
+  {id:"shin.eng",    name:"신엔지", dept:"물류자동화팀",         perms:{amr:"Engineer",agv:"Admin",arm:"Engineer"}, joined:"2025-08-20"},
+  {id:"han.eng",     name:"한엔지", dept:"A-FAB 기술팀",        perms:{semi:"Engineer"},                   joined:"2025-09-01"},
+  {id:"yoo.admin",   name:"유관리", dept:"품질관리팀",           perms:{agv:"Admin",semi:"Admin"},          joined:"2025-10-15"},
+  {id:"lim.eng",     name:"임엔지", dept:"Digital Twin Center", perms:{amr:"Engineer"},                    joined:"2025-11-01"},
 ];
 const initPending = [
-  {id:"new.user1", name:"신규1", dept:"A-FAB 기술팀",        fleets:["amr"],       role:"Engineer", requestedAt:"2026-05-12 09:30"},
-  {id:"new.user2", name:"신규2", dept:"스마트팩토리팀",       fleets:["agv","arm"], role:"Admin",    requestedAt:"2026-05-13 14:22"},
-  {id:"new.user3", name:"신규3", dept:"Digital Twin Center", fleets:["amr","agv","arm","semi"], role:"Engineer", requestedAt:"2026-05-14 10:05"},
+  {id:"new.user1", name:"신규1", dept:"A-FAB 기술팀",        perms:{amr:"Engineer"},                       requestedAt:"2026-05-12 09:30"},
+  {id:"new.user2", name:"신규2", dept:"스마트팩토리팀",       perms:{agv:"Admin",arm:"Engineer"},           requestedAt:"2026-05-13 14:22"},
+  {id:"new.user3", name:"신규3", dept:"Digital Twin Center", perms:{amr:"Engineer",agv:"Engineer",arm:"Admin",semi:"Engineer"}, requestedAt:"2026-05-14 10:05"},
 ];
 
 function PermissionsView({ mode="employee", initialTab="list", approvalOnly=false }) {
@@ -9477,8 +9477,8 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
   function showToast(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),2500);}
 
   const filtered = users.filter(u=>{
-    if(fleetF.size>0 && !u.fleets.some(f=>fleetF.has(f))) return false;
-    if(roleF.size>0 && !roleF.has(u.role)) return false;
+    if(fleetF.size>0 && !Object.keys(u.perms||{}).some(f=>fleetF.has(f))) return false;
+    if(roleF.size>0 && !Object.values(u.perms||{}).some(r=>roleF.has(r))) return false;
     if(deptF.size>0 && !deptF.has(u.dept)) return false;
     if(q && !u.id.toLowerCase().includes(q.toLowerCase()) &&
            !u.name.includes(q) &&
@@ -9497,13 +9497,13 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
     showToast("사용자 권한이 삭제되었습니다.");
   }
   function handleApprove(p){
-    setUsers(prev=>[...prev,{id:p.id,name:p.name,dept:p.dept,fleets:p.fleets,role:p.role,joined:new Date().toISOString().slice(0,10)}]);
+    setUsers(prev=>[...prev,{id:p.id,name:p.name,dept:p.dept,perms:p.perms,joined:new Date().toISOString().slice(0,10)}]);
     setPending(prev=>prev.filter(x=>x.id!==p.id));
     showToast(`${p.id} 승인 완료`);
   }
   function handleReject(id){setPending(prev=>prev.filter(x=>x.id!==id));showToast("승인 요청이 거절되었습니다.","warn");}
-  function handleEditSave(userId,newRole,newFleets,newDept){
-    setUsers(p=>p.map(u=>u.id===userId?{...u,role:newRole,fleets:newFleets,dept:newDept}:u));
+  function handleEditSave(userId,newPerms,newDept){
+    setUsers(p=>p.map(u=>u.id===userId?{...u,perms:newPerms,dept:newDept}:u));
     setEditUser(null);
     showToast("권한이 수정되었습니다.");
   }
@@ -9511,6 +9511,24 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
   const fleetBadge = (fId) => {
     const f = fleets.find(fl=>fl.id===fId);
     return f ? <span key={fId} className="inline-flex items-center gap-1 px-1.5 py-px rounded text-[10px] font-semibold" style={{background:f.color+"20",color:f.color}}>{f.name}</span> : null;
+  };
+  // fleet + 권한 칩 (예: Ride · Engineer)
+  const permBadge = (fId, role) => {
+    const f = fleets.find(fl=>fl.id===fId);
+    if(!f) return null;
+    return (
+      <span key={fId} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-semibold border" style={{background:f.color+"12",borderColor:f.color+"40",color:f.color}}>
+        <span className="w-1.5 h-1.5 rounded-full" style={{background:f.color}}/>{f.name}
+        <span className="text-slate-400">·</span>
+        <span className="text-slate-700">{role}</span>
+      </span>
+    );
+  };
+  // 사용자의 최고 권한 (요약 표시용)
+  const topRole = (perms) => {
+    const vals = Object.values(perms||{});
+    if(vals.length===0) return null;
+    return ROLES.reduce((acc,r)=> vals.includes(r)?r:acc, vals[0]);
   };
 
   return (
@@ -9522,7 +9540,7 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
           <p className="text-[12.5px] text-slate-500 mt-0.5">{approvalOnly?"사용자 권한 신청에 대한 승인/거절 이력을 관리합니다.":(isPartner?"협력사 사용자 접근 권한을 관리합니다.":"Fleet 별 사용자 접근 권한을 관리합니다.")+" Admin 이상 권한 소유자만 수정 가능합니다."}</p>
         </div>
         {!approvalOnly&&canEdit&&(
-          <button onClick={()=>setAddUser({id:"",role:"Engineer",service:SERVICE_OPTS[0].id,fleets:[],dept:isPartner?"협력사":"",perms:[]})}
+          <button onClick={()=>setAddUser({id:"",dept:isPartner?"":"",perms:{}})}
             className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm">
             <Icon name="Plus" size={15}/> 사용자 생성
           </button>
@@ -9609,26 +9627,24 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                   <td className="py-3 text-[11.5px] text-slate-600">{u.dept}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap gap-1">
-                      {u.fleets.length===fleets.length
-                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-medium"><Icon name="Globe" size={10}/> 전체</span>
-                        : u.fleets.map(fId=>fleetBadge(fId))
-                      }
+                      {Object.entries(u.perms||{}).map(([fId,role])=>permBadge(fId,role))}
                     </div>
                   </td>
                   <td className="py-3">
-                    <span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold "+ROLE_COLOR[u.role]}>
-                      {u.role==="Master"&&<Icon name="Crown" size={10}/>}
-                      {u.role==="Admin"&&<Icon name="ShieldCheck" size={10}/>}
-                      {u.role==="Engineer"&&<Icon name="Wrench" size={10}/>}
-                      {u.role}
-                    </span>
+                    {(()=>{const tr=topRole(u.perms);return tr?(
+                    <span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold "+ROLE_COLOR[tr]}>
+                      {tr==="Master"&&<Icon name="Crown" size={10}/>}
+                      {tr==="Admin"&&<Icon name="ShieldCheck" size={10}/>}
+                      {tr==="Engineer"&&<Icon name="Wrench" size={10}/>}
+                      {tr}
+                    </span>):<span className="text-slate-300 text-[11px]">—</span>;})()}
                   </td>
                   <td className="py-3 tnum text-[11.5px] text-slate-500">{u.joined}</td>
                   {canEdit&&(
                     <td className="py-3 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
                         {u.id!==CURRENT_USER.id&&<>
-                          <button onClick={()=>setEditUser({...u,fleets:[...u.fleets]})} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-[11px] font-medium text-slate-600 hover:text-blue-700 flex items-center gap-1">
+                          <button onClick={()=>setEditUser({...u,perms:{...(u.perms||{})}})} className="h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-[11px] font-medium text-slate-600 hover:text-blue-700 flex items-center gap-1">
                             <Icon name="Pencil" size={11}/> 수정
                           </button>
                           <button onClick={()=>handleDelete(u.id)} className="h-7 px-2 rounded border border-rose-200 bg-white hover:bg-rose-50 text-[11px] font-medium text-rose-500 hover:text-rose-700 flex items-center gap-1">
@@ -9687,13 +9703,10 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                     <td className="py-3 text-[11.5px] text-slate-600">{p.dept}</td>
                     <td className="py-3">
                       <div className="flex flex-wrap gap-1">
-                        {p.fleets.length===fleets.length
-                          ?<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px]"><Icon name="Globe" size={10}/> 전체</span>
-                          :p.fleets.map(fId=>fleetBadge(fId))
-                        }
+                        {Object.entries(p.perms||{}).map(([fId,role])=>permBadge(fId,role))}
                       </div>
                     </td>
-                    <td className="py-3"><span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold "+ROLE_COLOR[p.role]}>{p.role}</span></td>
+                    <td className="py-3">{(()=>{const tr=topRole(p.perms);return tr?<span className={"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11.5px] font-semibold "+ROLE_COLOR[tr]}>{tr}</span>:<span className="text-slate-300 text-[11px]">—</span>;})()}</td>
                     <td className="py-3 tnum text-[11.5px] text-slate-500">{p.requestedAt}</td>
                     <td className="py-3 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -9735,55 +9748,44 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                   <Icon name="ChevronDown" size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
                 </div>
               </div>
-              {/* Fleet 권한 {"—"} 다중 선택 */}
+              {/* 서비스(Fleet)별 권한 */}
               <div>
-                <div className="text-[11px] font-medium text-slate-500 mb-1.5 flex items-center justify-between">
-                  <span>Fleet 접근 권한</span>
-                  <button onClick={()=>setEditUser({...editUser,fleets:editUser.fleets.length===fleets.length?[]:fleets.map(f=>f.id)})}
-                    className="text-[10.5px] text-blue-600 hover:text-blue-800">
-                    {editUser.fleets.length===fleets.length?"전체 해제":"전체 선택"}
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스(Fleet)별 권한</div>
+                <div className="space-y-1.5">
                   {fleets.map(f=>{
-                    const on=editUser.fleets.includes(f.id);
+                    const cur=editUser.perms[f.id]||null;
                     return (
-                      <button key={f.id} onClick={()=>{
-                        const next=on?editUser.fleets.filter(x=>x!==f.id):[...editUser.fleets,f.id];
-                        setEditUser({...editUser,fleets:next});
-                      }}
-                      className={"h-9 rounded-lg border-2 flex items-center gap-2 px-3 transition "+(on?"border-current":"border-slate-200 hover:border-slate-300")}
-                      style={on?{background:f.color+"15",borderColor:f.color,color:f.color}:{color:"#64748b"}}>
-                        
-                        <span className="text-[12px] font-medium">{f.name}</span>
-                        {on&&<Icon name="Check" size={11} className="ml-auto"/>}
-                      </button>
+                      <div key={f.id} className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11.5px] font-semibold w-[130px] shrink-0" style={{color:f.color}}>
+                          <span className="w-2 h-2 rounded-full" style={{background:f.color}}/>{f.name}
+                        </span>
+                        <div className="flex gap-1 flex-1">
+                          {["미부여",...ROLES].map(opt=>{
+                            const sel = opt==="미부여" ? !cur : cur===opt;
+                            return (
+                              <button key={opt} onClick={()=>{
+                                const next={...editUser.perms};
+                                if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
+                                setEditUser({...editUser,perms:next});
+                              }}
+                              className={"flex-1 h-8 rounded-md border text-[11px] font-medium transition "+
+                                (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
-              </div>
-              {/* 권한 등급 */}
-              <div>
-                <div className="text-[11px] font-medium text-slate-500 mb-1.5">권한 등급</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {ROLES.map(r=>(
-                    <button key={r} onClick={()=>setEditUser({...editUser,role:r})}
-                      className={"h-10 rounded-lg border-2 text-[12.5px] font-semibold transition flex flex-col items-center justify-center gap-0.5 "+
-                        (editUser.role===r?ROLE_COLOR[r]+" border-current":"border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50")}>
-                      {r==="Master"&&<Icon name="Crown" size={12}/>}
-                      {r==="Admin"&&<Icon name="ShieldCheck" size={12}/>}
-                      {r==="Engineer"&&<Icon name="Wrench" size={12}/>}
-                      {r}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> Engineer &lt; Admin &lt; Master 순으로 권한이 높아집니다.</div>
+                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 서비스마다 다른 권한을 부여할 수 있습니다. (예: Ride는 Engineer, Tool은 Admin)</div>
               </div>
             </div>
             <div className="h-14 px-5 border-t border-slate-200 bg-slate-50/50 flex items-center gap-2">
               <button onClick={()=>setEditUser(null)} className="ml-auto h-9 px-3.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-700">취소</button>
-              <button onClick={()=>handleEditSave(editUser.id,editUser.role,editUser.fleets,editUser.dept)}
-                disabled={editUser.fleets.length===0}
+              <button onClick={()=>handleEditSave(editUser.id,editUser.perms,editUser.dept)}
+                disabled={Object.keys(editUser.perms||{}).length===0}
                 className="h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-[12.5px] font-medium flex items-center gap-1.5">
                 <Icon name="Check" size={13}/> 저장
               </button>
@@ -9795,7 +9797,7 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
       {/* 사용자 추가 모달 */}
       {addUser&&(
         <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onClick={()=>setAddUser(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-[440px] max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[460px] max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-blue-50 grid place-items-center text-blue-600"><Icon name="UserPlus" size={18}/></div>
               <div>
@@ -9811,28 +9813,52 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                 {users.some(u=>u.id===addUser.id.trim())&&addUser.id.trim()&&<div className="text-[11px] text-rose-500 mt-1">이미 존재하는 사용자 ID입니다.</div>}
               </div>
               <div>
-                <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스 유형</div>
-                <select value={addUser.service} onChange={e=>{const sid=e.target.value;setAddUser({...addUser,service:sid,role:serviceRoles(sid)[0]});}}
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">{isPartner?"협력사":"부서"}</div>
+                <select value={addUser.dept} onChange={e=>setAddUser({...addUser,dept:e.target.value})}
                   className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 bg-white outline-none focus:border-blue-400">
-                  {SERVICE_OPTS.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
+                  <option value="">선택하세요</option>
+                  {(isPartner?PARTNER_COMPANIES:DEPTS).map(d=><option key={d} value={d}>{d}</option>)}
                 </select>
-                <div className="text-[10.5px] text-slate-400 mt-1">서비스 유형에 따라 선택 가능한 권한이 달라집니다.</div>
               </div>
               <div>
-                <div className="text-[11px] font-medium text-slate-500 mb-1.5">권한</div>
-                <select value={addUser.role} onChange={e=>setAddUser({...addUser,role:e.target.value})}
-                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 bg-white outline-none focus:border-blue-400">
-                  {serviceRoles(addUser.service).map(r=><option key={r} value={r}>{r}</option>)}
-                </select>
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스(Fleet)별 권한</div>
+                <div className="space-y-1.5">
+                  {fleets.map(f=>{
+                    const cur=addUser.perms[f.id]||null;
+                    return (
+                      <div key={f.id} className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11.5px] font-semibold w-[130px] shrink-0" style={{color:f.color}}>
+                          <span className="w-2 h-2 rounded-full" style={{background:f.color}}/>{f.name}
+                        </span>
+                        <div className="flex gap-1 flex-1">
+                          {["미부여",...ROLES].map(opt=>{
+                            const sel = opt==="미부여" ? !cur : cur===opt;
+                            return (
+                              <button key={opt} onClick={()=>{
+                                const next={...addUser.perms};
+                                if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
+                                setAddUser({...addUser,perms:next});
+                              }}
+                              className={"flex-1 h-8 rounded-md border text-[11px] font-medium transition "+
+                                (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 서비스마다 다른 권한을 부여할 수 있습니다. 최소 1개 서비스에 권한이 필요합니다.</div>
               </div>
             </div>
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
               <button onClick={()=>setAddUser(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
-              <button disabled={!addUser.id.trim()||users.some(u=>u.id===addUser.id.trim())}
+              <button disabled={!addUser.id.trim()||users.some(u=>u.id===addUser.id.trim())||Object.keys(addUser.perms).length===0}
                 onClick={()=>{
-                  const svc=SERVICE_OPTS.find(s=>s.id===addUser.service);
-                  setUsers(p=>[...p,{id:addUser.id.trim(),name:addUser.id.trim(),dept:addUser.dept||(isPartner?"협력사":"-"),fleets:[],role:addUser.role,service:addUser.service,joined:new Date().toISOString().slice(0,10)}]);
-                  showToast(addUser.id.trim()+" 사용자가 생성되었습니다. (서비스: "+(svc?svc.label:addUser.service)+")");
+                  setUsers(p=>[...p,{id:addUser.id.trim(),name:addUser.id.trim(),dept:addUser.dept||(isPartner?"협력사":"-"),perms:addUser.perms,joined:new Date().toISOString().slice(0,10)}]);
+                  showToast(addUser.id.trim()+" 사용자가 생성되었습니다.");
                   setAddUser(null);
                 }}
                 className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-[12.5px] font-bold flex items-center gap-1.5">
