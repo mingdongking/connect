@@ -5042,12 +5042,13 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
 }
 
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 \uae30\uc900\uc815\ubcf4: Fleet \uad00\ub9ac \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const FLEET_SPEC_DEFAULT={mass:400,linAccel:0.75,angSpeed:0.6,angAccel:2.0,vicinity:1.2,reversible:false,maxDelay:30,voltage:54,capacity:52,chargingCurrent:25,rechargeThreshold:40,rechargeSoc:70,capLoop:true,capDelivery:true,capClean:false,parkingResv:true};
 const initFleetRegistry=[
-  {name:"Delivery-Tool",  version:"v2.4", w:900,  d:650, h:1200, maxSpeed:1.5, turnRadius:0.6, maker:"OMRON"},
-  {name:"Ride",           version:"v1.8", w:1200, d:800, h:300,  maxSpeed:2.0, turnRadius:1.2, maker:"MiR"},
-  {name:"Delivery-Parts", version:"v3.1", w:700,  d:500, h:1500, maxSpeed:1.2, turnRadius:0.5, maker:"Doosan Robotics"},
-  {name:"SEMI-x",         version:"v2.0", w:850,  d:600, h:1100, maxSpeed:1.0, turnRadius:0.7, maker:"Hyundai Robotics"},
-  {name:"PM Bot",         version:"v1.2", w:600,  d:450, h:900,  maxSpeed:0.8, turnRadius:0.4, maker:"LG CNS"},
+  {name:"Delivery-Tool",  version:"v2.4", w:900,  d:650, h:1200, maxSpeed:1.5, turnRadius:0.6, maker:"OMRON",            ...FLEET_SPEC_DEFAULT},
+  {name:"Ride",           version:"v1.8", w:1200, d:800, h:300,  maxSpeed:2.0, turnRadius:1.2, maker:"MiR",              ...FLEET_SPEC_DEFAULT, reversible:true},
+  {name:"Delivery-Parts", version:"v3.1", w:700,  d:500, h:1500, maxSpeed:1.2, turnRadius:0.5, maker:"Doosan Robotics",  ...FLEET_SPEC_DEFAULT},
+  {name:"SEMI-x",         version:"v2.0", w:850,  d:600, h:1100, maxSpeed:1.0, turnRadius:0.7, maker:"Hyundai Robotics", ...FLEET_SPEC_DEFAULT},
+  {name:"PM Bot",         version:"v1.2", w:600,  d:450, h:900,  maxSpeed:0.8, turnRadius:0.4, maker:"LG CNS",           ...FLEET_SPEC_DEFAULT},
 ];
 
 
@@ -5055,68 +5056,91 @@ function FleetMgmtView() {
   const [list,setList]=useState(initFleetRegistry);
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
+  const [copyTarget,setCopyTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
+  const [actTarget,setActTarget]=useState(null);
+  const [,forceBump]=useState(0);
+  const bump=()=>forceBump(v=>v+1);
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
+
+  // Fleet명 → fleet id 매핑 (Action Type 조회용)
+  const nameToFleetId=(name)=>{const f=fleets.find(f=>f.name===name);return f?f.id:null;};
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">Fleet \uad00\ub9ac</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet \uc0ac\uc591 \ub4f1\ub85d\u00b7\ud3b8\uc9d1\u00b7\uc0ad\uc81c\ub97c \uad00\ub9ac\ud569\ub2c8\ub2e4.</p>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">Fleet 관리</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet 사양 등록·복사·편집·삭제 및 Action Type을 관리합니다.</p>
         </div>
         <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
-          <Icon name="Plus" size={14}/> \ub4f1\ub85d
+          <Icon name="Plus" size={14}/> 등록
         </button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="h-11 px-4 border-b border-slate-200 flex items-center gap-2">
           <Icon name="Boxes" size={14} className="text-slate-500"/>
-          <span className="text-[13px] font-semibold text-slate-900">Fleet \ubaa9\ub85d</span>
-          <span className="text-[11px] text-slate-400 tnum">{list.length}\uac1c</span>
+          <span className="text-[13px] font-semibold text-slate-900">Fleet 목록</span>
+          <span className="text-[11px] text-slate-400 tnum">{list.length}개</span>
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">Fleet \uba85</th>
-            <th className="font-medium py-2.5">\ubc84\uc804</th>
-            <th className="font-medium py-2.5">HW \uc0ac\uc774\uc988 (\uac00\ub85c\u00d7\uc138\ub85c\u00d7\ub192\uc774)</th>
-            <th className="font-medium py-2.5 text-right">\ucd5c\ub300\uc18d\ub3c4</th>
-            <th className="font-medium py-2.5 text-right">\ud68c\uc804\ubc18\uacbd</th>
-            <th className="font-medium py-2.5 pl-5">\uc81c\uc870\uc0ac</th>
-            <th className="font-medium py-2.5 pr-4 text-right w-[80px]">\uad00\ub9ac</th>
+            <th className="font-medium px-4 py-2.5">Fleet 명</th>
+            <th className="font-medium py-2.5">버전</th>
+            <th className="font-medium py-2.5">HW 사이즈 (가로×세로×높이)</th>
+            <th className="font-medium py-2.5 text-right">최대속도</th>
+            <th className="font-medium py-2.5 text-right">회전반경</th>
+            <th className="font-medium py-2.5 pl-5">제조사</th>
+            <th className="font-medium py-2.5 pl-5">Action Type</th>
+            <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
-            {list.length===0&&<tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">\ub4f1\ub85d\ub41c Fleet\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.</td></tr>}
-            {list.map(f=>(
-              <tr key={f.name} className="border-b border-slate-100 hover:bg-slate-50/60">
-                <td className="px-4 py-3"><span className="font-semibold text-slate-900">{f.name}</span></td>
-                <td className="py-3 tnum text-slate-600">{f.version}</td>
-                <td className="py-3 tnum text-slate-600">{f.w} \u00d7 {f.d} \u00d7 {f.h} <span className="text-[10.5px] text-slate-400">mm</span></td>
-                <td className="py-3 tnum text-slate-600 text-right">{f.maxSpeed} <span className="text-[10.5px] text-slate-400">m/s</span></td>
-                <td className="py-3 tnum text-slate-600 text-right">{f.turnRadius} <span className="text-[10.5px] text-slate-400">m</span></td>
-                <td className="py-3 pl-5 text-slate-600">{f.maker}</td>
-                <td className="py-3 pr-4 text-right">
-                  <button onClick={()=>setEditTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="\ud3b8\uc9d1"><Icon name="Pencil" size={13}/></button>
-                  <button onClick={()=>setDelTarget(f)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="\uc0ad\uc81c"><Icon name="Trash2" size={13}/></button>
-                </td>
-              </tr>
-            ))}
+            {list.length===0&&<tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
+            {list.map((f,idx)=>{
+              const fid=nameToFleetId(f.name);
+              const acts=fid?actionTypes.filter(a=>a.fleets.includes(fid)):[];
+              return(
+                <tr key={f.name+f.version+idx} className="border-b border-slate-100 hover:bg-slate-50/60">
+                  <td className="px-4 py-3"><span className="font-semibold text-slate-900">{f.name}</span></td>
+                  <td className="py-3 tnum text-slate-600">{f.version}</td>
+                  <td className="py-3 tnum text-slate-600">{f.w} × {f.d} × {f.h} <span className="text-[10.5px] text-slate-400">mm</span></td>
+                  <td className="py-3 tnum text-slate-600 text-right">{f.maxSpeed} <span className="text-[10.5px] text-slate-400">m/s</span></td>
+                  <td className="py-3 tnum text-slate-600 text-right">{f.turnRadius} <span className="text-[10.5px] text-slate-400">m</span></td>
+                  <td className="py-3 pl-5 text-slate-600">{f.maker}</td>
+                  <td className="py-3 pl-5">
+                    <button onClick={()=>fid&&setActTarget({name:f.name,fid})} title="클릭 → Action Type 관리 (Fleet 공통)"
+                      className="text-[11.5px] text-slate-700 hover:text-blue-600 text-left transition">
+                      {acts.length===0
+                        ? <span className="text-slate-400 underline decoration-dotted">액션 추가</span>
+                        : acts.map(a=>a.id).slice(0,3).join(", ")+(acts.length>3?" 외 "+(acts.length-3)+"개":"")}
+                    </button>
+                  </td>
+                  <td className="py-3 pr-4 text-right whitespace-nowrap">
+                    <button onClick={()=>setCopyTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-emerald-600 inline-grid place-items-center" title="복사 (다른 버전으로 추가)"><Icon name="Copy" size={13}/></button>
+                    <button onClick={()=>setEditTarget({...f})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
+                    <button onClick={()=>setDelTarget(f)} className="w-7 h-7 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 inline-grid place-items-center" title="삭제"><Icon name="Trash2" size={13}/></button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {addOpen&&<FleetFormModal title="Fleet \ub4f1\ub85d" onClose={()=>setAddOpen(false)} existing={list}
-        onSave={(f)=>{setList(ls=>[...ls,f]);setAddOpen(false);showToast(f.name+" \ub4f1\ub85d\ub428");}}/>}
-      {editTarget&&<FleetFormModal title={"Fleet \ud3b8\uc9d1 \u2014 "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
-        onSave={(f)=>{setList(ls=>ls.map(x=>x.name===f.name?f:x));setEditTarget(null);showToast(f.name+" \uc218\uc815\ub428");}}/>}
-      {delTarget&&<MgmtDeleteModal label={delTarget.name} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>x.name!==delTarget.name));showToast(delTarget.name+" \uc0ad\uc81c\ub428");setDelTarget(null);}}/>}
+      {addOpen&&<FleetFormModal title="Fleet 등록" onClose={()=>setAddOpen(false)} existing={list}
+        onSave={(f)=>{setList(ls=>{const i=ls.findIndex(x=>x.name===f.name&&x.version===f.version);if(i>=0){const n=[...ls];n[i]=f;return n;}return [...ls,f];});setAddOpen(false);showToast(f.name+" "+f.version+" 등록됨");}}/>}
+      {copyTarget&&<FleetFormModal title={"Fleet 복사 — "+copyTarget.name} init={{...copyTarget,version:""}} onClose={()=>setCopyTarget(null)} existing={list}
+        onSave={(f)=>{setList(ls=>{const i=ls.findIndex(x=>x.name===f.name&&x.version===f.version);if(i>=0){const n=[...ls];n[i]=f;return n;}return [...ls,f];});setCopyTarget(null);showToast(f.name+" "+f.version+" 버전으로 복사됨");}}/>}
+      {editTarget&&<FleetFormModal title={"Fleet 편집 — "+editTarget.name} init={editTarget} lockName onClose={()=>setEditTarget(null)} existing={list}
+        onSave={(f)=>{setList(ls=>ls.map(x=>(x.name===editTarget.name&&x.version===editTarget.version)?f:x));setEditTarget(null);showToast(f.name+" 수정됨");}}/>}
+      {actTarget&&<FleetActionModal fleetRow={{name:actTarget.name}} fleetId={actTarget.fid} onClose={()=>setActTarget(null)} bump={bump} showToast={showToast}/>}
+      {delTarget&&<MgmtDeleteModal label={delTarget.name+" "+delTarget.version} onClose={()=>setDelTarget(null)} onConfirm={()=>{setList(ls=>ls.filter(x=>!(x.name===delTarget.name&&x.version===delTarget.version)));showToast(delTarget.name+" 삭제됨");setDelTarget(null);}}/>}
       {toast&&<div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-[12.5px] px-4 py-2.5 rounded-lg shadow-lg">{toast}</div>}
     </div>
   );
 }
-
 
 function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
   const [confirmOverwrite,setConfirmOverwrite]=useState(null);
