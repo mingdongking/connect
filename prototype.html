@@ -324,7 +324,7 @@ const initOrders = [
   {id:"ord-008",robotId:"Tool003",recipeId:"rcp-01",start:11*60+30,status:"queued"},
   {id:"ord-009",robotId:"Tool004",recipeId:"rcp-03",start:7*60+45, status:"running"},
   {id:"ord-010",robotId:"Ride001",recipeId:"rcp-05",start:9*60,    status:"done", end:9*60+33},
-  {id:"ord-011",robotId:"Ride001",recipeId:"rcp-05",start:10*60+50,status:"running"},
+  {id:"ord-011",robotId:"Ride001",recipeId:"rcp-transport",start:10*60+50,status:"running"},
   {id:"ord-012",robotId:"Tool005",recipeId:"rcp-05",start:8*60+20, status:"error"},
   {id:"ord-013",robotId:"Part001",recipeId:"rcp-04",start:8*60+30, status:"done", end:9*60+6},
   {id:"ord-014",robotId:"Part001",recipeId:"rcp-04",start:10*60,   status:"running"},
@@ -3562,7 +3562,7 @@ function InfraStatusView() {
               <th className="font-medium py-2.5 pr-4">마지막 이벤트</th>
             </tr></thead>
             <tbody>
-              {doors.map(d=>{
+              {dSort.sortRows(doors,{floor:d=>parseInt(d.floor),connected:d=>d.connected?1:0}).map(d=>{
                 const st=doorStatus[d.status];
                 return(
                   <tr key={d.id} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(d.status==="manual"?"bg-amber-50/20":"")}>
@@ -3574,6 +3574,7 @@ function InfraStatusView() {
                       </span>
                     </td>
                     <td className="py-3 text-slate-700">{d.location}</td>
+                    <td className="py-3 text-slate-600">{d.floor}층</td>
                     <td className="py-3 pr-4 tnum text-[11.5px] text-slate-500">{d.lastEvent}</td>
                   </tr>
                 );
@@ -4845,6 +4846,34 @@ function MgmtField({label,children}){
 }
 const mgmtSelCls="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 bg-white outline-none focus:border-blue-400";
 const mgmtInpCls="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 outline-none focus:border-blue-400";
+/* ── 기준정보 테이블 공통 정렬 ── */
+function useTableSort(defaultKey){
+  const [sortBy,setSortBy]=useState(defaultKey||null);
+  const [sortDir,setSortDir]=useState("asc");
+  const onSort=(key)=>{ if(sortBy===key) setSortDir(d=>d==="asc"?"desc":"asc"); else { setSortBy(key); setSortDir("asc"); } };
+  const sortRows=(rows,accessors)=>{
+    if(!sortBy) return rows;
+    const get=accessors&&accessors[sortBy] ? accessors[sortBy] : (r=>r[sortBy]);
+    return [...rows].sort((a,b)=>{
+      const va=get(a), vb=get(b);
+      let v;
+      if(typeof va==="number"&&typeof vb==="number") v=va-vb;
+      else v=String(va==null?"":va).localeCompare(String(vb==null?"":vb),"ko",{numeric:true});
+      return sortDir==="asc"?v:-v;
+    });
+  };
+  return { sortBy, sortDir, onSort, sortRows };
+}
+function SortTh({label,k,sort,className}){
+  const active=sort.sortBy===k;
+  return(
+    <th className={"font-medium py-2.5 "+(className||"")}>
+      <button onClick={()=>sort.onSort(k)} className={"inline-flex items-center gap-0.5 hover:text-slate-700 transition "+(active?"text-blue-600 font-semibold":"")}>
+        {label}<Icon name={active?(sort.sortDir==="asc"?"ChevronUp":"ChevronDown"):"ChevronsUpDown"} size={11} className={active?"":"text-slate-300"}/>
+      </button>
+    </th>
+  );
+}
 function MgmtDeleteModal({label,onClose,onConfirm}){
   return(
     <MgmtModal title="삭제 확인" icon="Trash2" onClose={onClose}
@@ -4860,6 +4889,7 @@ function MgmtDeleteModal({label,onClose,onConfirm}){
 
 function ToolCartView() {
   const [carts,setCarts]=useState(initCarts);
+  const sort=useTableSort("id");
   const [q,setQ]=useState("");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
@@ -4868,7 +4898,10 @@ function ToolCartView() {
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
 
-  const filtered=carts.filter(c=>!q||c.id.toLowerCase().includes(q.toLowerCase())||c.partName.toLowerCase().includes(q.toLowerCase())||c.teamDiv.includes(q));
+  const filtered=sort.sortRows(
+    carts.filter(c=>!q||c.id.toLowerCase().includes(q.toLowerCase())||c.partName.toLowerCase().includes(q.toLowerCase())||c.teamDiv.includes(q)),
+    {floor:c=>parseInt(c.floor), inUse:c=>c.inUse?1:0, visible:c=>c.visible?1:0}
+  );
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
@@ -4894,14 +4927,15 @@ function ToolCartView() {
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">Cart ID</th>
-            <th className="font-medium py-2.5">분임조</th>
-            <th className="font-medium py-2.5">부품 이름</th>
-            <th className="font-medium py-2.5">사용여부</th>
-            <th className="font-medium py-2.5">생성일시</th>
-            <th className="font-medium py-2.5">활성화 일시</th>
-            <th className="font-medium py-2.5">표시여부</th>
-            <th className="font-medium py-2.5">Fleet</th>
+            <SortTh label="Cart ID" k="id" sort={sort} className="px-4"/>
+            <SortTh label="분임조" k="teamDiv" sort={sort}/>
+            <SortTh label="층 정보" k="floor" sort={sort}/>
+            <SortTh label="부품 이름" k="partName" sort={sort}/>
+            <SortTh label="사용여부" k="inUse" sort={sort}/>
+            <SortTh label="생성일시" k="createdAt" sort={sort}/>
+            <SortTh label="활성화 일시" k="activatedAt" sort={sort}/>
+            <SortTh label="표시여부" k="visible" sort={sort}/>
+            <SortTh label="Fleet" k="fleet" sort={sort}/>
             <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
@@ -4910,6 +4944,7 @@ function ToolCartView() {
               <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/60">
                 <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{c.id}</span></td>
                 <td className="py-3 text-slate-600">{c.teamDiv}</td>
+                <td className="py-3 text-slate-600">{c.floor}층</td>
                 <td className="py-3 text-slate-700 font-medium">{c.partName}</td>
                 <td className={"py-3 font-medium "+(c.inUse?"text-emerald-700":"text-slate-400")}>{c.inUse?"사용":"미사용"}</td>
                 <td className="py-3 tnum text-[11.5px] text-slate-500">{c.createdAt}</td>
@@ -5007,11 +5042,6 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
           {CART_CATEGORY_OPTS.map(c=><option key={c.id} value={c.id}>{c.label} → Fleet: {c.fleet}</option>)}
         </select>
       </MgmtField>
-      <MgmtField label="초기 노드 설정">
-        <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
-          {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} · {n.label}</option>)}
-        </select>
-      </MgmtField>
       <div className="grid grid-cols-2 gap-3">
         <MgmtField label="사용 여부">
           <MgmtToggle on={inUse} onClick={()=>setInUse(v=>!v)}/>
@@ -5025,12 +5055,13 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
 }
 
 const initRobotRegistry = robots.map((r,i)=>({
-  id:r.id, fleet:r.fleet, version:"v"+(2+(i%2))+"."+(i%5), inUse:true, initNode:mapNodes[i%mapNodes.length].id,
+  id:r.id, fleet:r.fleet, version:"v"+(2+(i%2))+"."+(i%5), inUse:true, floor:["3","5","7"][i%3], initNode:mapNodes[i%mapNodes.length].id,
 }));
 
 function RobotMgmtView() {
   const [list,setList]=useState(initRobotRegistry);
   const [q,setQ]=useState("");
+  const sort=useTableSort("id");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
@@ -5052,7 +5083,10 @@ function RobotMgmtView() {
   };
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
-  const filtered=list.filter(r=>!q||r.id.toLowerCase().includes(q.toLowerCase()));
+  const filtered=sort.sortRows(
+    list.filter(r=>!q||r.id.toLowerCase().includes(q.toLowerCase())),
+    {fleet:r=>fleetMeta(r.fleet).name, floor:r=>parseInt(r.floor), inUse:r=>r.inUse?1:0}
+  );
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
@@ -5078,25 +5112,24 @@ function RobotMgmtView() {
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">로봇 ID</th>
-            <th className="font-medium py-2.5">Fleet 종류</th>
-            <th className="font-medium py-2.5">버전</th>
-            <th className="font-medium py-2.5">사용여부</th>
-            <th className="font-medium py-2.5">초기 노드</th>
+            <SortTh label="로봇 ID" k="id" sort={sort} className="px-4"/>
+            <SortTh label="Fleet 종류" k="fleet" sort={sort}/>
+            <SortTh label="층 정보" k="floor" sort={sort}/>
+            <SortTh label="버전" k="version" sort={sort}/>
+            <SortTh label="사용여부" k="inUse" sort={sort}/>
             <th className="font-medium py-2.5 pr-4 w-[80px]"></th>
           </tr></thead>
           <tbody>
             {filtered.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">표시할 로봇이 없습니다.</td></tr>}
             {filtered.map(r=>{
               const fm=fleetMeta(r.fleet);
-              const node=mapNodes.find(n=>n.id===r.initNode);
               return(
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
                   <td className="px-4 py-3"><span className="font-semibold text-slate-900 tnum">{r.id}</span></td>
                   <td className="py-3 text-[11.5px] text-slate-700">{fm.name}</td>
+                  <td className="py-3 text-slate-600">{r.floor}층</td>
                   <td className="py-3 tnum text-slate-600">{r.version}</td>
                   <td className={"py-3 font-medium "+(r.inUse?"text-emerald-700":"text-slate-400")}>{r.inUse?"사용":"미사용"}</td>
-                  <td className="py-3 text-[11.5px] text-slate-600">{r.initNode}{node?` · ${node.label}`:""}</td>
                   <td className="py-3 pr-4 text-right whitespace-nowrap">
                     <button onClick={()=>handleCopy(r)} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-emerald-600 inline-grid place-items-center" title="복사 (다음 번호로 추가)"><Icon name="Copy" size={13}/></button>
                     <button onClick={()=>setEditTarget({...r})} className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 inline-grid place-items-center" title="편집"><Icon name="Pencil" size={13}/></button>
@@ -5123,7 +5156,6 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
   const [id,setId]=useState(init?init.id:"");
   const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
   const [version,setVersion]=useState(init?init.version:"v1.0");
-  const [initNode,setInitNode]=useState(init?init.initNode:mapNodes[0].id);
   const [inUse,setInUse]=useState(init?init.inUse:true);
   const dup=!lockId&&existing.some(r=>r.id===id);
   const valid=id.trim().length>0&&!dup;
@@ -5131,7 +5163,7 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
     <MgmtModal title={title} icon="Bot" onClose={onClose}
       footer={<>
         <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
-        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,initNode,inUse})} disabled={!valid}
+        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,inUse})} disabled={!valid}
           className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
       </>}>
       <MgmtField label="로봇 ID">
@@ -5145,6 +5177,11 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
       </MgmtField>
       <MgmtField label="버전">
         <input value={version} onChange={e=>setVersion(e.target.value)} placeholder="예: v2.4" className={mgmtInpCls}/>
+      </MgmtField>
+      <MgmtField label="층 정보">
+        <select value={floor} onChange={e=>setFloor(e.target.value)} className={mgmtSelCls}>
+          {["3","5","7"].map(f=><option key={f} value={f}>{f}층</option>)}
+        </select>
       </MgmtField>
       <MgmtField label="초기 노드 설정">
         <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
@@ -5171,6 +5208,7 @@ const initFleetRegistry=[
 
 function FleetMgmtView() {
   const [list,setList]=useState(initFleetRegistry);
+  const sort=useTableSort("name");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [copyTarget,setCopyTarget]=useState(null);
@@ -5204,18 +5242,18 @@ function FleetMgmtView() {
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5">Fleet 명</th>
-            <th className="font-medium py-2.5">버전</th>
+            <SortTh label="Fleet 명" k="name" sort={sort} className="px-4"/>
+            <SortTh label="버전" k="version" sort={sort}/>
             <th className="font-medium py-2.5">HW 사이즈 (가로×세로×높이)</th>
-            <th className="font-medium py-2.5 text-right">최대속도</th>
-            <th className="font-medium py-2.5 text-right">회전반경</th>
-            <th className="font-medium py-2.5 pl-5">제조사</th>
+            <SortTh label="최대속도" k="maxSpeed" sort={sort} className="text-right"/>
+            <SortTh label="회전반경" k="turnRadius" sort={sort} className="text-right"/>
+            <SortTh label="제조사" k="maker" sort={sort} className="pl-5"/>
             <th className="font-medium py-2.5 pl-5">Action Type</th>
             <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
             {list.length===0&&<tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
-            {list.map((f,idx)=>{
+            {sort.sortRows(list,{maxSpeed:f=>f.maxSpeed, turnRadius:f=>f.turnRadius}).map((f,idx)=>{
               const fid=nameToFleetId(f.name);
               const acts=fid?actionTypes.filter(a=>a.fleets.includes(fid)):[];
               return(
@@ -5578,6 +5616,7 @@ const initMapRegistry=[
 
 function MapMgmtView() {
   const [list,setList]=useState(initMapRegistry);
+  const sort=useTableSort("line");
   const [delTarget,setDelTarget]=useState(null);
   const [selTarget,setSelTarget]=useState(null); // 지도 변경 확인 대상
   const [editorOpen,setEditorOpen]=useState(null); // {mode:"create"} | {mode:"edit", map}
@@ -5613,18 +5652,18 @@ function MapMgmtView() {
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
             <th className="font-medium px-4 py-2.5 w-[100px]">지도 선택</th>
-            <th className="font-medium py-2.5 w-[60px]">라인</th>
-            <th className="font-medium py-2.5 w-[50px]">층</th>
-            <th className="font-medium py-2.5 w-[100px]">원본 지도 버전</th>
-            <th className="font-medium py-2.5 w-[100px]">지도 버전</th>
+            <SortTh label="라인" k="line" sort={sort} className="w-[60px]"/>
+            <SortTh label="층" k="floor" sort={sort} className="w-[50px]"/>
+            <SortTh label="원본 지도 버전" k="srcVersion" sort={sort} className="w-[100px]"/>
+            <SortTh label="지도 버전" k="mapVersion" sort={sort} className="w-[100px]"/>
             <th className="font-medium py-2.5">설명</th>
-            <th className="font-medium py-2.5 w-[90px]">생성자</th>
-            <th className="font-medium py-2.5 w-[130px]">생성일시</th>
+            <SortTh label="생성자" k="creator" sort={sort} className="w-[90px]"/>
+            <SortTh label="생성일시" k="createdAt" sort={sort} className="w-[130px]"/>
             <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
             {list.length===0&&<tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">등록된 지도가 없습니다.</td></tr>}
-            {list.map(m=>(
+            {sort.sortRows(list,{floor:m=>parseInt(m.floor)}).map(m=>(
               <tr key={m.id} className={"border-b border-slate-100 "+(m.active?"bg-blue-50/40":"hover:bg-slate-50/60")}>
                 <td className="px-4 py-3">
                   {m.active
@@ -5703,21 +5742,23 @@ function InfraMgmtView(){
   const [tab,setTab]=useState("charger");
 
   const initChargers=[
-    {id:"CHG-001",location:"A동 충전존 #1",fleet:"amr",status:"active",voltage:"54V",current:"25A",waypoint:"B012"},
-    {id:"CHG-002",location:"A동 충전존 #2",fleet:"amr",status:"active",voltage:"54V",current:"25A",waypoint:"B013"},
-    {id:"CHG-003",location:"B동 충전존 #1",fleet:"agv",status:"active",voltage:"48V",current:"30A",waypoint:"B015"},
-    {id:"CHG-004",location:"B동 충전존 #2",fleet:"agv",status:"inactive",voltage:"48V",current:"30A",waypoint:"B016"},
-    {id:"CHG-005",location:"C동 충전존 #1",fleet:"arm",status:"active",voltage:"24V",current:"15A",waypoint:"B018"},
+    {id:"CHG-001",floor:"3",location:"A동 충전존 #1",fleet:"amr",status:"active",voltage:"54V",current:"25A",waypoint:"B012"},
+    {id:"CHG-002",floor:"3",location:"A동 충전존 #2",fleet:"amr",status:"active",voltage:"54V",current:"25A",waypoint:"B013"},
+    {id:"CHG-003",floor:"5",location:"B동 충전존 #1",fleet:"agv",status:"active",voltage:"48V",current:"30A",waypoint:"B015"},
+    {id:"CHG-004",floor:"5",location:"B동 충전존 #2",fleet:"agv",status:"inactive",voltage:"48V",current:"30A",waypoint:"B016"},
+    {id:"CHG-005",floor:"7",location:"C동 충전존 #1",fleet:"arm",status:"active",voltage:"24V",current:"15A",waypoint:"B018"},
   ];
   const initDoors=[
-    {id:"DOOR-001",location:"A동 메인 입구",type:"자동슬라이딩",fleet:"amr",status:"active",connected:true,waypoint:"B003"},
-    {id:"DOOR-002",location:"A동↔B동 연결통로",type:"자동슬라이딩",fleet:"all",status:"active",connected:true,waypoint:"B007"},
-    {id:"DOOR-003",location:"B동 출입문",type:"방화셔터",fleet:"agv",status:"inactive",connected:false,waypoint:"B011"},
-    {id:"DOOR-004",location:"C동 출입문",type:"자동슬라이딩",fleet:"arm",status:"active",connected:true,waypoint:"B017"},
+    {id:"DOOR-001",floor:"3",location:"A동 메인 입구",type:"자동슬라이딩",fleet:"amr",status:"active",connected:true,waypoint:"B003"},
+    {id:"DOOR-002",floor:"5",location:"A동↔B동 연결통로",type:"자동슬라이딩",fleet:"all",status:"active",connected:true,waypoint:"B007"},
+    {id:"DOOR-003",floor:"5",location:"B동 출입문",type:"방화셔터",fleet:"agv",status:"inactive",connected:false,waypoint:"B011"},
+    {id:"DOOR-004",floor:"7",location:"C동 출입문",type:"자동슬라이딩",fleet:"arm",status:"active",connected:true,waypoint:"B017"},
   ];
 
   const [chargers,setChargers]=useState(initChargers);
   const [doors,setDoors]=useState(initDoors);
+  const cSort=useTableSort("id");
+  const dSort=useTableSort("id");
   const [toast,setToast]=useState(null);
   const [mapEditConfirm,setMapEditConfirm]=useState(null); // {action,id}
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
@@ -5750,22 +5791,24 @@ function InfraMgmtView(){
           </div>
           <table className="w-full text-[12.5px]">
             <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-              <th className="font-medium px-4 py-2.5">충전소 ID</th>
-              <th className="font-medium py-2.5">위치</th>
-              <th className="font-medium py-2.5">Fleet</th>
+              <SortTh label="충전소 ID" k="id" sort={cSort} className="px-4"/>
+              <SortTh label="위치" k="location" sort={cSort}/>
+              <SortTh label="층 정보" k="floor" sort={cSort}/>
+              <SortTh label="Fleet" k="fleet" sort={cSort}/>
               <th className="font-medium py-2.5">전압 / 전류</th>
-              <th className="font-medium py-2.5">Waypoint</th>
-              <th className="font-medium py-2.5">상태</th>
+              <SortTh label="Waypoint" k="waypoint" sort={cSort}/>
+              <SortTh label="상태" k="status" sort={cSort}/>
               <th className="font-medium py-2.5 pr-4 w-[90px]"></th>
             </tr></thead>
             <tbody>
-              {chargers.map(c=>{
+              {cSort.sortRows(chargers,{floor:c=>parseInt(c.floor),fleet:c=>{const fm=fleetMeta(c.fleet);return fm?fm.name:c.fleet;}}).map(c=>{
                 const st=ST[c.status]||ST.inactive;
                 const fm=fleetMeta(c.fleet);
                 return(
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/60">
                     <td className="px-4 py-3 font-semibold text-slate-900 tnum">{c.id}</td>
                     <td className="py-3 text-slate-700">{c.location}</td>
+                    <td className="py-3 text-slate-600">{c.floor}층</td>
                     <td className="py-3 text-slate-700">{fm.name}</td>
                     <td className="py-3 text-slate-600 tnum">{c.voltage} / {c.current}</td>
                     <td className="py-3 text-slate-600 tnum">{c.waypoint}</td>
@@ -5791,13 +5834,14 @@ function InfraMgmtView(){
           </div>
           <table className="w-full text-[12.5px]">
             <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-              <th className="font-medium px-4 py-2.5">자동문 ID</th>
-              <th className="font-medium py-2.5">위치</th>
-              <th className="font-medium py-2.5">유형</th>
+              <SortTh label="자동문 ID" k="id" sort={dSort} className="px-4"/>
+              <SortTh label="위치" k="location" sort={dSort}/>
+              <SortTh label="층 정보" k="floor" sort={dSort}/>
+              <SortTh label="유형" k="type" sort={dSort}/>
               <th className="font-medium py-2.5">허용 Fleet</th>
-              <th className="font-medium py-2.5">Waypoint</th>
-              <th className="font-medium py-2.5">연결</th>
-              <th className="font-medium py-2.5">상태</th>
+              <SortTh label="Waypoint" k="waypoint" sort={dSort}/>
+              <SortTh label="연결" k="connected" sort={dSort}/>
+              <SortTh label="상태" k="status" sort={dSort}/>
               <th className="font-medium py-2.5 pr-4 w-[90px]"></th>
             </tr></thead>
             <tbody>
@@ -5850,13 +5894,17 @@ function InfraMgmtView(){
 function AlarmMgmtView() {
   const [list,setList]=useState(initAlarmRegistry);
   const [q,setQ]=useState("");
+  const sort=useTableSort("id");
   const [addOpen,setAddOpen]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [copyTarget,setCopyTarget]=useState(null);
   const [delTarget,setDelTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2500);};
-  const filtered=list.filter(a=>!q||a.id.toLowerCase().includes(q.toLowerCase())||a.desc.includes(q)||a.source.includes(q));
+  const filtered=sort.sortRows(
+    list.filter(a=>!q||a.id.toLowerCase().includes(q.toLowerCase())||a.desc.includes(q)||a.source.includes(q)),
+    {fleet:a=>{const fm=fleetMeta(a.fleet);return fm?fm.name:a.fleet;}}
+  );
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
@@ -5882,10 +5930,10 @@ function AlarmMgmtView() {
         </div>
         <table className="w-full text-[12.5px]">
           <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/60">
-            <th className="font-medium px-4 py-2.5 w-[110px]">알람 ID (코드)</th>
-            <th className="font-medium py-2.5 w-[130px]">Fleet 유형</th>
-            <th className="font-medium py-2.5 w-[120px]">알람 출발지</th>
-            <th className="font-medium py-2.5">알람 설명</th>
+            <SortTh label="알람 ID (코드)" k="id" sort={sort} className="px-4 w-[110px]"/>
+            <SortTh label="Fleet 유형" k="fleet" sort={sort} className="w-[130px]"/>
+            <SortTh label="알람 출발지" k="source" sort={sort} className="w-[120px]"/>
+            <SortTh label="알람 설명" k="desc" sort={sort}/>
             <th className="font-medium py-2.5 w-[220px]">조치 방법 URL</th>
             <th className="font-medium py-2.5 pr-4 w-[80px]"></th>
           </tr></thead>
@@ -9378,6 +9426,14 @@ const ROLE_COLOR = {
   Admin:"bg-blue-50 text-blue-700",
   Master:"bg-purple-50 text-purple-700"
 };
+// 서비스 유형별 선택 가능한 권한 (서비스마다 권한 체계가 다를 수 있음)
+const SERVICE_OPTS = [
+  { id:"orchestrator", label:"Connect Orchestrator", roles:["Engineer","Admin","Master"] },
+  { id:"ride",         label:"Connect Ride",         roles:["Viewer","Operator","Admin"] },
+  { id:"delivery",     label:"Connect Delivery",     roles:["Viewer","Dispatcher","Admin"] },
+  { id:"monitoring",   label:"통합 모니터링",          roles:["Viewer","Admin"] },
+];
+const serviceRoles = (sid)=>{ const s=SERVICE_OPTS.find(x=>x.id===sid); return s?s.roles:ROLES; };
 const CURRENT_USER = { id:"samsung.kim", role:"Master" };
 
 const DEPTS = ["Digital Twin Center","A-FAB 기술팀","스마트팩토리팀","물류자동화팀","품질관리팀"];
@@ -9402,9 +9458,9 @@ const initPending = [
   {id:"new.user3", name:"신규3", dept:"Digital Twin Center", fleets:["amr","agv","arm","semi"], role:"Engineer", requestedAt:"2026-05-14 10:05"},
 ];
 
-function PermissionsView({ mode="employee" }) {
+function PermissionsView({ mode="employee", initialTab="list", approvalOnly=false }) {
   const isPartner = mode==="partner";
-  const [tab,setTab]=useState("list");
+  const [tab,setTab]=useState(approvalOnly?"pending":initialTab);
   const [users,setUsers]=useState(isPartner?initPartnerUsers:initUsers);
   const [pending,setPending]=useState(isPartner?initPartnerPending:initPending);
   const [fleetF,setFleetF]=useState(new Set());
@@ -9414,6 +9470,7 @@ function PermissionsView({ mode="employee" }) {
   const [page,setPage]=useState(1);
   const PAGE_SIZE=10;
   const [editUser,setEditUser]=useState(null);
+  const [addUser,setAddUser]=useState(null);
   const [toast,setToast]=useState(null);
   const canEdit = ROLES.indexOf(CURRENT_USER.role) >= ROLES.indexOf("Admin");
 
@@ -9461,15 +9518,22 @@ function PermissionsView({ mode="employee" }) {
       {/* Header */}
       <div className="flex items-end justify-between mb-5">
         <div>
-          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">{isPartner?"권한 관리(협력사)":"권한 관리(임직원)"}</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">{isPartner?"협력사 사용자 접근 권한을 관리합니다.":"Fleet 별 사용자 접근 권한을 관리합니다."} Admin 이상 권한 소유자만 수정 가능합니다.</p>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">{isPartner?"권한 관리(협력사)":"권한 관리(임직원)"}{approvalOnly?" — 승인/거절 이력":""}</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">{approvalOnly?"사용자 권한 신청에 대한 승인/거절 이력을 관리합니다.":(isPartner?"협력사 사용자 접근 권한을 관리합니다.":"Fleet 별 사용자 접근 권한을 관리합니다.")+" Admin 이상 권한 소유자만 수정 가능합니다."}</p>
         </div>
+        {!approvalOnly&&canEdit&&(
+          <button onClick={()=>setAddUser({id:"",role:"Engineer",service:SERVICE_OPTS[0].id,fleets:[],dept:isPartner?"협력사":"",perms:[]})}
+            className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm">
+            <Icon name="Plus" size={15}/> 사용자 생성
+          </button>
+        )}
       </div>
 
       {/* Card */}
       <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
         {/* Tabs + toolbar */}
         <div className="border-b border-slate-200">
+          {!approvalOnly&&(
           <div className="px-4 flex items-center gap-1 h-12">
             <button onClick={()=>setTab("list")} className={"h-8 px-4 rounded-md text-[13px] font-medium flex items-center gap-2 "+(tab==="list"?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-50")}>
               <Icon name="Users" size={14}/> 권한 목록
@@ -9480,7 +9544,7 @@ function PermissionsView({ mode="employee" }) {
               {pending.length>0&&<span className={"text-[11px] px-1.5 py-0.5 rounded-full tnum font-semibold "+(tab==="pending"?"bg-amber-200 text-amber-800":"bg-rose-100 text-rose-600")}>{pending.length}</span>}
             </button>
           </div>
-          {/* 필터 툴바 */}
+          )}{/* 필터 툴바 */}
           {tab==="list"&&(
             <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
               {/* 검색 */}
@@ -9728,6 +9792,57 @@ function PermissionsView({ mode="employee" }) {
         </div>
       )}
 
+      {/* 사용자 추가 모달 */}
+      {addUser&&(
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onClick={()=>setAddUser(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[440px] max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 grid place-items-center text-blue-600"><Icon name="UserPlus" size={18}/></div>
+              <div>
+                <div className="text-[14px] font-semibold text-slate-900">사용자 생성</div>
+                <div className="text-[11.5px] text-slate-400">{isPartner?"협력사":"임직원"} 사용자 권한을 추가합니다.</div>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">사용자 ID</div>
+                <input value={addUser.id} onChange={e=>setAddUser({...addUser,id:e.target.value})} placeholder="예: hong.gildong"
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 outline-none focus:border-blue-400"/>
+                {users.some(u=>u.id===addUser.id.trim())&&addUser.id.trim()&&<div className="text-[11px] text-rose-500 mt-1">이미 존재하는 사용자 ID입니다.</div>}
+              </div>
+              <div>
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스 유형</div>
+                <select value={addUser.service} onChange={e=>{const sid=e.target.value;setAddUser({...addUser,service:sid,role:serviceRoles(sid)[0]});}}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 bg-white outline-none focus:border-blue-400">
+                  {SERVICE_OPTS.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <div className="text-[10.5px] text-slate-400 mt-1">서비스 유형에 따라 선택 가능한 권한이 달라집니다.</div>
+              </div>
+              <div>
+                <div className="text-[11px] font-medium text-slate-500 mb-1.5">권한</div>
+                <select value={addUser.role} onChange={e=>setAddUser({...addUser,role:e.target.value})}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-[12.5px] text-slate-800 bg-white outline-none focus:border-blue-400">
+                  {serviceRoles(addUser.service).map(r=><option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
+              <button onClick={()=>setAddUser(null)} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
+              <button disabled={!addUser.id.trim()||users.some(u=>u.id===addUser.id.trim())}
+                onClick={()=>{
+                  const svc=SERVICE_OPTS.find(s=>s.id===addUser.service);
+                  setUsers(p=>[...p,{id:addUser.id.trim(),name:addUser.id.trim(),dept:addUser.dept||(isPartner?"협력사":"-"),fleets:[],role:addUser.role,service:addUser.service,joined:new Date().toISOString().slice(0,10)}]);
+                  showToast(addUser.id.trim()+" 사용자가 생성되었습니다. (서비스: "+(svc?svc.label:addUser.service)+")");
+                  setAddUser(null);
+                }}
+                className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-[12.5px] font-bold flex items-center gap-1.5">
+                <Icon name="Check" size={13}/> 생성
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast */}
       {toast&&(
         <div className={"fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 text-[12.5px] font-medium "+(toast.type==="error"?"bg-rose-600 text-white":toast.type==="warn"?"bg-amber-500 text-white":"bg-slate-900 text-white")}>
@@ -9834,9 +9949,9 @@ function App() {
           <div style={{display:active==="basis-infra"?"contents":"none"}}><InfraMgmtView/></div>
           <div style={{display:active==="basis-alarm"?"contents":"none"}}><AlarmMgmtView/></div>
           <div style={{display:active==="permissions"?"contents":"none"}}><PermissionsView/></div>
-          <div style={{display:active==="permissions-approval"?"contents":"none"}}><PermissionsView tab="approval"/></div>
+          <div style={{display:active==="permissions-approval"?"contents":"none"}}><PermissionsView approvalOnly/></div>
           <div style={{display:active==="permissions-partner"?"contents":"none"}}><PermissionsView mode="partner"/></div>
-          <div style={{display:active==="permissions-partner-approval"?"contents":"none"}}><BasisEmptyView label="승인/거절 이력 (협력사)" icon="ClipboardList"/></div>
+          <div style={{display:active==="permissions-partner-approval"?"contents":"none"}}><PermissionsView mode="partner" approvalOnly/></div>
           <div style={{display:active==="map-editor"?"contents":"none"}}><MapEditorView/></div>
         </main>
       </div>
