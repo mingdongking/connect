@@ -3372,23 +3372,23 @@ function InfraStatusView() {
 
   // ── 충전소 목 데이터 ──
   const chargers = [
-    {id:"CHG-A01", reserved:true,  inUse:true,  type:"급속", robotId:"Tool004", status:"run"},
-    {id:"CHG-A02", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"idle"},
-    {id:"CHG-A03", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"fault"},
-    {id:"CHG-A04", reserved:true,  inUse:false, type:"급속", robotId:"-",       status:"reserved"},
-    {id:"CHG-B01", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"offline"},
-    {id:"CHG-B02", reserved:false, inUse:true,  type:"급속", robotId:"Ride001", status:"run"},
-    {id:"CHG-B03", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"idle"},
-    {id:"CHG-B04", reserved:true,  inUse:false, type:"완속", robotId:"-",       status:"reserved"},
+    {id:"CHG-A01", floor:"3", reserved:true,  inUse:true,  type:"급속", robotId:"Tool004", status:"run"},
+    {id:"CHG-A02", floor:"3", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"idle"},
+    {id:"CHG-A03", floor:"5", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"fault"},
+    {id:"CHG-A04", floor:"5", reserved:true,  inUse:false, type:"급속", robotId:"-",       status:"reserved"},
+    {id:"CHG-B01", floor:"5", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"offline"},
+    {id:"CHG-B02", floor:"7", reserved:false, inUse:true,  type:"급속", robotId:"Ride001", status:"run"},
+    {id:"CHG-B03", floor:"7", reserved:false, inUse:false, type:"완속", robotId:"-",       status:"idle"},
+    {id:"CHG-B04", floor:"7", reserved:true,  inUse:false, type:"완속", robotId:"-",       status:"reserved"},
   ];
 
   // ── 자동문 목 데이터 ──
   const doors = [
-    {id:"DOOR-A1", location:"A동 입구",  status:"open",    lastEvent:"13:42:01"},
-    {id:"DOOR-A2", location:"A동 비상문",status:"close",   lastEvent:"13:10:44"},
-    {id:"DOOR-B1", location:"B동 하역장",status:"moving",  lastEvent:"13:30:00"},
-    {id:"DOOR-B2", location:"B동 서측문",status:"offline", lastEvent:"13:05:00"},
-    {id:"DOOR-C1", location:"C동 충전구역",status:"unknown",lastEvent:"12:50:00"},
+    {id:"DOOR-A1", floor:"3", location:"A동 입구",  status:"open",    lastEvent:"13:42:01"},
+    {id:"DOOR-A2", floor:"3", location:"A동 비상문",status:"close",   lastEvent:"13:10:44"},
+    {id:"DOOR-B1", floor:"5", location:"B동 하역장",status:"moving",  lastEvent:"13:30:00"},
+    {id:"DOOR-B2", floor:"5", location:"B동 서측문",status:"offline", lastEvent:"13:05:00"},
+    {id:"DOOR-C1", floor:"7", location:"C동 충전구역",status:"unknown",lastEvent:"12:50:00"},
   ];
 
   // ── Things 목 데이터 ──
@@ -3426,12 +3426,14 @@ function InfraStatusView() {
 
   const [q,setQ]=useState("");
   const [statusF,setStatusF]=useState(new Set());
+  const cSort=useTableSort("id");
+  const dSort=useTableSort("id");
 
-  const filteredChargers = chargers.filter(c=>{
-    if(statusF!=="all"&&c.status!==statusF) return false;
+  const filteredChargers = cSort.sortRows(chargers.filter(c=>{
+    if(statusF.size>0&&!statusF.has(c.status)) return false;
     if(q&&!c.id.toLowerCase().includes(q.toLowerCase())&&!(c.robotId||"").toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  });
+  }),{floor:c=>parseInt(c.floor),reserved:c=>c.reserved?1:0,inUse:c=>c.inUse?1:0});
 
   const TABS = [
     {id:"charger", label:"충전소",  icon:"BatteryCharging"},
@@ -3496,15 +3498,16 @@ function InfraStatusView() {
           </div>
           <table className="w-full text-[12.5px]">
             <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
-              <th className="font-medium px-4 py-2.5">충전소 ID</th>
-              <th className="font-medium py-2.5">상태</th>
-              <th className="font-medium py-2.5">예약 여부</th>
-              <th className="font-medium py-2.5">사용 여부</th>
-              <th className="font-medium py-2.5">유형</th>
-              <th className="font-medium py-2.5 pr-4">충전 로봇 ID</th>
+              <SortTh label="충전소 ID" k="id" sort={cSort} className="px-4"/>
+              <SortTh label="상태" k="status" sort={cSort}/>
+              <SortTh label="층 정보" k="floor" sort={cSort}/>
+              <SortTh label="예약 여부" k="reserved" sort={cSort}/>
+              <SortTh label="사용 여부" k="inUse" sort={cSort}/>
+              <SortTh label="유형" k="type" sort={cSort}/>
+              <SortTh label="충전 로봇 ID" k="robotId" sort={cSort} className="pr-4"/>
             </tr></thead>
             <tbody>
-              {filteredChargers.length===0&&<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400 text-[12.5px]">검색 결과가 없습니다.</td></tr>}
+              {filteredChargers.length===0&&<tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-[12.5px]">검색 결과가 없습니다.</td></tr>}
               {filteredChargers.map(c=>{
                 const st=chargerStatus[c.status];
                 return(
@@ -3516,6 +3519,7 @@ function InfraStatusView() {
                         {st.label}
                       </span>
                     </td>
+                    <td className="py-3 text-slate-600">{c.floor}층</td>
                     <td className="py-3 text-slate-700">{c.reserved?"예약됨":"미예약"}</td>
                     <td className="py-3 text-slate-700">{c.inUse?"사용 중":"비어있음"}</td>
                     <td className="py-3 text-slate-700">{c.type}</td>
@@ -3556,13 +3560,14 @@ function InfraStatusView() {
           </div>
           <table className="w-full text-[12.5px]">
             <thead><tr className="text-left text-[11px] text-slate-500 border-b border-slate-200 bg-slate-50/40">
-              <th className="font-medium px-4 py-2.5">문 ID</th>
-              <th className="font-medium py-2.5">상태</th>
-              <th className="font-medium py-2.5">위치</th>
-              <th className="font-medium py-2.5 pr-4">마지막 이벤트</th>
+              <SortTh label="문 ID" k="id" sort={dSort} className="px-4"/>
+              <SortTh label="상태" k="status" sort={dSort}/>
+              <SortTh label="위치" k="location" sort={dSort}/>
+              <SortTh label="층 정보" k="floor" sort={dSort}/>
+              <SortTh label="마지막 이벤트" k="lastEvent" sort={dSort} className="pr-4"/>
             </tr></thead>
             <tbody>
-              {dSort.sortRows(doors,{floor:d=>parseInt(d.floor),connected:d=>d.connected?1:0}).map(d=>{
+              {dSort.sortRows(doors,{floor:d=>parseInt(d.floor)}).map(d=>{
                 const st=doorStatus[d.status];
                 return(
                   <tr key={d.id} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(d.status==="manual"?"bg-amber-50/20":"")}>
