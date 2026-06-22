@@ -472,7 +472,6 @@ function Sidebar({ active, onChange }) {
                 onClick={()=>{ onChange(n.id); if(hasChildren) toggleExpand(n.id); }}
                 className={"w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium transition-colors mb-0.5 "+
                   (isOn||childActive?"bg-blue-50 text-blue-700":"text-slate-700 hover:bg-slate-100")}>
-                <Icon name={n.icon} size={16} strokeWidth={(isOn||childActive)?2:1.75} className={(isOn||childActive)?"text-blue-600":"text-slate-500"}/>
                 <span>{n.label}</span>
                 {hasChildren ? (
                   <Icon name={isExpanded?"ChevronDown":"ChevronRight"} size={13} className="ml-auto text-slate-400"/>
@@ -489,7 +488,6 @@ function Sidebar({ active, onChange }) {
                       <button key={c.id} onClick={()=>onChange(c.id)}
                         className={"w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-colors mb-0.5 "+
                           (cOn?"bg-blue-50 text-blue-700":"text-slate-600 hover:bg-slate-100")}>
-                        <Icon name={c.icon} size={14} strokeWidth={cOn?2:1.75} className={cOn?"text-blue-500":"text-slate-400"}/>
                         <span>{c.label}</span>
                         {cOn && <span className="ml-auto w-1 h-3.5 rounded-full bg-blue-600"/>}
                       </button>
@@ -7878,18 +7876,19 @@ function OrderTemplateView({ onNavigate }) {
           {/* 파라미터 폼 */}
           {fleetDef&&(
             <div className="p-4 flex flex-col gap-3 flex-1">
-              <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide">위치 선택</div>
-              <NodeSelect field="pickNode" label="Pick 위치" color="#2563eb"/>
-              <NodeSelect field="dropNode" label="Drop 위치" color="#10b981"/>
-
-              <div className="h-px bg-slate-100 my-1"/>
               <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide">상세 정보</div>
 
               {fleetDef.id==="amr"&&(
                 <Field label="Tool Cart" required>
-                  <Sel val={form.cartId} onChange={v=>setF("cartId",v)}
+                  <Sel val={form.cartId} onChange={v=>{
+                    setF("cartId",v);
+                    // Cart 선택 시 Pick 위치 자동 채움 (수동 변경 가능)
+                    const CART_PICK={"TC-001·CPT":"B002","TC-002·CTR":"B003","TC-003·CBT":"B006","TC-004·CLV":"B007","TC-005·CPS":"B011"};
+                    if(v&&CART_PICK[v]) setF("pickNode",CART_PICK[v]);
+                  }}
                     opts={TOOL_CARTS.map(c=>({id:c.id,label:`${c.id} · ${c.cat}`}))}
                     placeholder="Cart 선택"/>
+                  {form.cartId&&<div className="text-[10.5px] text-slate-400 mt-1 flex items-center gap-1"><Icon name="Info" size={9} className="shrink-0"/>Cart 선택 시 Pick 위치가 자동 지정됩니다. 수동 변경 가능합니다.</div>}
                 </Field>
               )}
               {fleetDef.id==="agv"&&(
@@ -7902,6 +7901,11 @@ function OrderTemplateView({ onNavigate }) {
                   <Inp val={form.userId} onChange={v=>setF("userId",v)} placeholder="사번 또는 ID"/>
                 </Field>
               )}
+
+              <div className="h-px bg-slate-100 my-1"/>
+              <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide">위치 선택</div>
+              <NodeSelect field="pickNode" label="Pick 위치" color="#2563eb"/>
+              <NodeSelect field="dropNode" label="Drop 위치" color="#10b981"/>
 
               <div className="h-px bg-slate-100 my-1"/>
               <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide">요청 시간</div>
