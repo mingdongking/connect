@@ -4923,6 +4923,10 @@ function AddCartModal({ onClose, onAdd, existingCarts }) {
 
 }
 
+const initRobotRegistry = robots.map((r,i)=>({
+  id:r.id, fleet:r.fleet, version:"v"+(2+(i%2))+"."+(i%5), inUse:true, initNode:mapNodes[i%mapNodes.length].id,
+}));
+
 function RobotMgmtView() {
   const [list,setList]=useState(initRobotRegistry);
   const [q,setQ]=useState("");
@@ -5046,14 +5050,6 @@ const initFleetRegistry=[
   {name:"PM Bot",         version:"v1.2", w:600,  d:450, h:900,  maxSpeed:0.8, turnRadius:0.4, maker:"LG CNS"},
 ];
 
-
-const initFleetRegistry=[
-  {name:"Delivery-Tool",  version:"v2.4", w:900,  d:650, h:1200, maxSpeed:1.5, turnRadius:0.6, maker:"OMRON"},
-  {name:"Ride",           version:"v1.8", w:1200, d:800, h:300,  maxSpeed:2.0, turnRadius:1.2, maker:"MiR"},
-  {name:"Delivery-Parts", version:"v3.1", w:700,  d:500, h:1500, maxSpeed:1.2, turnRadius:0.5, maker:"Doosan Robotics"},
-  {name:"SEMI-x",         version:"v2.0", w:850,  d:600, h:1100, maxSpeed:1.0, turnRadius:0.7, maker:"Hyundai Robotics"},
-  {name:"PM Bot",         version:"v1.2", w:600,  d:450, h:900,  maxSpeed:0.8, turnRadius:0.4, maker:"LG CNS"},
-];
 
 function FleetMgmtView() {
   const [list,setList]=useState(initFleetRegistry);
