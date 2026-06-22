@@ -3457,7 +3457,7 @@ function InfraStatusView() {
       {/* 탭 */}
       <div className="flex items-center gap-1 mb-5 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
         {TABS.map(t=>(
-          <button key={t.id} onClick={()=>{setTab(t.id);setQ("");setStatusF("all");}}
+          <button key={t.id} onClick={()=>{setTab(t.id);setQ("");setStatusF(new Set());}}
             className={"h-9 px-5 rounded-lg text-[13px] font-medium flex items-center gap-2 transition "+(tab===t.id?"bg-blue-600 text-white shadow-sm":"text-slate-600 hover:bg-slate-50")}>
             <Icon name={t.icon} size={14}/>
             {t.label}
