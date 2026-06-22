@@ -3584,7 +3584,7 @@ function InfraStatusView() {
       </>)}
 
       {/* ── Things ── */}
-      {tab==="things"&&(
+      {tab==="things"&&(<>
         <div className="grid grid-cols-3 gap-4">
           {[
             {key:"tag",        label:"Tag",          icon:"Tag",     desc:"UWB/BLE 태그 디바이스"},
@@ -3671,7 +3671,7 @@ function InfraStatusView() {
             </div>
           );
         })()}
-      )}
+      </>)}
     </div>
   );
 }
