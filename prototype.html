@@ -3428,6 +3428,7 @@ function InfraStatusView() {
   const [statusF,setStatusF]=useState(new Set());
   const cSort=useTableSort("id");
   const dSort=useTableSort("id");
+  const [doorF,setDoorF]=useState(new Set());
 
   const filteredChargers = cSort.sortRows(chargers.filter(c=>{
     if(statusF.size>0&&!statusF.has(c.status)) return false;
@@ -3457,7 +3458,7 @@ function InfraStatusView() {
       {/* 탭 */}
       <div className="flex items-center gap-1 mb-5 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
         {TABS.map(t=>(
-          <button key={t.id} onClick={()=>{setTab(t.id);setQ("");setStatusF(new Set());}}
+          <button key={t.id} onClick={()=>{setTab(t.id);setQ("");setStatusF(new Set());setDoorF(new Set());}}
             className={"h-9 px-5 rounded-lg text-[13px] font-medium flex items-center gap-2 transition "+(tab===t.id?"bg-blue-600 text-white shadow-sm":"text-slate-600 hover:bg-slate-50")}>
             <Icon name={t.icon} size={14}/>
             {t.label}
@@ -3535,21 +3536,27 @@ function InfraStatusView() {
       {/* ── 자동문 ── */}
       {tab==="door"&&(<>
         {/* KPI */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[11.5px] text-slate-400">{doorF.size>0?doorF.size+"개 상태 필터 적용 중":"카드를 클릭해 상태로 필터링"}</div>
+          {doorF.size>0&&<button onClick={()=>setDoorF(new Set())} className="h-7 px-2.5 rounded-md border border-slate-200 text-[11.5px] text-slate-500 hover:bg-slate-50">필터 해제</button>}
+        </div>
         <div className="grid grid-cols-5 gap-3 mb-5">
-          {Object.entries(doorStatus).map(([k,v])=>(
-            <div key={k} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          {Object.entries(doorStatus).map(([k,v])=>{
+            const on=doorF.has(k);
+            return (
+            <button key={k} onClick={()=>{const n=new Set(doorF);n.has(k)?n.delete(k):n.add(k);setDoorF(n);}}
+              className={"text-left rounded-xl p-4 border-2 transition "+(on?"shadow-sm":"bg-white border-slate-200 hover:border-slate-300")}
+              style={on?{background:v.bg,borderColor:v.color}:{}}>
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  
-                  <span className="text-[13px] font-semibold text-slate-700">{v.label}</span>
-                </div>
-                <span className="text-[28px] font-bold tnum text-slate-900">{dCounts[k]}</span>
+                <span className="text-[13px] font-semibold" style={{color:on?v.fg:"#334155"}}>{v.label}</span>
+                <span className="text-[28px] font-bold tnum" style={{color:on?v.fg:"#0f172a"}}>{dCounts[k]}</span>
               </div>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{width:(dCounts[k]/doors.length*100)+"%",background:v.color}}/>
               </div>
-            </div>
-          ))}
+            </button>
+            );
+          })}
         </div>
         {/* 자동문 리스트 */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -3567,7 +3574,7 @@ function InfraStatusView() {
               <SortTh label="마지막 이벤트" k="lastEvent" sort={dSort} className="pr-4"/>
             </tr></thead>
             <tbody>
-              {dSort.sortRows(doors,{floor:d=>parseInt(d.floor)}).map(d=>{
+              {dSort.sortRows(doors.filter(d=>doorF.size===0||doorF.has(d.status)),{floor:d=>parseInt(d.floor)}).map(d=>{
                 const st=doorStatus[d.status];
                 return(
                   <tr key={d.id} className={"border-b border-slate-100 hover:bg-slate-50/60 "+(d.status==="manual"?"bg-amber-50/20":"")}>
@@ -4869,6 +4876,25 @@ function useTableSort(defaultKey){
   };
   return { sortBy, sortDir, onSort, sortRows };
 }
+function exportCsv(filename, columns, rows){
+  // columns: [{key,label}], rows: array of objects
+  const esc=(v)=>{ const s=(v==null?"":String(v)).split('"').join('""'); return (s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf("\n")>=0)?'"'+s+'"':s; };
+  const header=columns.map(c=>esc(c.label)).join(",");
+  const body=rows.map(r=>columns.map(c=>esc(typeof c.get==="function"?c.get(r):r[c.key])).join(",")).join("\n");
+  const csv="\ufeff"+header+"\n"+body; // BOM for Excel 한글
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function CsvExportBtn({onClick}){
+  return (
+    <button onClick={onClick} className="h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-600 flex items-center gap-1.5">
+      <Icon name="Download" size={14}/> CSV 내보내기
+    </button>
+  );
+}
 function SortTh({label,k,sort,className}){
   const active=sort.sortBy===k;
   return(
@@ -4915,9 +4941,12 @@ function ToolCartView() {
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">Tool Cart 관리</h1>
           <p className="text-[12.5px] text-slate-500 mt-0.5">카트 등록·편집·삭제 및 사용/표시 여부를 관리합니다.</p>
         </div>
-        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+        <div className="flex gap-2">
+          <CsvExportBtn onClick={()=>exportCsv("ToolCart목록.csv",[{key:"id",label:"Cart ID"},{key:"teamDiv",label:"분임조"},{key:"floor",label:"층",get:r=>r.floor+"층"},{key:"partName",label:"부품 이름"},{key:"inUse",label:"사용여부",get:r=>r.inUse?"사용":"미사용"},{key:"visible",label:"표시여부",get:r=>r.visible?"표시":"숨김"},{key:"createdAt",label:"생성일시"},{key:"activatedAt",label:"활성화 일시"},{key:"fleet",label:"Fleet"}],filtered)}/>
+          <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 등록
         </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -5100,9 +5129,12 @@ function RobotMgmtView() {
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">로봇 관리</h1>
           <p className="text-[12.5px] text-slate-500 mt-0.5">로봇 등록·편집·삭제 및 사용 여부를 관리합니다.</p>
         </div>
-        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+        <div className="flex gap-2">
+          <CsvExportBtn onClick={()=>exportCsv("로봇목록.csv",[{key:"id",label:"로봇 ID"},{key:"fleet",label:"Fleet",get:r=>fleetMeta(r.fleet).name},{key:"floor",label:"층",get:r=>r.floor+"층"},{key:"version",label:"버전"},{key:"inUse",label:"사용여부",get:r=>r.inUse?"사용":"미사용"}],filtered)}/>
+          <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 등록
         </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -5161,6 +5193,7 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
   const [id,setId]=useState(init?init.id:"");
   const [fleet,setFleet]=useState(init?init.fleet:fleets[0].id);
   const [version,setVersion]=useState(init?init.version:"v1.0");
+  const [floor,setFloor]=useState(init?init.floor:"3");
   const [inUse,setInUse]=useState(init?init.inUse:true);
   const dup=!lockId&&existing.some(r=>r.id===id);
   const valid=id.trim().length>0&&!dup;
@@ -5168,7 +5201,7 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
     <MgmtModal title={title} icon="Bot" onClose={onClose}
       footer={<>
         <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-200 text-[12.5px] font-medium text-slate-600 hover:bg-slate-50">취소</button>
-        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,inUse})} disabled={!valid}
+        <button onClick={()=>valid&&onSave({id:id.trim(),fleet,version,floor,inUse})} disabled={!valid}
           className={"h-9 px-4 rounded-lg text-[12.5px] font-bold "+(valid?"bg-blue-600 text-white hover:bg-blue-700":"bg-slate-200 text-slate-400 cursor-not-allowed")}>저장</button>
       </>}>
       <MgmtField label="로봇 ID">
@@ -5186,11 +5219,6 @@ function RobotFormModal({title,init,lockId,existing,onClose,onSave}){
       <MgmtField label="층 정보">
         <select value={floor} onChange={e=>setFloor(e.target.value)} className={mgmtSelCls}>
           {["3","5","7"].map(f=><option key={f} value={f}>{f}층</option>)}
-        </select>
-      </MgmtField>
-      <MgmtField label="초기 노드 설정">
-        <select value={initNode} onChange={e=>setInitNode(e.target.value)} className={mgmtSelCls}>
-          {mapNodes.map(n=><option key={n.id} value={n.id}>{n.id} · {n.label}</option>)}
         </select>
       </MgmtField>
       <MgmtField label="사용 여부">
@@ -5234,9 +5262,12 @@ function FleetMgmtView() {
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">Fleet 관리</h1>
           <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet 사양 등록·복사·편집·삭제 및 Action Type을 관리합니다.</p>
         </div>
-        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+        <div className="flex gap-2">
+          <CsvExportBtn onClick={()=>exportCsv("Fleet목록.csv",[{key:"name",label:"Fleet 명"},{key:"version",label:"버전"},{key:"maxSpeed",label:"최대속도"},{key:"turnRadius",label:"회전반경"},{key:"maker",label:"제조사"}],list)}/>
+          <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 등록
         </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -5642,9 +5673,12 @@ function MapMgmtView() {
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">지도 관리</h1>
           <p className="text-[12.5px] text-slate-500 mt-0.5">지도 버전을 관리하고, 모니터링에 표시할 지도를 선택합니다. 활성화는 1개만 가능합니다.</p>
         </div>
-        <button onClick={()=>setEditorOpen({mode:"create"})} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+        <div className="flex gap-2">
+          <CsvExportBtn onClick={()=>exportCsv("지도목록.csv",[{key:"line",label:"라인"},{key:"floor",label:"층",get:r=>r.floor+"층"},{key:"srcVersion",label:"원본 지도 버전"},{key:"mapVersion",label:"지도 버전"},{key:"desc",label:"설명"},{key:"creator",label:"생성자"},{key:"createdAt",label:"생성일시"}],list)}/>
+          <button onClick={()=>setEditorOpen({mode:"create"})} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 지도 생성
         </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -5772,9 +5806,14 @@ function InfraMgmtView(){
 
   return(
     <div className="h-full overflow-auto bg-slate-50 p-5">
-      <div className="mb-4">
-        <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">인프라 관리</h1>
-        <p className="text-[12.5px] text-slate-500 mt-0.5">충전소·자동문 등 현장 인프라 장치를 관리합니다.</p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">인프라 관리</h1>
+          <p className="text-[12.5px] text-slate-500 mt-0.5">충전소·자동문 등 현장 인프라 장치를 관리합니다.</p>
+        </div>
+        {tab==="charger"
+          ? <CsvExportBtn onClick={()=>exportCsv("충전소목록.csv",[{key:"id",label:"충전소 ID"},{key:"location",label:"위치"},{key:"floor",label:"층",get:r=>r.floor+"층"},{key:"fleet",label:"Fleet",get:r=>{const fm=fleetMeta(r.fleet);return fm?fm.name:r.fleet;}},{key:"voltage",label:"전압"},{key:"current",label:"전류"},{key:"waypoint",label:"Waypoint"}],chargers)}/>
+          : <CsvExportBtn onClick={()=>exportCsv("자동문목록.csv",[{key:"id",label:"자동문 ID"},{key:"location",label:"위치"},{key:"floor",label:"층",get:r=>r.floor+"층"},{key:"type",label:"유형"},{key:"waypoint",label:"Waypoint"},{key:"connected",label:"연결",get:r=>r.connected?"연결됨":"미연결"}],doors)}/>}
       </div>
 
       {/* 탭 */}
@@ -5898,6 +5937,29 @@ function InfraMgmtView(){
 
 function AlarmMgmtView() {
   const [list,setList]=useState(initAlarmRegistry);
+  const csvInputRef = React.useRef(null);
+  function handleCsvUpload(e){
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      try{
+        let text=String(ev.target.result||"").replace(/^\ufeff/,"");
+        const lines=text.split(/\r?\n/).filter(l=>l.trim().length>0);
+        if(lines.length<2){ showToast("CSV에 데이터가 없습니다.","warn"); return; }
+        // 헤더: 알람 ID, Fleet, 알람 출발지, 알람 설명, 조치 방법 URL
+        const parseLine=(line)=>{ const out=[]; let cur="",q=false; for(let i=0;i<line.length;i++){const c=line[i]; if(q){ if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; } else { if(c==='"')q=true; else if(c===','){out.push(cur);cur="";} else cur+=c; } } out.push(cur); return out; };
+        const rows=lines.slice(1).map(parseLine);
+        const fleetByName=(nm)=>{ const f=fleets.find(x=>x.name===nm||x.id===nm); return f?f.id:(nm||"amr"); };
+        const added=rows.map(c=>({ id:(c[0]||"").trim(), fleet:fleetByName((c[1]||"").trim()), source:(c[2]||"").trim(), desc:(c[3]||"").trim(), url:(c[4]||"").trim() })).filter(r=>r.id);
+        if(added.length===0){ showToast("유효한 행이 없습니다.","warn"); return; }
+        setList(prev=>{ const ids=new Set(prev.map(x=>x.id)); const merged=[...prev]; let cnt=0; added.forEach(a=>{ if(ids.has(a.id)){ const idx=merged.findIndex(x=>x.id===a.id); merged[idx]={...merged[idx],...a}; } else { merged.push(a); cnt++; } }); return merged; });
+        showToast(added.length+"건의 알람을 불러왔습니다.");
+      }catch(err){ showToast("CSV 파싱에 실패했습니다.","warn"); }
+    };
+    reader.readAsText(file,"utf-8");
+    e.target.value="";
+  }
   const [q,setQ]=useState("");
   const sort=useTableSort("id");
   const [addOpen,setAddOpen]=useState(false);
@@ -5918,9 +5980,16 @@ function AlarmMgmtView() {
           <h1 className="text-[20px] font-semibold text-slate-900 tracking-tight">알람 관리</h1>
           <p className="text-[12.5px] text-slate-500 mt-0.5">알람 코드 등록·편집·삭제 및 조치 방법 문서를 관리합니다.</p>
         </div>
-        <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
+        <div className="flex gap-2">
+          <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvUpload} className="hidden"/>
+          <button onClick={()=>csvInputRef.current&&csvInputRef.current.click()} className="h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-medium text-slate-600 flex items-center gap-1.5">
+            <Icon name="Upload" size={14}/> CSV 업로드
+          </button>
+          <CsvExportBtn onClick={()=>exportCsv("알람목록.csv",[{key:"id",label:"알람 ID"},{key:"fleet",label:"Fleet",get:r=>{const fm=fleetMeta(r.fleet);return fm?fm.name:r.fleet;}},{key:"source",label:"알람 출발지"},{key:"desc",label:"알람 설명"},{key:"url",label:"조치 방법 URL"}],filtered)}/>
+          <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 등록
         </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
