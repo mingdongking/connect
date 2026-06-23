@@ -9549,6 +9549,73 @@ const SERVICE_OPTS = [
   { id:"monitoring",   label:"통합 모니터링",          roles:["Viewer","Admin"] },
 ];
 const serviceRoles = (sid)=>{ const s=SERVICE_OPTS.find(x=>x.id===sid); return s?s.roles:ROLES; };
+
+// fleet별 권한 편집기 (운영정책: 한 fleet이라도 Master면 전체 Master)
+const FLEET_ROLES = ["Engineer","Admin"]; // fleet 단위로 고를 수 있는 등급 (Master 제외)
+function isAllMaster(perms){
+  const ks=Object.keys(perms||{});
+  return ks.length>0 && ks.every(k=>perms[k]==="Master");
+}
+function hasAnyMaster(perms){ return Object.values(perms||{}).some(r=>r==="Master"); }
+function FleetPermsEditor({ perms, onChange, note }){
+  const masterOn = hasAnyMaster(perms);
+  const setMaster=(on)=>{
+    if(on){ const next={}; fleets.forEach(f=>{ next[f.id]="Master"; }); onChange(next); }
+    else { // Master 해제 → 전부 비움 (운영자가 다시 지정)
+      onChange({});
+    }
+  };
+  return (
+    <div>
+      {/* 마스터 권한 토글 */}
+      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 mb-2">
+        <div className="flex items-center gap-2">
+          <Icon name="Crown" size={14} className={masterOn?"text-purple-500":"text-slate-400"}/>
+          <div>
+            <div className="text-[12px] font-semibold text-slate-700">전체 Master 권한</div>
+            <div className="text-[10.5px] text-slate-400">운영정책상 Master는 모든 서비스에 일괄 적용됩니다.</div>
+          </div>
+        </div>
+        <button onClick={()=>setMaster(!masterOn)}
+          className={"relative w-11 h-6 rounded-full transition shrink-0 "+(masterOn?"bg-purple-500":"bg-slate-300")}>
+          <span className={"absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all "+(masterOn?"left-[22px]":"left-0.5")}/>
+        </button>
+      </div>
+      {/* fleet별 권한 (Master면 잠금) */}
+      <div className={"space-y-1.5 "+(masterOn?"opacity-50 pointer-events-none":"")}>
+        {fleets.map(f=>{
+          const cur=masterOn?"Master":(perms[f.id]||null);
+          return (
+            <div key={f.id} className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-200">
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11.5px] font-semibold w-[130px] shrink-0" style={{color:f.color}}>
+                <span className="w-2 h-2 rounded-full" style={{background:f.color}}/>{f.name}
+              </span>
+              <div className="flex gap-1 flex-1">
+                {masterOn
+                  ? <span className="flex-1 h-8 rounded-md grid place-items-center text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">Master</span>
+                  : ["미부여",...FLEET_ROLES].map(opt=>{
+                      const sel = opt==="미부여" ? !cur : cur===opt;
+                      return (
+                        <button key={opt} onClick={()=>{
+                          const next={...perms};
+                          if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
+                          onChange(next);
+                        }}
+                        className={"flex-1 h-8 rounded-md border text-[11px] font-medium transition "+
+                          (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                          {opt}
+                        </button>
+                      );
+                    })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> {note||"서비스마다 다른 권한을 부여할 수 있습니다. Master는 전체 일괄 적용됩니다."}</div>
+    </div>
+  );
+}
 const CURRENT_USER = { id:"samsung.kim", role:"Master" };
 
 const DEPTS = ["Digital Twin Center","A-FAB 기술팀","스마트팩토리팀","물류자동화팀","품질관리팀"];
@@ -9900,35 +9967,7 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
               {/* 서비스(Fleet)별 권한 */}
               <div>
                 <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스(Fleet)별 권한</div>
-                <div className="space-y-1.5">
-                  {fleets.map(f=>{
-                    const cur=editUser.perms[f.id]||null;
-                    return (
-                      <div key={f.id} className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-200">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11.5px] font-semibold w-[130px] shrink-0" style={{color:f.color}}>
-                          <span className="w-2 h-2 rounded-full" style={{background:f.color}}/>{f.name}
-                        </span>
-                        <div className="flex gap-1 flex-1">
-                          {["미부여",...ROLES].map(opt=>{
-                            const sel = opt==="미부여" ? !cur : cur===opt;
-                            return (
-                              <button key={opt} onClick={()=>{
-                                const next={...editUser.perms};
-                                if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
-                                setEditUser({...editUser,perms:next});
-                              }}
-                              className={"flex-1 h-8 rounded-md border text-[11px] font-medium transition "+
-                                (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
-                                {opt}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 서비스마다 다른 권한을 부여할 수 있습니다. (예: Ride는 Engineer, Tool은 Admin)</div>
+                <FleetPermsEditor perms={editUser.perms} onChange={(next)=>setEditUser({...editUser,perms:next})}/>
               </div>
             </div>
             <div className="h-14 px-5 border-t border-slate-200 bg-slate-50/50 flex items-center gap-2">
@@ -9965,10 +10004,29 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
               </div>
               <div>
                 <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스(Fleet)별 권한 {"—"} 승인 전 수정 가능</div>
-                <div className="space-y-1.5">
+                {/* 마스터 권한 토글 */}
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon name="Crown" size={14} className={hasAnyMaster(approveConfirm.perms)?"text-purple-500":"text-slate-400"}/>
+                    <div>
+                      <div className="text-[12px] font-semibold text-slate-700">전체 Master 권한</div>
+                      <div className="text-[10.5px] text-slate-400">운영정책상 Master는 모든 서비스에 일괄 적용됩니다.</div>
+                    </div>
+                  </div>
+                  <button onClick={()=>{
+                    const on=!hasAnyMaster(approveConfirm.perms);
+                    if(on){const next={};fleets.forEach(f=>next[f.id]="Master");setApproveConfirm({...approveConfirm,perms:next});}
+                    else setApproveConfirm({...approveConfirm,perms:{}});
+                  }}
+                    className={"relative w-11 h-6 rounded-full transition shrink-0 "+(hasAnyMaster(approveConfirm.perms)?"bg-purple-500":"bg-slate-300")}>
+                    <span className={"absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all "+(hasAnyMaster(approveConfirm.perms)?"left-[22px]":"left-0.5")}/>
+                  </button>
+                </div>
+                <div className={"space-y-1.5 "+(hasAnyMaster(approveConfirm.perms)?"opacity-50 pointer-events-none":"")}>
                   {fleets.map(f=>{
                     const reqRole=(approveConfirm.reqPerms||approveConfirm.perms)[f.id];
-                    const cur=approveConfirm.perms[f.id]||null;
+                    const mOn=hasAnyMaster(approveConfirm.perms);
+                    const cur=mOn?"Master":(approveConfirm.perms[f.id]||null);
                     const changed=reqRole!==cur;
                     return (
                       <div key={f.id} className="p-2 rounded-lg border border-slate-200">
@@ -9979,26 +10037,28 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
                           <span className="text-[10.5px] text-slate-400">신청: {reqRole||"미신청"}{changed&&<span className="text-amber-600 font-medium"> {"→"} 변경됨</span>}</span>
                         </div>
                         <div className="flex gap-1">
-                          {["미부여",...ROLES].map(opt=>{
-                            const sel = opt==="미부여" ? !cur : cur===opt;
-                            return (
-                              <button key={opt} onClick={()=>{
-                                const next={...approveConfirm.perms};
-                                if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
-                                setApproveConfirm({...approveConfirm,perms:next});
-                              }}
-                              className={"flex-1 h-7 rounded-md border text-[11px] font-medium transition "+
-                                (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
-                                {opt}
-                              </button>
-                            );
-                          })}
+                          {mOn
+                            ? <span className="flex-1 h-7 rounded-md grid place-items-center text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">Master</span>
+                            : ["미부여",...FLEET_ROLES].map(opt=>{
+                                const sel = opt==="미부여" ? !cur : cur===opt;
+                                return (
+                                  <button key={opt} onClick={()=>{
+                                    const next={...approveConfirm.perms};
+                                    if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
+                                    setApproveConfirm({...approveConfirm,perms:next});
+                                  }}
+                                  className={"flex-1 h-7 rounded-md border text-[11px] font-medium transition "+
+                                    (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                                    {opt}
+                                  </button>
+                                );
+                              })}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 운영자가 권한을 조정해 승인할 수 있습니다. 최소 1개 서비스에 권한이 필요합니다.</div>
+                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 운영자가 권한을 조정해 승인할 수 있습니다. Master는 전체 일괄 적용됩니다.</div>
               </div>
             </div>
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
@@ -10040,35 +10100,7 @@ function PermissionsView({ mode="employee", initialTab="list", approvalOnly=fals
               </div>
               <div>
                 <div className="text-[11px] font-medium text-slate-500 mb-1.5">서비스(Fleet)별 권한</div>
-                <div className="space-y-1.5">
-                  {fleets.map(f=>{
-                    const cur=addUser.perms[f.id]||null;
-                    return (
-                      <div key={f.id} className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-200">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11.5px] font-semibold w-[130px] shrink-0" style={{color:f.color}}>
-                          <span className="w-2 h-2 rounded-full" style={{background:f.color}}/>{f.name}
-                        </span>
-                        <div className="flex gap-1 flex-1">
-                          {["미부여",...ROLES].map(opt=>{
-                            const sel = opt==="미부여" ? !cur : cur===opt;
-                            return (
-                              <button key={opt} onClick={()=>{
-                                const next={...addUser.perms};
-                                if(opt==="미부여") delete next[f.id]; else next[f.id]=opt;
-                                setAddUser({...addUser,perms:next});
-                              }}
-                              className={"flex-1 h-8 rounded-md border text-[11px] font-medium transition "+
-                                (sel?(opt==="미부여"?"border-slate-300 bg-slate-100 text-slate-500":ROLE_COLOR[opt]+" border-current"):"border-slate-200 text-slate-500 hover:bg-slate-50")}>
-                                {opt}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-2 text-[10.5px] text-slate-400 flex items-center gap-1"><Icon name="Info" size={10}/> 서비스마다 다른 권한을 부여할 수 있습니다. 최소 1개 서비스에 권한이 필요합니다.</div>
+                <FleetPermsEditor perms={addUser.perms} onChange={(next)=>setAddUser({...addUser,perms:next})} note="서비스마다 다른 권한을 부여할 수 있습니다. 최소 1개 서비스에 권한이 필요합니다. Master는 전체 일괄 적용됩니다."/>
               </div>
             </div>
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
