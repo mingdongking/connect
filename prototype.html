@@ -862,7 +862,7 @@ function MonitoringHome({ onNavigate }) {
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [moveTarget, setMoveTarget] = useState("");
   const [layerOpen, setLayerOpen] = useState(false);
-  const [layers, setLayers] = useState(new Set(["bg","robot","node","edge","zone","cart"]));
+  const [layers, setLayers] = useState(new Set(["bg","robot","node","edge","cart"]));
   // 편집 중인 다른 사용자 (프로토타입: 시뮬레이션)
   const [editingUser] = useState("samsung.kim");
   const editToastRef = useRef(null);
@@ -909,62 +909,35 @@ function MonitoringHome({ onNavigate }) {
     return () => el.removeEventListener("wheel", handler);
   }, [editMode]);
   const [editMode, setEditMode] = useState(false);
-  const [editTab, setEditTab] = useState("zone");
-  const [editZones, setEditZones] = useState([
-    {id:"EZ-01", name:"Zone A · 입고",  color:"#2563eb", x:80,  y:40,  w:230, h:130},
-    {id:"EZ-02", name:"Zone B · 하역",  color:"#10b981", x:430, y:40,  w:260, h:145},
-    {id:"EZ-03", name:"Zone C · 충전",  color:"#64748b", x:80,  y:300, w:190, h:75},
-    {id:"EZ-04", name:"Zone D · 조립",  color:"#7c3aed", x:310, y:300, w:220, h:88},
-  ]);
-  const [savedZones, setSavedZones] = useState(null);
-  const [selectedZoneId, setSelectedZoneId] = useState(null);
-  const [editingZoneId, setEditingZoneId] = useState(null);
-  const [newZoneName, setNewZoneName] = useState("");
-  const [newZoneColor, setNewZoneColor] = useState("#2563eb");
-  const [addZoneOpen, setAddZoneOpen] = useState(false);
+  const [editTab, setEditTab] = useState("node");
   const [dragState, setDragState] = useState(null);
   const [editHighlightNodeId, setEditHighlightNodeId] = useState(null);
   const [editHighlightEdgeId, setEditHighlightEdgeId] = useState(null);
   const mapCanvasRef = useRef(null);
 
   function enterEdit(){
-    setSavedZones(editZones);
     setMapFullscreen(true);
     setEditMode(true);
   }
   function saveEdit(){
-    setSavedZones(null);
     setCommittedNodeProps(nodeProps);
     setCommittedEdgeProps(edgeProps);
     setMapFullscreen(false);
     setEditMode(false);
-    setSelectedZoneId(null);
   }
   function cancelEdit(){
-    if(savedZones) setEditZones(savedZones);
     setNodeProps(committedNodeProps);
     setEdgeProps(committedEdgeProps);
-    setSavedZones(null);
     setMapFullscreen(false);
     setEditMode(false);
-    setSelectedZoneId(null);
   }
   function exitEdit(){ cancelEdit(); }
 
-  function handleZoneMouseDown(e, zoneId) {
-    if(!editMode) return;
-    e.stopPropagation();
-    setSelectedZoneId(zoneId);
-    const rect = mapCanvasRef.current?.getBoundingClientRect();
-    if(!rect) return;
-    const z = editZones.find(z=>z.id===zoneId);
-    setDragState({zoneId, startX: e.clientX, startY: e.clientY, zoneX: z.x, zoneY: z.y});
-  }
+
   function handleMapMouseMove(e) {
     if(!dragState) return;
     const dx = e.clientX - dragState.startX;
     const dy = e.clientY - dragState.startY;
-    setEditZones(p=>p.map(z=>z.id===dragState.zoneId ? {...z, x: Math.max(0, dragState.zoneX+dx), y: Math.max(0, dragState.zoneY+dy)} : z));
   }
   function handleMapMouseUp() { setDragState(null); }
   function toggleLayer(id){ setLayers(prev=>{ const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; }); }
@@ -1207,10 +1180,9 @@ function MonitoringHome({ onNavigate }) {
               <span className="text-[13px] font-semibold text-slate-900 shrink-0">지도 편집</span>
               <div className="ml-auto flex items-center gap-1.5">
                 {(()=>{
-                  const zonesChanged = JSON.stringify(editZones) !== JSON.stringify(savedZones);
                   const nodesChanged = JSON.stringify(nodeProps) !== JSON.stringify(committedNodeProps);
                   const edgesChanged = JSON.stringify(edgeProps) !== JSON.stringify(committedEdgeProps);
-                  const isDirty = zonesChanged || nodesChanged || edgesChanged;
+                  const isDirty = nodesChanged || edgesChanged;
                   return (<>
                     <button onClick={cancelEdit}
                       className="h-7 px-2 rounded text-[11px] text-slate-600 hover:bg-slate-100 flex items-center gap-1 border border-slate-200">
@@ -1225,150 +1197,14 @@ function MonitoringHome({ onNavigate }) {
               </div>
             </div>
             <div className="flex border-b border-slate-200 px-2 pt-2 gap-1 shrink-0">
-              {[{id:"zone",label:"Zone",icon:"LayoutGrid"},{id:"node",label:"노드",icon:"MapPin"},{id:"edge",label:"엣지",icon:"GitBranch"}].map(t=>(
+              {[{id:"node",label:"노드",icon:"MapPin"},{id:"edge",label:"엣지",icon:"GitBranch"}].map(t=>(
                 <button key={t.id} onClick={()=>setEditTab(t.id)}
                   className={"h-8 px-3 rounded-t text-[12px] font-medium flex items-center gap-1.5 border-b-2 transition "+(editTab===t.id?"border-blue-500 text-blue-700":"border-transparent text-slate-600 hover:text-slate-900")}>
                   <Icon name={t.icon} size={12}/>{t.label}
                 </button>
               ))}
             </div>
-            {editTab==="zone"&&(
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {/* Zone 추가 {"—"} 토글 */}
-                {(()=>{
-                  const PALETTE = [
-                    "#2563eb","#10b981","#7c3aed","#f59e0b","#e11d48",
-                    "#0891b2","#65a30d","#dc2626","#9333ea","#64748b",
-                  ];
-                  return (
-                    <div className="rounded-lg border border-slate-200 overflow-hidden">
-                      {/* 헤더 버튼 */}
-                      <button onClick={()=>setAddZoneOpen(o=>!o)}
-                        className={"w-full h-9 px-3 flex items-center gap-2 text-[12.5px] font-medium transition "+(addZoneOpen?"bg-blue-50 text-blue-700 border-b border-blue-200":"bg-white text-blue-600 hover:bg-blue-50/60")}>
-                        <div className={"w-5 h-5 rounded grid place-items-center transition "+(addZoneOpen?"bg-blue-600":"bg-blue-100")}>
-                          <Icon name={addZoneOpen?"Minus":"Plus"} size={11} className={addZoneOpen?"text-white":"text-blue-600"}/>
-                        </div>
-                        Zone 추가
-                        <Icon name="ChevronDown" size={12} className={"ml-auto text-slate-400 transition-transform "+(addZoneOpen?"rotate-180":"")}/>
-                      </button>
-                      {/* 펼쳐지는 폼 */}
-                      {addZoneOpen&&(
-                        <div className="p-3 space-y-2.5 bg-blue-50/30">
-                          <input value={newZoneName} onChange={e=>setNewZoneName(e.target.value)}
-                            placeholder="Zone 이름 입력"
-                            className="w-full h-8 px-2.5 rounded-md border border-blue-200 text-[12px] text-slate-900 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"/>
-                          <div>
-                            <div className="text-[10px] text-blue-600 mb-1.5">색상 선택</div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {PALETTE.map(col=>(
-                                <button key={col} onClick={()=>setNewZoneColor(col)}
-                                  className={"w-6 h-6 rounded-md transition "+(newZoneColor===col?"ring-2 ring-offset-1 ring-blue-500 scale-110":"")}
-                                  style={{background:col}}/>
-                              ))}
-                              <label className="w-6 h-6 rounded-md border border-slate-300 grid place-items-center cursor-pointer overflow-hidden relative" title="직접 입력">
-                                <Icon name="Pipette" size={11} className="text-slate-500"/>
-                                <input type="color" value={newZoneColor} onChange={e=>setNewZoneColor(e.target.value)}
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"/>
-                              </label>
-                            </div>
-                            <div className="mt-1.5 flex items-center gap-2">
-                              <div className="w-5 h-5 rounded shrink-0" style={{background:newZoneColor}}/>
-                              <span className="text-[10.5px] font-mono text-slate-500">{newZoneColor}</span>
-                            </div>
-                          </div>
-                          <button onClick={()=>{
-                            if(!newZoneName.trim()) return;
-                            const id="EZ-"+(editZones.length+1).toString().padStart(2,"0");
-                            setEditZones(p=>[...p,{id,name:newZoneName.trim(),color:newZoneColor,x:120,y:100,w:160,h:100}]);
-                            setSelectedZoneId(id);
-                            setNewZoneName("");
-                            setAddZoneOpen(false);
-                          }} className={"w-full h-8 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition "+(newZoneName.trim()?"text-white bg-blue-600 hover:bg-blue-700":"text-slate-400 bg-slate-100 cursor-not-allowed")}>
-                            <Icon name="Plus" size={12}/> 추가
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-                <div className="space-y-2">
-                  {editZones.map(z=>{
-                    const isSel=selectedZoneId===z.id;
-                    const zNodes = mapNodes.filter(n=> n.x>=z.x && n.x<=z.x+z.w && n.y>=z.y && n.y<=z.y+z.h);
-                    const zEdges = mapEdges.filter(e=>{
-                      const fn=mapNodes.find(n=>n.id===e.from), tn=mapNodes.find(n=>n.id===e.to);
-                      return fn&&tn&&((fn.x>=z.x&&fn.x<=z.x+z.w&&fn.y>=z.y&&fn.y<=z.y+z.h)||(tn.x>=z.x&&tn.x<=z.x+z.w&&tn.y>=z.y&&tn.y<=z.y+z.h));
-                    });
-                    return(
-                      <div key={z.id}>
-                        <div onClick={()=>setSelectedZoneId(isSel?null:z.id)}
-                          className={"rounded-lg border p-2.5 cursor-pointer transition "+(isSel?"border-blue-400 bg-blue-50/60 shadow-sm":"border-slate-200 bg-slate-50/50 hover:border-slate-300")}>
-                          {editingZoneId===z.id?(
-                            <div className="space-y-2" onClick={e=>e.stopPropagation()}>
-                              <input autoFocus value={newZoneName} onChange={e=>setNewZoneName(e.target.value)}
-                                className="w-full h-8 px-2 rounded-md border border-blue-400 text-[12.5px] text-slate-900 outline-none ring-2 ring-blue-100"/>
-                              {/* 편집 시 색상 팔레트 */}
-                              <div className="flex flex-wrap gap-1">
-                                {["#2563eb","#10b981","#7c3aed","#f59e0b","#e11d48","#0891b2","#65a30d","#dc2626","#9333ea","#64748b"].map(col=>(
-                                  <button key={col} onClick={()=>setEditZones(p=>p.map(x=>x.id===z.id?{...x,color:col}:x))}
-                                    className={"w-5 h-5 rounded transition "+(z.color===col?"ring-2 ring-offset-1 ring-blue-500 scale-110":"")}
-                                    style={{background:col}}/>
-                                ))}
-                                <label className="w-5 h-5 rounded border border-slate-300 grid place-items-center cursor-pointer overflow-hidden relative">
-                                  <Icon name="Pipette" size={9} className="text-slate-500"/>
-                                  <input type="color" value={z.color}
-                                    onChange={e=>setEditZones(p=>p.map(x=>x.id===z.id?{...x,color:e.target.value}:x))}
-                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"/>
-                                </label>
-                              </div>
-                              <div className="flex gap-1.5">
-                                <button onClick={()=>setEditingZoneId(null)} className="h-7 px-2 rounded border border-slate-200 bg-white text-[11.5px] text-slate-600">취소</button>
-                                <button onClick={()=>{setEditZones(p=>p.map(x=>x.id===z.id?{...x,name:newZoneName}:x));setEditingZoneId(null);}}
-                                  className="flex-1 h-7 rounded bg-blue-600 hover:bg-blue-700 text-white text-[11.5px] font-medium">저장</button>
-                              </div>
-                            </div>
-                          ):(
-                            <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-8 rounded-sm shrink-0" style={{background:z.color,opacity:0.75}}/>
-                              <div className="flex-1 min-w-0">
-                                <div className={"text-[12.5px] font-semibold truncate "+(isSel?"text-blue-700":"text-slate-900")}>{z.name}</div>
-                                <div className="text-[10.5px] text-slate-400 tnum">{z.id}</div>
-                              </div>
-                              <Icon name={isSel?"ChevronDown":"ChevronRight"} size={12} className="text-slate-400 shrink-0"/>
-                              <button onClick={e=>{e.stopPropagation();setEditingZoneId(z.id);setNewZoneName(z.name);}} className="w-6 h-6 grid place-items-center rounded hover:bg-slate-200 text-slate-400 hover:text-blue-600"><Icon name="Pencil" size={11}/></button>
-                              <button onClick={e=>{e.stopPropagation();setEditZones(p=>p.filter(x=>x.id!==z.id));if(selectedZoneId===z.id)setSelectedZoneId(null);}} className="w-6 h-6 grid place-items-center rounded hover:bg-rose-50 text-slate-400 hover:text-rose-500"><Icon name="Trash2" size={11}/></button>
-                            </div>
-                          )}
-                        </div>
-                        {/* 선택된 Zone의 하위 노드/엣지 */}
-                        {isSel&&!editingZoneId&&(
-                          <div className="ml-3 mt-1 mb-2 space-y-1 border-l-2 pl-2" style={{borderColor:z.color+"60"}}>
-                            {zNodes.length===0&&zEdges.length===0&&(
-                              <div className="text-[11px] text-slate-400 py-1 italic">이 Zone에 포함된 요소가 없습니다.</div>
-                            )}
-                            {zNodes.map(n=>(
-                              <div key={n.id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white border border-slate-200 text-[11px]">
-                                <Icon name="MapPin" size={10} className="text-blue-500 shrink-0"/>
-                                <span className="font-medium text-slate-800 truncate">{n.label}</span>
-                                <span className="text-slate-400 tnum ml-auto">{n.id}</span>
-                              </div>
-                            ))}
-                            {zEdges.map(e=>(
-                              <div key={e.id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white border border-slate-200 text-[11px]">
-                                <Icon name={e.dir==="bi"?"ArrowLeftRight":"ArrowRight"} size={10} className="text-purple-500 shrink-0"/>
-                                <span className="font-medium text-slate-800 truncate">{e.from}{"→"}{e.to}</span>
-                                <span className="text-slate-400 tnum ml-auto">{e.id}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {editZones.length===0&&<div className="py-6 text-center text-[12px] text-slate-400">Zone이 없습니다.</div>}
-                </div>
-              </div>
-            )}
+
             {editTab==="node"&&(
               <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
                 <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide px-1 mb-2">
@@ -1502,7 +1338,6 @@ function MonitoringHome({ onNavigate }) {
                       {id:"cart",  label:"Tool Cart", icon:"ShoppingCart", color:"#10b981"},
                       {id:"node",  label:"노드",       icon:"MapPin",       color:"#64748b"},
                       {id:"edge",  label:"엣지",       icon:"GitBranch",    color:"#94a3b8"},
-                      {id:"zone",  label:"존",         icon:"LayoutGrid",   color:"#10b981"},
                     ].map(l=>{
                       const on=layers.has(l.id);
                       return(
@@ -1517,9 +1352,9 @@ function MonitoringHome({ onNavigate }) {
                       );
                     })}
                     <div className="h-px bg-slate-100 my-1"/>
-                    <button onClick={()=>setLayers(layers.size===5?new Set():new Set(["bg","robot","node","edge","zone"]))}
+                    <button onClick={()=>setLayers(layers.size===5?new Set():new Set(["bg","robot","node","edge","cart"]))}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-slate-500 hover:text-slate-700 hover:bg-slate-50">
-                      <Icon name={layers.size===4?"EyeOff":"Eye"} size={11}/>
+                      <Icon name={layers.size===5?"EyeOff":"Eye"} size={11}/>
                       {layers.size===5?"전체 숨기기":"전체 보이기"}
                     </button>
                   </div>
@@ -1622,19 +1457,7 @@ function MonitoringHome({ onNavigate }) {
             )}
             {/* 변환 레이어 */}
             <div style={{position:"absolute", left:0, top:0, transform:`translate(${mapTx}px,${mapTy}px) scale(${mapScale})`, transformOrigin:"0 0", willChange:"transform", userSelect:"none"}}>
-            {/* Zone areas */}
-            {/* Zone areas */}
-            {layers.has("zone")&&editZones.map(z=>(
-              <div key={z.id} className="absolute rounded pointer-events-none"
-                style={{
-                  left: z.x, top: z.y, width: z.w, height: z.h,
-                  border: `1.5px dashed ${z.color}60`,
-                  background: z.color + "12",
-                }}>
-                <span className="absolute top-1.5 left-2 text-[10px] font-semibold uppercase"
-                  style={{color: z.color + "cc"}}>{z.name}</span>
-              </div>
-            ))}
+
 
             {/* Edges (SVG) */}
             {layers.has("edge")&&(
@@ -1833,7 +1656,7 @@ function MonitoringHome({ onNavigate }) {
                   ):(
                     /* ── 일반 로봇 아이콘 ── */
                     <>
-                      
+                      {r.st==="run"&&isVis&&<div className="absolute w-8 h-8 rounded-full pulse-ring border-2" style={{borderColor:fm.color,left:-16,top:-16}}/>}
                       <div className={"w-8 h-8 rounded-full grid place-items-center shadow-md border-2 text-white relative "+(isFocus?"scale-125 z-10 ring-4 ring-blue-300/40":"")} style={{background:fm.color,borderColor:"white"}}>
                         <Icon name={r.id.startsWith("Part")?"Cog":"Bot"} size={13}/>
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white" style={{background:sm.color}}/>
@@ -1892,32 +1715,10 @@ function MonitoringHome({ onNavigate }) {
               );
             })}
 
-            {/* Edit Mode: Zone 오버레이 (드래그 가능) */}
             {editMode&&(
               <svg className="absolute inset-0 w-full h-full" style={{pointerEvents:"none", overflow:"visible"}}>
-                {editZones.map(z=>{
-                  const isSel = selectedZoneId===z.id;
-                  return(
-                    <g key={z.id} style={{pointerEvents:"all", cursor: dragState?.zoneId===z.id?"grabbing":"grab"}}
-                      onMouseDown={e=>handleZoneMouseDown(e,z.id)}
-                      onClick={e=>{e.stopPropagation(); setSelectedZoneId(z.id);}}>
-                      <rect x={z.x} y={z.y} width={z.w} height={z.h} rx={6}
-                        fill={z.color} fillOpacity={isSel?0.22:0.12}
-                        stroke={z.color} strokeWidth={isSel?2.5:1.5}
-                        strokeDasharray={isSel?"none":"6 3"}/>
-                      {isSel&&(
-                        <>
-                          <rect x={z.x-3} y={z.y-3} width={z.w+6} height={z.h+6} rx={8}
-                            fill="none" stroke={z.color} strokeWidth={1} opacity={0.35} strokeDasharray="3 3"/>
-                          {[[z.x,z.y],[z.x+z.w,z.y],[z.x,z.y+z.h],[z.x+z.w,z.y+z.h]].map(([cx,cy],i)=>(
-                            <rect key={i} x={cx-4} y={cy-4} width={8} height={8} rx={2} fill="white" stroke={z.color} strokeWidth={1.5}/>
-                          ))}
-                        </>
-                      )}
-                      <text x={z.x+8} y={z.y+18} fill={z.color} fontSize={10} fontWeight="700" style={{pointerEvents:"none", userSelect:"none"}}>{z.name}</text>
-                      <text x={z.x+8} y={z.y+30} fill={z.color} fontSize={8} opacity={0.7} style={{pointerEvents:"none", userSelect:"none"}}>{z.id}</text>
-                    </g>
-                  );
+                {[].map(z=>{
+                  return null;
                 })}
               </svg>
             )}
@@ -7581,8 +7382,6 @@ function RecipeBuilder({ recipeId, onBack, onSave }) {
             </div>
 
             <div ref={mapRef} onClick={handleMapClick} className={"absolute inset-0 grid-bg "+(mapMode==="create"?"cursor-crosshair":"cursor-default")}>
-              <div className="absolute top-10 left-10 w-72 h-40 rounded border border-blue-200 bg-blue-50/30 pointer-events-none"><div className="absolute top-1 left-2 text-[10px] font-medium text-blue-700/70 uppercase">Zone A {"·"} Loading</div></div>
-              <div className="absolute top-52 left-96 w-80 h-44 rounded border border-emerald-200 bg-emerald-50/30 pointer-events-none"><div className="absolute top-1 left-2 text-[10px] font-medium text-emerald-700/70 uppercase">Zone B {"·"} Drop-off</div></div>
               {mapNodes.filter(mn=>mn.fleets.includes(fleet)&&!nodes.find(n=>n.id===mn.id)).map(mn=>(
                 <button key={mn.id} onClick={e=>{e.stopPropagation();addStepForNode({...mn});}} className="absolute -translate-x-1/2 -translate-y-1/2 group" style={{left:mn.x,top:mn.y}} title={mn.label}>
                   <div className="w-7 h-7 rounded-full border-2 border-dashed border-slate-300 bg-white/70 grid place-items-center group-hover:border-blue-500 group-hover:bg-blue-50 group-hover:scale-110 transition"><Icon name="Plus" size={11} className="text-slate-400 group-hover:text-blue-600"/></div>
