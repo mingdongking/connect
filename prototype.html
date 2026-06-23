@@ -892,7 +892,6 @@ function MonitoringHome({ onNavigate }) {
     const el = mapCanvasRef.current;
     if(!el) return;
     const handler = e => {
-      if(editMode) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
       const rect = el.getBoundingClientRect();
@@ -910,6 +909,8 @@ function MonitoringHome({ onNavigate }) {
   }, [editMode]);
   const [editMode, setEditMode] = useState(false);
   const [editTab, setEditTab] = useState("node");
+  const [isSpaceDown, setIsSpaceDown] = useState(false);
+  const [isEditPanning, setIsEditPanning] = useState(false);
   const [dragState, setDragState] = useState(null);
   const [editHighlightNodeId, setEditHighlightNodeId] = useState(null);
   const [editHighlightEdgeId, setEditHighlightEdgeId] = useState(null);
@@ -919,6 +920,15 @@ function MonitoringHome({ onNavigate }) {
     setMapFullscreen(true);
     setEditMode(true);
   }
+  // 편집 모드 Space 패닝 키 이벤트
+  useEffect(()=>{
+    if(!editMode) return;
+    const onKeyDown = e => { if(e.code==="Space"){ e.preventDefault(); setIsSpaceDown(true); } };
+    const onKeyUp   = e => { if(e.code==="Space"){ setIsSpaceDown(false); setIsEditPanning(false); mapPanRef.current=null; } };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup",   onKeyUp);
+    return ()=>{ window.removeEventListener("keydown",onKeyDown); window.removeEventListener("keyup",onKeyUp); };
+  }, [editMode]);
   function saveEdit(){
     setCommittedNodeProps(nodeProps);
     setCommittedEdgeProps(edgeProps);
@@ -1423,8 +1433,14 @@ function MonitoringHome({ onNavigate }) {
           <div ref={mapCanvasRef}
             className={"relative dot-bg overflow-hidden "+(mapFullscreen?"flex-1":"")}
             onMouseDown={e=>{
-              if(editMode) return;
               if(e.button!==0) return;
+              if(editMode){
+                if(!isSpaceDown) return;
+                e.preventDefault();
+                mapPanRef.current={startX:e.clientX,startY:e.clientY,origTx:mapTx,origTy:mapTy,moved:false};
+                setIsEditPanning(true);
+                return;
+              }
               e.preventDefault();
               mapPanRef.current={startX:e.clientX,startY:e.clientY,origTx:mapTx,origTy:mapTy,moved:false};
               setIsPanning(true);
@@ -1438,9 +1454,16 @@ function MonitoringHome({ onNavigate }) {
               setMapTx(mapPanRef.current.origTx+dx);
               setMapTy(mapPanRef.current.origTy+dy);
             }}
-            onMouseUp={e=>{ handleMapMouseUp(e); mapPanRef.current=null; setIsPanning(false); }}
-            onMouseLeave={e=>{ handleMapMouseUp(e); mapPanRef.current=null; setIsPanning(false); }}
-            style={{cursor: isPanning?"grabbing":editMode?"default":"grab", ...(mapFullscreen?{}:{height:460})}}>
+            onMouseUp={e=>{ handleMapMouseUp(e); mapPanRef.current=null; setIsPanning(false); setIsEditPanning(false); }}
+            onMouseLeave={e=>{ handleMapMouseUp(e); mapPanRef.current=null; setIsPanning(false); setIsEditPanning(false); }}
+            style={{cursor: isPanning||isEditPanning?"grabbing":editMode?(isSpaceDown?"grab":"default"):"grab", ...(mapFullscreen?{}:{height:460})}}>
+            {/* 줌/핏 컨트롤 */}
+            {editMode&&(
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/75 backdrop-blur-sm text-white text-[11px] pointer-events-none select-none">
+                <Icon name="Hand" size={12} className="opacity-70"/>
+                <span className="opacity-80">Space + 드래그로 지도 이동</span>
+              </div>
+            )}
             {/* 줌/핏 컨트롤 */}
             {!editMode&&(
               <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
