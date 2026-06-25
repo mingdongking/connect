@@ -5119,7 +5119,7 @@ function FleetMgmtView() {
           <p className="text-[12.5px] text-slate-500 mt-0.5">Fleet 사양 등록·복사·편집·삭제 및 Action Type을 관리합니다.</p>
         </div>
         <div className="flex gap-2">
-          <CsvExportBtn onClick={()=>exportCsv("Fleet목록.csv",[{key:"name",label:"Fleet 명"},{key:"version",label:"버전"},{key:"maxSpeed",label:"최대속도"},{key:"turnRadius",label:"회전반경"},{key:"maker",label:"제조사"}],list)}/>
+          <CsvExportBtn onClick={()=>exportCsv("Fleet목록.csv",[{key:"name",label:"Fleet 명"},{key:"version",label:"버전"},{key:"maker",label:"제조사"}],list)}/>
           <button onClick={()=>setAddOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-[12.5px] font-bold flex items-center gap-1.5 hover:bg-blue-700">
           <Icon name="Plus" size={14}/> 등록
         </button>
@@ -5137,14 +5137,12 @@ function FleetMgmtView() {
             <SortTh label="Fleet 명" k="name" sort={sort} className="px-4"/>
             <SortTh label="버전" k="version" sort={sort}/>
             <th className="font-medium py-2.5">HW 사이즈 (가로×세로×높이)</th>
-            <SortTh label="최대속도" k="maxSpeed" sort={sort} className="text-right"/>
-            <SortTh label="회전반경" k="turnRadius" sort={sort} className="text-right"/>
             <SortTh label="제조사" k="maker" sort={sort} className="pl-5"/>
             <th className="font-medium py-2.5 pl-5">Action Type</th>
             <th className="font-medium py-2.5 pr-4 w-[110px]"></th>
           </tr></thead>
           <tbody>
-            {list.length===0&&<tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
+            {list.length===0&&<tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">등록된 Fleet이 없습니다.</td></tr>}
             {sort.sortRows(list,{maxSpeed:f=>f.maxSpeed, turnRadius:f=>f.turnRadius}).map((f,idx)=>{
               const fid=nameToFleetId(f.name);
               const acts=fid?actionTypes.filter(a=>a.fleets.includes(fid)):[];
@@ -5153,8 +5151,6 @@ function FleetMgmtView() {
                   <td className="px-4 py-3"><span className="font-semibold text-slate-900">{f.name}</span></td>
                   <td className="py-3 tnum text-slate-600">{f.version}</td>
                   <td className="py-3 tnum text-slate-600">{f.w} × {f.d} × {f.h} <span className="text-[10.5px] text-slate-400">mm</span></td>
-                  <td className="py-3 tnum text-slate-600 text-right">{f.maxSpeed} <span className="text-[10.5px] text-slate-400">m/s</span></td>
-                  <td className="py-3 tnum text-slate-600 text-right">{f.turnRadius} <span className="text-[10.5px] text-slate-400">m</span></td>
                   <td className="py-3 pl-5 text-slate-600">{f.maker}</td>
                   <td className="py-3 pl-5">
                     <button onClick={()=>fid&&setActTarget({name:f.name,fid})} title="클릭 → Action Type 관리 (Fleet 공통)"
