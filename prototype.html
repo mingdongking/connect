@@ -793,7 +793,7 @@ function KpiFleetFilter({ selected, setSelected }) {
   );
 }
 
-function MonitoringHome({ onNavigate }) {
+function MonitoringHome({ onNavigate, rideUserId, setRideUserId }) {
   const [focusRobot, setFocusRobot] = useState(null);
   const [kpiFleet, setKpiFleet] = useState(()=>new Set(fleets.map(f=>f.id))); // 로봇 운영현황 Fleet 필터
   const [kpiTaskFleet, setKpiTaskFleet] = useState(()=>new Set(fleets.map(f=>f.id))); // 작업현황 Fleet 필터
@@ -816,8 +816,6 @@ function MonitoringHome({ onNavigate }) {
   const [cmdCartId,   setCmdCartId]   = useState("");
   const [cmdPassId,   setCmdPassId]   = useState("");
   const [cmdUserId,   setCmdUserId]   = useState("");
-  const [showUserSearch, setShowUserSearch] = useState(false);
-  const [userSearchQuery, setUserSearchQuery] = useState("");
   const [stopMode,    setStopMode]    = useState("정상 종료");
   const [commission,  setCommission]  = useState("commission");
   const [errorAction, setErrorAction] = useState(null);
@@ -856,7 +854,7 @@ function MonitoringHome({ onNavigate }) {
     setCmdFleet(fId);
     setManualRobot(robots.filter(r=>r.fleet===fId)[0]?.id||"");
     setManualRecipe(""); setCmdPickNode(""); setCmdDropNode("");
-    setCmdCartId(""); setCmdPassId(""); setCmdUserId(""); setShowUserSearch(false); setUserSearchQuery("");
+    setCmdCartId(""); setCmdPassId(""); setCmdUserId("");
   }
   // manualFleet alias (기존 코드 호환)
   const manualFleet = cmdFleet;
@@ -1179,82 +1177,6 @@ function MonitoringHome({ onNavigate }) {
         </div>
       )}
       {/* Map full width */}
-      {/* 사용자 검색 모달 */}
-      {showUserSearch&&(()=>{
-        const MOCK_USERS=[
-          {id:"kim.minkyung", name:"김민경", dept:"Digital Twin Center", hasRide:true},
-          {id:"lee.junhyun",  name:"이준현", dept:"설비자동화팀",          hasRide:true},
-          {id:"park.sooyeon", name:"박수연", dept:"물류혁신팀",            hasRide:true},
-          {id:"choi.dongwoo", name:"최동우", dept:"생산기술팀",            hasRide:false},
-          {id:"jung.hayun",   name:"정하윤", dept:"공정기술팀",            hasRide:false},
-          {id:"han.seojun",   name:"한서준", dept:"Digital Twin Center", hasRide:true},
-          {id:"yoon.mirae",   name:"윤미래", dept:"스마트팩토리팀",         hasRide:true},
-          {id:"oh.jaemin",    name:"오재민", dept:"설비관리팀",            hasRide:false},
-        ];
-        const filtered=MOCK_USERS.filter(u=>
-          !userSearchQuery||
-          u.id.toLowerCase().includes(userSearchQuery.toLowerCase())||
-          u.name.includes(userSearchQuery)||
-          u.dept.includes(userSearchQuery)
-        );
-        return(
-          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            onClick={e=>{if(e.target===e.currentTarget)setShowUserSearch(false);}}>
-            <div className="bg-white rounded-2xl shadow-2xl w-[420px] flex flex-col overflow-hidden" style={{maxHeight:520}}>
-              <div className="px-5 py-3.5 flex items-center gap-2.5 border-b border-slate-200 shrink-0">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-                  <Icon name="Users" size={15} className="text-white"/>
-                </div>
-                <div>
-                  <div className="text-[13.5px] font-semibold text-slate-900 leading-tight">사용자 검색</div>
-                  <div className="text-[10.5px] text-slate-400 leading-tight">Fleet: Ride 권한 여부 포함</div>
-                </div>
-                <button onClick={()=>setShowUserSearch(false)} className="ml-auto w-7 h-7 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-400">
-                  <Icon name="X" size={14}/>
-                </button>
-              </div>
-              <div className="px-4 py-3 border-b border-slate-100 shrink-0">
-                <div className="relative">
-                  <Icon name="Search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-                  <input autoFocus value={userSearchQuery} onChange={e=>setUserSearchQuery(e.target.value)}
-                    placeholder="이름, knox.id, 부서 검색..."
-                    className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 text-[12.5px] text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50"/>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-                {filtered.length===0&&(
-                  <div className="py-10 text-center text-[12px] text-slate-400">검색 결과가 없습니다.</div>
-                )}
-                {filtered.map(u=>(
-                  <button key={u.id} onClick={()=>{setCmdPassId(u.id);setShowUserSearch(false);}}
-                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-blue-50/50 transition text-left group">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shrink-0 group-hover:from-blue-200 group-hover:to-blue-300 transition">
-                      <span className="text-[13px] font-bold text-blue-700">{u.name[0]}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-slate-900">{u.name}</span>
-                        <span className="text-[11px] text-slate-400 font-mono">{u.id}</span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate mt-0.5">{u.dept}</div>
-                    </div>
-                    <div className={"shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold "+(u.hasRide?"bg-emerald-50 text-emerald-700 border border-emerald-200":"bg-slate-100 text-slate-400 border border-slate-200")}>
-                      <Icon name={u.hasRide?"CheckCircle":"XCircle"} size={11}/>
-                      {u.hasRide?"Ride 권한":"권한 없음"}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 shrink-0">
-                <div className="text-[10.5px] text-slate-400 flex items-center gap-1.5">
-                  <Icon name="Info" size={10}/>
-                  <span>Ride 권한이 없는 사용자는 탑승 요청이 거부될 수 있습니다.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
       {mapFullscreen&&!editMode&&<div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={()=>{setMapFullscreen(false);setEditMode(false);}}/>}
       <div className={mapFullscreen
         ? "fixed inset-4 z-50 rounded-xl shadow-2xl overflow-hidden bg-white flex"+(editMode?" flex-row":" flex-col")
@@ -1979,28 +1901,28 @@ function MonitoringHome({ onNavigate }) {
                       <div className="flex gap-1.5">
                         <div className="relative flex-1">
                           <input
-                            value={cmdPassId}
-                            onChange={e=>setCmdPassId(e.target.value)}
+                            value={rideUserId||""}
+                            onChange={e=>setRideUserId(e.target.value)}
                             placeholder="knox.id 직접 입력"
                             className="w-full h-7 pl-2.5 pr-7 rounded-md border border-slate-200 bg-white text-[11.5px] text-slate-800 outline-none focus:border-blue-400"/>
-                          {cmdPassId&&(
-                            <button onClick={()=>setCmdPassId("")}
+                          {rideUserId&&(
+                            <button onClick={()=>setRideUserId("")}
                               className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">
                               <Icon name="X" size={11}/>
                             </button>
                           )}
                         </div>
                         <button
-                          onClick={()=>{setUserSearchQuery("");setShowUserSearch(true);}}
+                          onClick={()=>onNavigate("popup",{popup:{type:"user-search-ride"}})}
                           className="h-7 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-slate-500 hover:text-blue-600 flex items-center gap-1 text-[11px] transition shrink-0">
                           <Icon name="Search" size={12}/>
                           <span>검색</span>
                         </button>
                       </div>
-                      {cmdPassId&&(
+                      {rideUserId&&(
                         <div className="mt-1 flex items-center gap-1.5 text-[10.5px] text-blue-600">
                           <Icon name="User" size={10}/>
-                          <span className="font-medium">{cmdPassId}</span>
+                          <span className="font-medium">{rideUserId}</span>
                           <span className="text-slate-400">입력됨</span>
                         </div>
                       )}
@@ -10151,6 +10073,7 @@ function App() {
   const [logsInitCat3,setLogsInitCat3]=useState(null);
   const [isDark,setIsDark]=useState(false);
   const [pendingOrder,setPendingOrder]=useState(null);
+  const [rideUserId,setRideUserId]=useState("");
   // 글로벌 팝업 (transform 스택 컨텍스트 회피)
   const [globalPopup,setGlobalPopup]=useState(null); // {type, data}
   useEffect(()=>{ document.documentElement.classList.toggle("dm", isDark); },[isDark]);
@@ -10182,6 +10105,73 @@ function App() {
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-slate-50">
       {/* ── 글로벌 팝업 레이어 (transform 영향 없음) ── */}
+      {globalPopup?.type==="user-search-ride"&&(()=>{
+        const MOCK_USERS=[
+          {id:"kim.minkyung", name:"김민경", dept:"Digital Twin Center", hasRide:true},
+          {id:"lee.junhyun",  name:"이준현", dept:"설비자동화팀",          hasRide:true},
+          {id:"park.sooyeon", name:"박수연", dept:"물류혁신팀",            hasRide:true},
+          {id:"choi.dongwoo", name:"최동우", dept:"생산기술팀",            hasRide:false},
+          {id:"jung.hayun",   name:"정하윤", dept:"공정기술팀",            hasRide:false},
+          {id:"han.seojun",   name:"한서준", dept:"Digital Twin Center", hasRide:true},
+          {id:"yoon.mirae",   name:"윤미래", dept:"스마트팩토리팀",         hasRide:true},
+          {id:"oh.jaemin",    name:"오재민", dept:"설비관리팀",            hasRide:false},
+        ];
+        const [q,setQ]=React.useState("");
+        const filtered=MOCK_USERS.filter(u=>
+          !q||u.id.toLowerCase().includes(q.toLowerCase())||u.name.includes(q)||u.dept.includes(q)
+        );
+        return(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={e=>{if(e.target===e.currentTarget)setGlobalPopup(null);}}>
+            <div className="bg-white rounded-2xl shadow-2xl w-[420px] flex flex-col overflow-hidden" style={{maxHeight:520}}>
+              <div className="px-5 py-3.5 flex items-center gap-2.5 border-b border-slate-200 shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+                  <Icon name="Users" size={15} className="text-white"/>
+                </div>
+                <div>
+                  <div className="text-[13.5px] font-semibold text-slate-900 leading-tight">사용자 검색</div>
+                  <div className="text-[10.5px] text-slate-400 leading-tight">Fleet: Ride 권한 여부 포함</div>
+                </div>
+                <button onClick={()=>setGlobalPopup(null)} className="ml-auto w-7 h-7 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-400">
+                  <Icon name="X" size={14}/>
+                </button>
+              </div>
+              <div className="px-4 py-3 border-b border-slate-100 shrink-0">
+                <div className="relative">
+                  <Icon name="Search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+                  <input autoFocus value={q} onChange={e=>setQ(e.target.value)}
+                    placeholder="이름, knox.id, 부서 검색..."
+                    className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 text-[12.5px] text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50"/>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+                {filtered.length===0&&(
+                  <div className="py-10 text-center text-[12px] text-slate-400">검색 결과가 없습니다.</div>
+                )}
+                {filtered.map(u=>(
+                  <button key={u.id} onClick={()=>{setRideUserId(u.id);setGlobalPopup(null);}}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-blue-50/50 transition text-left group">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shrink-0 group-hover:from-blue-200 group-hover:to-blue-300 transition">
+                      <span className="text-[13px] font-bold text-blue-700">{u.name[0]}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-semibold text-slate-900">{u.name}</span>
+                        <span className="text-[11px] text-slate-400 font-mono">{u.id}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate mt-0.5">{u.dept}</div>
+                    </div>
+                    <div className={"shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold "+(u.hasRide?"bg-emerald-50 text-emerald-700 border border-emerald-200":"bg-slate-100 text-slate-400 border border-slate-200")}>
+                      <Icon name={u.hasRide?"CheckCircle":"XCircle"} size={11}/>
+                      {u.hasRide?"Ride 권한":"권한 없음"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {globalPopup?.type==="cmd-delivery"&&(
         <div className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm grid place-items-center p-4" onClick={()=>setGlobalPopup(null)}>
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[360px] p-5" onClick={e=>e.stopPropagation()}>
@@ -10218,7 +10208,7 @@ function App() {
       <div className="flex-1 min-w-0 flex flex-col">
         <Header activeLabel={activeMeta?.label||""} onOpenCmd={()=>setCmdOpen(true)}/>
         <main className="flex-1 min-h-0 relative">
-          <div style={{display:active==="home"?"contents":"none"}}><MonitoringHome onNavigate={navigate}/></div>
+          <div style={{display:active==="home"?"contents":"none"}}><MonitoringHome onNavigate={navigate} rideUserId={rideUserId} setRideUserId={setRideUserId}/></div>
           <div style={{display:active==="work"?"contents":"none"}}><RecipeView onSaveRecipe={saveRecipe}/></div>
           <div style={{display:active==="order-template"?"contents":"none"}}><OrderTemplateView onNavigate={navigate}/></div>
           <div style={{display:active==="schedule"?"contents":"none"}}><SchedulerView initialFocusRecipeId={focusRcp} pendingOrder={pendingOrder} onMounted={()=>setPendingOrder(null)} onNavigate={navigate}/></div>
