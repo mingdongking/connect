@@ -1179,6 +1179,82 @@ function MonitoringHome({ onNavigate }) {
         </div>
       )}
       {/* Map full width */}
+      {/* 사용자 검색 모달 */}
+      {showUserSearch&&(()=>{
+        const MOCK_USERS=[
+          {id:"kim.minkyung", name:"김민경", dept:"Digital Twin Center", hasRide:true},
+          {id:"lee.junhyun",  name:"이준현", dept:"설비자동화팀",          hasRide:true},
+          {id:"park.sooyeon", name:"박수연", dept:"물류혁신팀",            hasRide:true},
+          {id:"choi.dongwoo", name:"최동우", dept:"생산기술팀",            hasRide:false},
+          {id:"jung.hayun",   name:"정하윤", dept:"공정기술팀",            hasRide:false},
+          {id:"han.seojun",   name:"한서준", dept:"Digital Twin Center", hasRide:true},
+          {id:"yoon.mirae",   name:"윤미래", dept:"스마트팩토리팀",         hasRide:true},
+          {id:"oh.jaemin",    name:"오재민", dept:"설비관리팀",            hasRide:false},
+        ];
+        const filtered=MOCK_USERS.filter(u=>
+          !userSearchQuery||
+          u.id.toLowerCase().includes(userSearchQuery.toLowerCase())||
+          u.name.includes(userSearchQuery)||
+          u.dept.includes(userSearchQuery)
+        );
+        return(
+          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={e=>{if(e.target===e.currentTarget)setShowUserSearch(false);}}>
+            <div className="bg-white rounded-2xl shadow-2xl w-[420px] flex flex-col overflow-hidden" style={{maxHeight:520}}>
+              <div className="px-5 py-3.5 flex items-center gap-2.5 border-b border-slate-200 shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+                  <Icon name="Users" size={15} className="text-white"/>
+                </div>
+                <div>
+                  <div className="text-[13.5px] font-semibold text-slate-900 leading-tight">사용자 검색</div>
+                  <div className="text-[10.5px] text-slate-400 leading-tight">Fleet: Ride 권한 여부 포함</div>
+                </div>
+                <button onClick={()=>setShowUserSearch(false)} className="ml-auto w-7 h-7 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-400">
+                  <Icon name="X" size={14}/>
+                </button>
+              </div>
+              <div className="px-4 py-3 border-b border-slate-100 shrink-0">
+                <div className="relative">
+                  <Icon name="Search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+                  <input autoFocus value={userSearchQuery} onChange={e=>setUserSearchQuery(e.target.value)}
+                    placeholder="이름, knox.id, 부서 검색..."
+                    className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 text-[12.5px] text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-slate-50"/>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+                {filtered.length===0&&(
+                  <div className="py-10 text-center text-[12px] text-slate-400">검색 결과가 없습니다.</div>
+                )}
+                {filtered.map(u=>(
+                  <button key={u.id} onClick={()=>{setCmdPassId(u.id);setShowUserSearch(false);}}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-blue-50/50 transition text-left group">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shrink-0 group-hover:from-blue-200 group-hover:to-blue-300 transition">
+                      <span className="text-[13px] font-bold text-blue-700">{u.name[0]}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-semibold text-slate-900">{u.name}</span>
+                        <span className="text-[11px] text-slate-400 font-mono">{u.id}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate mt-0.5">{u.dept}</div>
+                    </div>
+                    <div className={"shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold "+(u.hasRide?"bg-emerald-50 text-emerald-700 border border-emerald-200":"bg-slate-100 text-slate-400 border border-slate-200")}>
+                      <Icon name={u.hasRide?"CheckCircle":"XCircle"} size={11}/>
+                      {u.hasRide?"Ride 권한":"권한 없음"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 shrink-0">
+                <div className="text-[10.5px] text-slate-400 flex items-center gap-1.5">
+                  <Icon name="Info" size={10}/>
+                  <span>Ride 권한이 없는 사용자는 탑승 요청이 거부될 수 있습니다.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {mapFullscreen&&!editMode&&<div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={()=>{setMapFullscreen(false);setEditMode(false);}}/>}
       <div className={mapFullscreen
         ? "fixed inset-4 z-50 rounded-xl shadow-2xl overflow-hidden bg-white flex"+(editMode?" flex-row":" flex-col")
@@ -1929,90 +2005,7 @@ function MonitoringHome({ onNavigate }) {
                         </div>
                       )}
                     </div>
-                    {/* 사용자 검색 모달 */}
-                    {showUserSearch&&(()=>{
-                      const MOCK_USERS=[
-                        {id:"kim.minkyung", name:"김민경", dept:"Digital Twin Center", hasRide:true},
-                        {id:"lee.junhyun",  name:"이준현", dept:"설비자동화팀",          hasRide:true},
-                        {id:"park.sooyeon", name:"박수연", dept:"물류혁신팀",            hasRide:true},
-                        {id:"choi.dongwoo", name:"최동우", dept:"생산기술팀",            hasRide:false},
-                        {id:"jung.hayun",   name:"정하윤", dept:"공정기술팀",            hasRide:false},
-                        {id:"han.seojun",   name:"한서준", dept:"Digital Twin Center", hasRide:true},
-                        {id:"yoon.mirae",   name:"윤미래", dept:"스마트팩토리팀",         hasRide:true},
-                        {id:"oh.jaemin",    name:"오재민", dept:"설비관리팀",            hasRide:false},
-                      ];
-                      const filtered=MOCK_USERS.filter(u=>
-                        !userSearchQuery||
-                        u.id.toLowerCase().includes(userSearchQuery.toLowerCase())||
-                        u.name.includes(userSearchQuery)||
-                        u.dept.includes(userSearchQuery)
-                      );
-                      return(
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 backdrop-blur-sm"
-                          onClick={e=>{if(e.target===e.currentTarget)setShowUserSearch(false);}}>
-                          <div className="bg-white rounded-xl shadow-2xl w-[380px] flex flex-col overflow-hidden" style={{maxHeight:480}}>
-                            {/* 헤더 */}
-                            <div className="h-12 px-4 flex items-center gap-2 border-b border-slate-200 shrink-0">
-                              <Icon name="Users" size={15} className="text-blue-600"/>
-                              <span className="text-[13.5px] font-semibold text-slate-900">사용자 검색</span>
-                              <span className="ml-1 text-[11px] text-slate-400">Fleet: Ride 권한 포함</span>
-                              <button onClick={()=>setShowUserSearch(false)} className="ml-auto w-7 h-7 grid place-items-center rounded hover:bg-slate-100 text-slate-400">
-                                <Icon name="X" size={13}/>
-                              </button>
-                            </div>
-                            {/* 검색 입력 */}
-                            <div className="px-3 py-2.5 border-b border-slate-100 shrink-0">
-                              <div className="relative">
-                                <Icon name="Search" size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
-                                <input
-                                  autoFocus
-                                  value={userSearchQuery}
-                                  onChange={e=>setUserSearchQuery(e.target.value)}
-                                  placeholder="이름, knox.id, 부서 검색..."
-                                  className="w-full h-8 pl-8 pr-3 rounded-lg border border-slate-200 text-[12px] text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"/>
-                              </div>
-                            </div>
-                            {/* 결과 목록 */}
-                            <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-                              {filtered.length===0&&(
-                                <div className="py-8 text-center text-[12px] text-slate-400">검색 결과가 없습니다.</div>
-                              )}
-                              {filtered.map(u=>(
-                                <button key={u.id}
-                                  onClick={()=>{setCmdPassId(u.id);setShowUserSearch(false);}}
-                                  className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-blue-50/60 transition text-left">
-                                  {/* 아바타 */}
-                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                    <span className="text-[12px] font-bold text-blue-600">{u.name[0]}</span>
-                                  </div>
-                                  {/* 정보 */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[12.5px] font-semibold text-slate-900">{u.name}</span>
-                                      <span className="text-[10.5px] text-slate-400 font-mono">{u.id}</span>
-                                    </div>
-                                    <div className="text-[11px] text-slate-500 truncate">{u.dept}</div>
-                                  </div>
-                                  {/* Ride 권한 뱃지 */}
-                                  <div className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${u.hasRide?"bg-emerald-50 text-emerald-700 border border-emerald-200":"bg-slate-100 text-slate-400 border border-slate-200"}`}>
-                                    <Icon name={u.hasRide?"CheckCircle":"XCircle"} size={10}/>
-                                    {u.hasRide?"Ride 권한":"권한 없음"}
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                            {/* 푸터 */}
-                            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
-                              <div className="text-[10.5px] text-slate-400 flex items-center gap-1">
-                                <Icon name="Info" size={10}/>
-                                <span>Ride 권한이 없는 사용자는 탑승 요청이 거부될 수 있습니다.</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </>)}
+                  
 
                   {/* Delivery-Parts */}
                   {cmdFleet==="arm"&&(<>
