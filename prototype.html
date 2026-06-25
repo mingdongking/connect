@@ -5182,6 +5182,17 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
   const [chargingCurrent,setChargingCurrent]=useState(String(init?.chargingCurrent??25));
   const [rechargeThreshold,setRechargeThreshold]=useState(String(init?.rechargeThreshold??40));
   const [rechargeSoc,setRechargeSoc]=useState(String(init?.rechargeSoc??70));
+  const [autoReturn,setAutoReturn]=useState(!!init?.autoReturn);
+  const [wpRadius,setWpRadius]=useState(String(init?.wpRadius??0.3));
+  const [wpTheta,setWpTheta]=useState(String(init?.wpTheta??30));
+  const [goalRadius,setGoalRadius]=useState(String(init?.goalRadius??0.15));
+  const [goalTheta,setGoalTheta]=useState(String(init?.goalTheta??10));
+  const [stateHz,setStateHz]=useState(String(init?.stateHz??10));
+  const [brokerIp,setBrokerIp]=useState(init?.brokerIp??"");
+  const [brokerPort,setBrokerPort]=useState(String(init?.brokerPort??1883));
+  const [brokerPrefix,setBrokerPrefix]=useState(init?.brokerPrefix??"");
+  const [brokerVendor,setBrokerVendor]=useState(init?.brokerVendor??"");
+  const [brokerMfr,setBrokerMfr]=useState(init?.brokerMfr??"");
   const [capLoop,setCapLoop]=useState(init?!!init.capLoop:true);
   const [capDelivery,setCapDelivery]=useState(init?!!init.capDelivery:true);
   const [capClean,setCapClean]=useState(!!init?.capClean);
@@ -5203,6 +5214,12 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
     voltage:Number(voltage||0), capacity:Number(capacity||0), chargingCurrent:Number(chargingCurrent||0),
     rechargeThreshold:Number(rechargeThreshold||0), rechargeSoc:Number(rechargeSoc||0),
     capLoop, capDelivery, capClean, parkingResv,
+    autoReturn,
+    wpRadius:Number(wpRadius||0), wpTheta:Number(wpTheta||0),
+    goalRadius:Number(goalRadius||0), goalTheta:Number(goalTheta||0),
+    stateHz:Number(stateHz||0),
+    brokerIp:brokerIp.trim(), brokerPort:Number(brokerPort||0), brokerPrefix:brokerPrefix.trim(),
+    brokerVendor:brokerVendor.trim(), brokerMfr:brokerMfr.trim(),
   });
   const submit=()=>{
     if(!version.trim()){alert("버전명을 기입해주세요.");return;}
@@ -5212,7 +5229,7 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
   };
 
   return(
-    <MgmtModal title={title} icon="Boxes" width={560} onClose={onClose}
+    <MgmtModal title={title} icon="Boxes" width={620} onClose={onClose}
       extra={confirmOverwrite&&(
         <div className="absolute inset-0 z-10 rounded-xl bg-black/30 flex items-center justify-center">
           <div className="bg-white rounded-xl shadow-2xl p-5 w-72 space-y-3 mx-4">
@@ -5249,6 +5266,12 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
                     setVoltage(String(ref.voltage));setCapacity(String(ref.capacity));setChargingCurrent(String(ref.chargingCurrent));
                     setRechargeThreshold(String(ref.rechargeThreshold));setRechargeSoc(String(ref.rechargeSoc));
                     setCapLoop(!!ref.capLoop);setCapDelivery(!!ref.capDelivery);setCapClean(!!ref.capClean);setParkingResv(!!ref.parkingResv);
+                    setAutoReturn(!!ref.autoReturn);
+                    setWpRadius(String(ref.wpRadius??0.3));setWpTheta(String(ref.wpTheta??30));
+                    setGoalRadius(String(ref.goalRadius??0.15));setGoalTheta(String(ref.goalTheta??10));
+                    setStateHz(String(ref.stateHz??10));
+                    setBrokerIp(ref.brokerIp??"");setBrokerPort(String(ref.brokerPort??1883));setBrokerPrefix(ref.brokerPrefix??"");
+                    setBrokerVendor(ref.brokerVendor??"");setBrokerMfr(ref.brokerMfr??"");
                   }
                 }
               }} className={mgmtSelCls}>
@@ -5298,7 +5321,7 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
         </MgmtField>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <MgmtField label="회전반경 · footprint (m)">
+        <MgmtField label="로봇 반경 · footprint (m)">
           <input value={turnRadius} onChange={e=>setTurnRadius(num(e.target.value))} className={mgmtInpCls}/>
         </MgmtField>
         <MgmtField label="간섭 여유 반경 · vicinity (m)">
@@ -5335,6 +5358,12 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
         </MgmtField>
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <MgmtField label="자동 복귀 사용 여부">
+          <MgmtToggle on={autoReturn} onLabel="사용" offLabel="미사용" onClick={()=>setAutoReturn(v=>!v)}/>
+        </MgmtField>
+      </div>
+
       <div className={secHdr}><span className={secTxt}>작업 능력</span><div className="flex-1 h-px bg-slate-100"/></div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
         <MgmtField label="순찰·반복 주행 (loop)">
@@ -5348,6 +5377,56 @@ function FleetFormModal({title,init,lockName,existing,onClose,onSave}){
         </MgmtField>
         <MgmtField label="주차 공간 예약 사용">
           <MgmtToggle on={parkingResv} onLabel="사용" offLabel="미사용" onClick={()=>setParkingResv(v=>!v)}/>
+        </MgmtField>
+      </div>
+
+      <div className={secHdr}><span className={secTxt}>주행 세부 설정</span><div className="flex-1 h-px bg-slate-100"/></div>
+      <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-3">
+        <div>
+          <div className="text-[11px] font-semibold text-slate-500 mb-2">경유지 도착 판정 범위</div>
+          <div className="grid grid-cols-2 gap-3">
+            <MgmtField label="반경 범위 (m)">
+              <input value={wpRadius} onChange={e=>setWpRadius(num(e.target.value))} className={mgmtInpCls}/>
+            </MgmtField>
+            <MgmtField label="Theta 범위 (°)">
+              <input value={wpTheta} onChange={e=>setWpTheta(num(e.target.value))} className={mgmtInpCls}/>
+            </MgmtField>
+          </div>
+        </div>
+        <div>
+          <div className="text-[11px] font-semibold text-slate-500 mb-2">최종 목적지 도착 판정 범위</div>
+          <div className="grid grid-cols-2 gap-3">
+            <MgmtField label="반경 범위 (m)">
+              <input value={goalRadius} onChange={e=>setGoalRadius(num(e.target.value))} className={mgmtInpCls}/>
+            </MgmtField>
+            <MgmtField label="Theta 범위 (°)">
+              <input value={goalTheta} onChange={e=>setGoalTheta(num(e.target.value))} className={mgmtInpCls}/>
+            </MgmtField>
+          </div>
+        </div>
+        <MgmtField label="로봇 State 업데이트 주기 (Hz)">
+          <input value={stateHz} onChange={e=>setStateHz(num(e.target.value))} className={mgmtInpCls}/>
+        </MgmtField>
+      </div>
+
+      <div className={secHdr}><span className={secTxt}>Message Broker 설정</span><div className="flex-1 h-px bg-slate-100"/></div>
+      <div className="grid grid-cols-2 gap-3">
+        <MgmtField label="IP">
+          <input value={brokerIp} onChange={e=>setBrokerIp(e.target.value)} placeholder="예: 10.140.28.177" className={mgmtInpCls}/>
+        </MgmtField>
+        <MgmtField label="Port">
+          <input value={brokerPort} onChange={e=>setBrokerPort(intOnly(e.target.value))} placeholder="예: 1883" className={mgmtInpCls}/>
+        </MgmtField>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <MgmtField label="Prefix">
+          <input value={brokerPrefix} onChange={e=>setBrokerPrefix(e.target.value)} placeholder="예: robot/" className={mgmtInpCls}/>
+        </MgmtField>
+        <MgmtField label="Vendor">
+          <input value={brokerVendor} onChange={e=>setBrokerVendor(e.target.value)} className={mgmtInpCls}/>
+        </MgmtField>
+        <MgmtField label="Manufacturer">
+          <input value={brokerMfr} onChange={e=>setBrokerMfr(e.target.value)} className={mgmtInpCls}/>
         </MgmtField>
       </div>
     </MgmtModal>
